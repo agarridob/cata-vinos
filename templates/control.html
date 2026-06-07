@@ -403,15 +403,158 @@
     font-size: 16px; font-weight: 700; cursor: pointer; line-height: 1;
   }
   .user-del:active { background: #a02818; color: #f5ecd5; }
+
+  /* ─── Header + logout ─── */
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .header-title-wrap { text-align: left; min-width: 0; }
+  .header-kicker {
+    font-size: 10px;
+    color: #8a5a2a;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .logout-form { margin: 0; flex-shrink: 0; }
+  .logout-btn {
+    border: 1px solid #6e0f2a;
+    background: rgba(110, 15, 42, 0.08);
+    color: #6e0f2a;
+    border-radius: 999px;
+    padding: 9px 13px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .logout-btn:active { transform: scale(0.97); background: rgba(110, 15, 42, 0.16); }
+
+  /* ─── Editor visual de vinos ─── */
+  .editor-section {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px dashed #c8a878;
+  }
+  .editor-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .editor-actions .admin-btn { margin-bottom: 0; }
+  .editor-actions .wide { grid-column: 1 / -1; }
+  .editor-session {
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(200, 168, 120, 0.8);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .editor-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: #8a5a2a;
+    font-weight: 700;
+  }
+  .editor-input,
+  .editor-textarea {
+    width: 100%;
+    border: 1px solid #c8a878;
+    background: rgba(255, 255, 255, 0.62);
+    color: #3a2418;
+    border-radius: 7px;
+    padding: 10px 11px;
+    font-family: inherit;
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .editor-textarea { min-height: 72px; resize: vertical; }
+  .editor-status {
+    min-height: 18px;
+    margin: 8px 2px 10px;
+    font-size: 12px;
+    color: #6e0f2a;
+    font-weight: 600;
+  }
+  .editor-status.error { color: #a02818; }
+  .wine-editor-list { display: flex; flex-direction: column; gap: 10px; }
+  .wine-editor-card {
+    background: rgba(255, 255, 255, 0.52);
+    border: 1px solid #d8c094;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .wine-editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .wine-editor-title {
+    min-width: 0;
+    color: #2a1812;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .wine-editor-actions {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .mini-btn {
+    border: 1px solid #c8a878;
+    background: rgba(168, 119, 26, 0.08);
+    color: #8a5a2a;
+    border-radius: 7px;
+    padding: 7px 8px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .mini-btn.danger { border-color: #a02818; color: #a02818; background: rgba(160, 40, 24, 0.05); }
+  .wine-editor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  .wine-editor-grid .full { grid-column: 1 / -1; }
+  @media (max-width: 520px) {
+    .header-inner { align-items: flex-start; }
+    .header h1 { font-size: 16px; letter-spacing: 3.5px; }
+    .logout-btn { padding: 8px 10px; font-size: 10px; }
+    .wine-editor-grid { grid-template-columns: 1fr; }
+    .wine-editor-grid .full { grid-column: auto; }
+  }
+
 </style>
 </head>
 <body>
   <div class="header">
-    <h1>In Vino Veritas</h1>
+    <div class="header-inner">
+      <div class="header-title-wrap">
+        <div class="header-kicker">Panel anfitrión</div>
+        <h1>In Vino Veritas</h1>
+      </div>
+      <form class="logout-form" method="post" action="/logout">
+        <button class="logout-btn" type="submit">Cerrar sesión</button>
+      </form>
+    </div>
   </div>
-  <form method="post" action="/logout">
-    <button type="submit">Cerrar sesión</button>
-  </form>
   <div id="content">
     <div class="empty">Cargando…</div>
   </div>
@@ -581,6 +724,31 @@ function render() {
       <button onclick="reload()">↻ Recargar wines.json</button>
     </div>
 
+    <div class="editor-section" id="wine-editor-section">
+      <div class="admin-title">Editor visual de vinos</div>
+      <div class="editor-actions">
+        <button class="admin-btn admin-btn-warn" id="btn-load-editor">
+          <span class="admin-btn-label">Cargar editor</span>
+          <span class="admin-btn-sub">Lee data/wines.json</span>
+        </button>
+        <button class="admin-btn admin-btn-warn" id="btn-add-editor-wine">
+          <span class="admin-btn-label">Añadir vino</span>
+          <span class="admin-btn-sub">Crea una ficha vacía</span>
+        </button>
+        <button class="admin-btn admin-btn-danger wide" id="btn-save-editor">
+          <span class="admin-btn-label">Guardar carta de vinos</span>
+          <span class="admin-btn-sub">Actualiza wines.json y refresca la TV</span>
+        </button>
+      </div>
+      <div class="editor-session">
+        <label class="editor-label">Nombre de la sesión
+          <input class="editor-input" id="editor-session-name" type="text" placeholder="Cata · Nombre">
+        </label>
+      </div>
+      <div class="editor-status" id="wines-editor-status">Carga el editor para modificar la carta.</div>
+      <div class="wine-editor-list" id="wines-editor-list"></div>
+    </div>
+
     <div class="admin-section">
       <div class="admin-title">Administración</div>
       <button class="admin-btn admin-btn-warn" id="btn-welcome-back" ${state.is_welcome ? 'disabled style="opacity:0.4"' : ''}>
@@ -652,6 +820,217 @@ function render() {
   list.appendChild(summary);
 
   renderUsers();
+  bindWineEditorControls();
+  renderWinesEditor();
+}
+
+
+// ──────────────────────────────────────────
+// Editor visual de vinos
+// ──────────────────────────────────────────
+let winesEditorLoaded = false;
+let winesEditorData = { session: '', wifi: null, wines: [] };
+
+function setWinesEditorStatus(msg, isError = false) {
+  const el = document.getElementById('wines-editor-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('error', !!isError);
+}
+
+function emptyWine() {
+  return {
+    name: '', winery: '', vintage: '', do: '', grape: '', region: '',
+    rating: '', curiosity: '', photo: '', coords: ['', '']
+  };
+}
+
+function normalizeWineForEditor(w) {
+  const out = emptyWine();
+  ['name','winery','vintage','do','grape','region','rating','curiosity','photo'].forEach(k => {
+    out[k] = w && w[k] != null ? String(w[k]) : '';
+  });
+  if (w && Array.isArray(w.coords) && w.coords.length === 2) {
+    out.coords = [
+      w.coords[0] != null ? String(w.coords[0]) : '',
+      w.coords[1] != null ? String(w.coords[1]) : '',
+    ];
+  }
+  return out;
+}
+
+async function loadWinesEditor() {
+  setWinesEditorStatus('Cargando carta…');
+  try {
+    const r = await fetch('/api/wines-config', { cache: 'no-store' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    winesEditorData = {
+      session: data.session || '',
+      wifi: data.wifi || null,
+      wines: Array.isArray(data.wines) ? data.wines.map(normalizeWineForEditor) : [],
+    };
+    winesEditorLoaded = true;
+    renderWinesEditor();
+    setWinesEditorStatus(`Carta cargada: ${winesEditorData.wines.length} vinos.`);
+  } catch (e) {
+    console.error(e);
+    setWinesEditorStatus('No se pudo cargar la carta.', true);
+  }
+}
+
+function collectWinesEditorData() {
+  const sessionInput = document.getElementById('editor-session-name');
+  if (sessionInput) winesEditorData.session = sessionInput.value.trim();
+  document.querySelectorAll('.wine-editor-card').forEach(card => {
+    const idx = parseInt(card.dataset.idx, 10);
+    const wine = winesEditorData.wines[idx];
+    if (!wine) return;
+    card.querySelectorAll('[data-field]').forEach(input => {
+      const f = input.dataset.field;
+      if (f === 'lat') wine.coords[0] = input.value.trim();
+      else if (f === 'lon') wine.coords[1] = input.value.trim();
+      else wine[f] = input.value.trim();
+    });
+  });
+}
+
+function renderWinesEditor() {
+  const sessionInput = document.getElementById('editor-session-name');
+  const list = document.getElementById('wines-editor-list');
+  if (!sessionInput || !list) return;
+  if (!winesEditorLoaded) return;
+
+  sessionInput.value = winesEditorData.session || '';
+  list.innerHTML = '';
+
+  winesEditorData.wines.forEach((w, idx) => {
+    const card = document.createElement('div');
+    card.className = 'wine-editor-card';
+    card.dataset.idx = String(idx);
+    const title = w.name || `Vino ${idx + 1}`;
+    card.innerHTML = `
+      <div class="wine-editor-head">
+        <div class="wine-editor-title">${idx + 1}. ${escapeHtml(title)}</div>
+        <div class="wine-editor-actions">
+          <button class="mini-btn" data-editor-action="up" title="Subir">↑</button>
+          <button class="mini-btn" data-editor-action="down" title="Bajar">↓</button>
+          <button class="mini-btn" data-editor-action="duplicate" title="Duplicar">⧉</button>
+          <button class="mini-btn danger" data-editor-action="delete" title="Eliminar">✕</button>
+        </div>
+      </div>
+      <div class="wine-editor-grid">
+        ${editorField('Nombre', 'name', w.name)}
+        ${editorField('Bodega', 'winery', w.winery)}
+        ${editorField('Añada', 'vintage', w.vintage)}
+        ${editorField('D.O.', 'do', w.do)}
+        ${editorField('Uva', 'grape', w.grape)}
+        ${editorField('Región', 'region', w.region)}
+        ${editorField('Rating', 'rating', w.rating)}
+        ${editorField('Foto', 'photo', w.photo)}
+        ${editorField('Latitud', 'lat', w.coords[0])}
+        ${editorField('Longitud', 'lon', w.coords[1])}
+        <label class="editor-label full">Curiosidad
+          <textarea class="editor-textarea" data-field="curiosity">${escapeHtml(w.curiosity || '')}</textarea>
+        </label>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function editorField(label, field, value) {
+  return `<label class="editor-label">${label}
+    <input class="editor-input" data-field="${field}" value="${escapeAttr(value || '')}">
+  </label>`;
+}
+
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function buildWinesEditorPayload() {
+  collectWinesEditorData();
+  return {
+    session: winesEditorData.session,
+    wifi: winesEditorData.wifi,
+    wines: winesEditorData.wines.map(w => {
+      const out = {
+        name: w.name || '', winery: w.winery || '', vintage: w.vintage || '',
+        do: w.do || '', grape: w.grape || '', region: w.region || '',
+        rating: w.rating || '', curiosity: w.curiosity || '', photo: w.photo || '',
+      };
+      const lat = String(w.coords?.[0] || '').trim();
+      const lon = String(w.coords?.[1] || '').trim();
+      if (lat !== '' && lon !== '') out.coords = [Number(lat), Number(lon)];
+      return out;
+    }),
+  };
+}
+
+async function saveWinesEditor() {
+  if (!winesEditorLoaded) {
+    showToast('Primero carga el editor.', true);
+    return;
+  }
+  if (!confirm('¿Guardar los cambios en wines.json y refrescar la TV?')) return;
+  setWinesEditorStatus('Guardando carta…');
+  try {
+    const r = await fetch('/api/wines-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildWinesEditorPayload()),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    showToast(`Carta guardada (${data.count} vinos).`);
+    setWinesEditorStatus(`Guardado OK · ${data.count} vinos.`);
+    await fetchState();
+  } catch (e) {
+    console.error(e);
+    setWinesEditorStatus(`No se pudo guardar: ${e.message}`, true);
+    showToast('No se pudo guardar la carta', true);
+  }
+}
+
+function addEditorWine() {
+  if (!winesEditorLoaded) winesEditorLoaded = true;
+  collectWinesEditorData();
+  winesEditorData.wines.push(emptyWine());
+  renderWinesEditor();
+  setWinesEditorStatus('Vino añadido. Recuerda guardar cambios.');
+}
+
+function handleEditorAction(e) {
+  const btn = e.target.closest('[data-editor-action]');
+  if (!btn) return;
+  const card = btn.closest('.wine-editor-card');
+  if (!card) return;
+  collectWinesEditorData();
+  const idx = parseInt(card.dataset.idx, 10);
+  const action = btn.dataset.editorAction;
+  if (action === 'delete') {
+    if (!confirm(`¿Eliminar el vino ${idx + 1}?`)) return;
+    winesEditorData.wines.splice(idx, 1);
+  } else if (action === 'duplicate') {
+    winesEditorData.wines.splice(idx + 1, 0, JSON.parse(JSON.stringify(winesEditorData.wines[idx])));
+  } else if (action === 'up' && idx > 0) {
+    [winesEditorData.wines[idx - 1], winesEditorData.wines[idx]] = [winesEditorData.wines[idx], winesEditorData.wines[idx - 1]];
+  } else if (action === 'down' && idx < winesEditorData.wines.length - 1) {
+    [winesEditorData.wines[idx + 1], winesEditorData.wines[idx]] = [winesEditorData.wines[idx], winesEditorData.wines[idx + 1]];
+  }
+  renderWinesEditor();
+  setWinesEditorStatus('Cambios pendientes de guardar.');
+}
+
+function bindWineEditorControls() {
+  const loadBtn = document.getElementById('btn-load-editor');
+  const addBtn = document.getElementById('btn-add-editor-wine');
+  const saveBtn = document.getElementById('btn-save-editor');
+  const list = document.getElementById('wines-editor-list');
+  if (loadBtn) loadBtn.onclick = loadWinesEditor;
+  if (addBtn) addBtn.onclick = addEditorWine;
+  if (saveBtn) saveBtn.onclick = saveWinesEditor;
+  if (list) list.onclick = handleEditorAction;
 }
 
 // ──────────────────────────────────────────

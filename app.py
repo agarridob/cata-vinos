@@ -662,6 +662,134 @@ def api_reload():
     broadcast_update()
     return jsonify({'status': 'ok', 'count': len(wines), 'session': session_name})
 
+@app.route('/api/wines-config', methods=['GET'])
+@admin_required
+def api_wines_config_get():
+    """
+    Devuelve el contenido editable de data/wines.json.
+    Solo anfitrión.
+    """
+    try:
+        with open(WINES_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return jsonify(data)
+    except FileNotFoundError:
+        return jsonify({
+            'session': state.get('session_name', 'Cata'),
+            'wifi': None,
+            'wines': [],
+        })
+    except Exception as e:
+        print(f"[wines-config GET] Error: {e}")
+        return jsonify({'error': 'read_failed'}), 500
+
+
+@app.route('/api/wines-config', methods=['POST'])
+@admin_required
+def api_wines_config_save():
+    """
+    Guarda data/wines.json desde el editor visual del control.
+    Solo anfitrión.
+    """
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({'error': 'invalid_json'}), 400
+
+    session_name = (data.get('session') or state.get('session_name') or 'Cata').strip()
+    wines = data.get('wines', [])
+    wifi = data.get('wifi', None)
+
+    if not isinstance(wines, list):
+        return jsonify({'error': 'wines_must_be_list'}), 400
+
+    cleaned_wines = []
+
+    for i, wine in enumerate(wines):
+        if not isinstance(wine, dict):
+            return jsonify({'error': f'wine_{i}_must_be_object'}), 400
+
+        cleaned = {}
+
+        # Campos texto conocidos
+        for field in [
+            'name',
+            'winery',
+            'vintage',
+            'do',
+            'grape',
+            'region',
+            'rating',
+            'curiosity',
+            'photo',
+        ]:
+            value = wine.get(field, '')
+            if value is None:
+                value = ''
+            cleaned[field] = str(value).strip()
+
+        # coords opcional: [lat, lon]
+        coords = wine.get('coords')
+        if coords in (None, '', []):
+            pass
+        elif (
+            isinstance(coords, list)
+            and len(coords) == 2
+            and coords[0] not in ('', None)
+            and coords[1] not in ('', None)
+        ):
+            try:
+                cleaned['coords'] = [float(coords[0]), float(coords[1])]
+            except (TypeError, ValueError):
+                return jsonify({'error': f'wine_{i}_coords_invalid'}), 400
+        else:
+            return jsonify({'error': f'wine_{i}_coords_invalid'}), 400
+
+        # Evitar guardar vinos completamente vacíos
+        if any(cleaned.get(k) for k in ['name', 'winery', 'do', 'grape', 'photo']):
+            cleaned_wines.append(cleaned)
+
+    out = {
+        'session': session_name,
+        'wines': cleaned_wines,
+    }
+
+    if wifi is not None:
+        out['wifi'] = wifi
+
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+
+        tmp = WINES_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(out, f, ensure_ascii=False, indent=2)
+
+        os.replace(tmp, WINES_FILE)
+
+        # Recargar estado en memoria
+        new_session_name, new_wines, new_wifi = load_wines()
+
+        with state_lock:
+            state['session_name'] = new_session_name
+            state['wines'] = new_wines
+            state['wifi'] = new_wifi
+
+            if state['current_index'] > len(new_wines):
+                state['current_index'] = max(0, len(new_wines))
+
+        save_persisted_state()
+        broadcast_update()
+
+        return jsonify({
+            'status': 'ok',
+            'session': new_session_name,
+            'count': len(new_wines),
+        })
+
+    except Exception as e:
+        print(f"[wines-config POST] Error: {e}")
+        return jsonify({'error': 'save_failed'}), 500    
+
 
 # ───── Endpoints de votación ─────
 
