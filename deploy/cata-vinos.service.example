@@ -1,0 +1,23 @@
+# Plantilla systemd para desplegar Cata de Vinos.
+# Copiar en el servidor como:
+# /etc/systemd/system/cata-vinos.service
+#
+# Ajustar WorkingDirectory, EnvironmentFile, User y ExecStart si es necesario.
+
+[Unit]
+Description=Cata de Vinos — servicio web para TV y control móvil
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/cata-vinos
+EnvironmentFile=/opt/cata-vinos/.env
+ExecStart=/opt/cata-vinos/.venv/bin/python /opt/cata-vinos/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -20,3 +20,8 @@ templates/*.v[0-9]*
 __pycache__/
 *.pyc
 *.pyo
+
+# ── systemd local real ─────────────────────────────────
+cata-vinos.service
+*.service.local
+
