@@ -1,0 +1,29 @@
+{
+  "session": "Cata · Ejemplo",
+  "wines": [
+    {
+      "name": "Nombre del vino",
+      "winery": "Bodega",
+      "vintage": 2024,
+      "do": "Rioja",
+      "grape": "Tempranillo",
+      "region": "Haro, La Rioja",
+      "coords": [42.57, -2.85],
+      "price": "12,00 €",
+      "rating": "Parker 92",
+      "photo": "ejemplo.jpg",
+      "curiosity": ""
+    },
+    {
+      "name": "Otro vino",
+      "winery": "Otra bodega",
+      "vintage": 2023,
+      "do": "Ribeira Sacra",
+      "grape": "Mencía",
+      "region": "Sober, Lugo",
+      "price": "16,00 €",
+      "photo": "ejemplo2.jpg",
+      "curiosity": ""
+    }
+  ]
+}

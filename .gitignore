@@ -1,0 +1,20 @@
+# ── Datos de cata en vivo: NO versionar ──────────────────
+# Ignora todo data/ y luego se readmite solo la plantilla
+data/*
+!data/wines.example.json
+
+# ── Backups locales de plantillas ────────────────────────
+templates/*.bak-*
+templates/*.v[0-9]*
+
+# ── Certificados / secretos (por si acaso) ───────────────
+*.pem
+*.key
+*.crt
+.env
+
+# ── Sistema / Python ─────────────────────────────────────
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo

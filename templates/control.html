@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f5ecd5">
+<title>Control · Cata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍷</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 100%);
+    color: #3a2418;
+    font-family: 'Montserrat', -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: 20px 16px 32px;
+    user-select: none;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #c8a878;
+  }
+  .header h1 {
+    color: #6e0f2a;
+    font-size: 18px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    font-style: italic;
+    font-weight: 600;
+  }
+  .current-card {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid #c8a878;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .current-label {
+    font-size: 10px;
+    color: #8a5a2a;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .current-name {
+    font-size: 22px;
+    line-height: 1.2;
+    color: #2a1812;
+    margin-bottom: 4px;
+    word-wrap: break-word;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .current-winery {
+    font-size: 12px;
+    color: #6e0f2a;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+  }
+  .current-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .current-meta-system {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #8a5a2a;
+    font-weight: 600;
+  }
+  .current-meta-score {
+    font-size: 20px;
+    font-weight: 700;
+    color: #a8771a;
+    letter-spacing: -0.3px;
+  }
+  .current-counter {
+    font-size: 11px;
+    color: #8a5a2a;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .btn {
+    background: rgba(168, 119, 26, 0.10);
+    border: 1px solid #a8771a;
+    color: #a8771a;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 22px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: inherit;
+    transition: transform 0.1s, background 0.15s;
+  }
+  .btn:active {
+    background: rgba(168, 119, 26, 0.25);
+    transform: scale(0.97);
+  }
+  .btn:disabled {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .list-title {
+    font-size: 11px;
+    color: #8a5a2a;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-left: 4px;
+    font-weight: 600;
+  }
+  .wine-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .wine-item {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid #d8c094;
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.1s;
+  }
+  .wine-item:active { transform: scale(0.98); }
+  .wine-item.active {
+    border-color: #a8771a;
+    background: rgba(168, 119, 26, 0.12);
+  }
+  .wine-item.done { opacity: 0.45; }
+  .wine-num {
+    font-size: 18px;
+    color: #8a5a2a;
+    width: 26px;
+    text-align: center;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .wine-item.active .wine-num { color: #a8771a; }
+  .wine-info { flex: 1; min-width: 0; }
+  .wine-item-name {
+    font-size: 15px;
+    color: #2a1812;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .wine-item-winery {
+    font-size: 11px;
+    color: #8a5a2a;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .wine-item.summary-item {
+    border-color: #a8771a;
+    background: rgba(168, 119, 26, 0.06);
+  }
+  .wine-item.summary-item.active {
+    background: rgba(168, 119, 26, 0.18);
+  }
+  .wine-item.summary-item .wine-num {
+    color: #a8771a;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 12px;
+  }
+  .footer button {
+    background: none;
+    border: none;
+    color: #8a5a2a;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 8px 16px;
+  }
+  .footer button:active { color: #6e0f2a; }
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8a5a2a;
+    font-style: italic;
+  }
+
+  /* ─── Sección de administración ─── */
+  .admin-section {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px dashed #c8a878;
+  }
+  .admin-test-section {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px dashed #b894b0;
+  }
+  .admin-title {
+    font-size: 11px;
+    color: #8a5a2a;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-left: 4px;
+    font-weight: 600;
+  }
+  .admin-test-title {
+    color: #7a3a6e;
+  }
+  .admin-btn-test {
+    border-color: #7a3a6e !important;
+    color: #7a3a6e !important;
+    background: rgba(122, 58, 110, 0.05);
+  }
+  .admin-btn-test:active {
+    background: rgba(122, 58, 110, 0.15);
+  }
+  .admin-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid;
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .admin-btn:active { transform: scale(0.98); }
+  .admin-btn-warn {
+    border-color: #b8841a;
+    color: #8a5a2a;
+  }
+  .admin-btn-warn:active { background: rgba(184, 132, 26, 0.10); }
+  .admin-btn-danger {
+    border-color: #a02818;
+    color: #6e0f2a;
+  }
+  .admin-btn-danger:active { background: rgba(160, 40, 24, 0.10); }
+  .admin-btn-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .admin-btn-sub {
+    font-size: 11px;
+    font-weight: 400;
+    color: #8a5a2a;
+    text-transform: none;
+    letter-spacing: 0.3px;
+  }
+
+  /* ─── Modal de archivado ─── */
+  .archive-modal {
+    position: fixed; inset: 0;
+    background: rgba(20, 12, 8, 0.55);
+    z-index: 4000; display: none;
+    align-items: center; justify-content: center;
+    padding: 24px 14px;
+    backdrop-filter: blur(2px);
+  }
+  .archive-modal.visible { display: flex; }
+  .archive-modal-card {
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 100%);
+    border: 1px solid #c8a878;
+    border-radius: 10px;
+    padding: 20px 18px;
+    width: 100%; max-width: 360px;
+  }
+  .archive-modal-title {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #6e0f2a;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .archive-modal-text {
+    font-size: 13px;
+    color: #5a3a20;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .archive-modal-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #c8a878;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.5);
+    font-family: inherit;
+    font-size: 13px;
+    color: #3a2418;
+    margin-bottom: 14px;
+    box-sizing: border-box;
+  }
+  .archive-modal-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .archive-modal-btn {
+    flex: 1;
+    padding: 11px;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .archive-modal-btn-cancel {
+    background: transparent;
+    border: 1px solid #c8a878;
+    color: #8a5a2a;
+  }
+  .archive-modal-btn-confirm {
+    background: #6e0f2a;
+    color: #f5ecd5;
+  }
+  .archive-modal-btn-confirm:disabled {
+    background: #c8a878;
+    cursor: not-allowed;
+  }
+  .archive-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 16px;
+    right: 16px;
+    background: #2d7a3e;
+    color: #f5ecd5;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 5000;
+    display: none;
+    text-align: center;
+  }
+  .archive-toast.visible { display: block; }
+  .archive-toast.error { background: #a02818; }
+
+  /* Botón "Empezar la cata" — destacado durante la bienvenida */
+  .btn-primary-start {
+    background: #6e0f2a;
+    color: #f5ecd5;
+    border-color: #6e0f2a;
+  }
+  .btn-primary-start:active {
+    background: #5a0c22;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>In Vino Veritas</h1>
+  </div>
+
+  <div id="content">
+    <div class="empty">Cargando…</div>
+  </div>
+
+  <div id="archive-modal" class="archive-modal">
+    <div class="archive-modal-card">
+      <div class="archive-modal-title">Archivar y reiniciar</div>
+      <div class="archive-modal-text">
+        Se guardará una copia de la sesión completa (vinos, invitados y votos) y luego se reseteará todo. Los <strong>vinos del menú</strong> se mantienen.
+      </div>
+      <input id="archive-name" type="text" class="archive-modal-input"
+             placeholder="Nombre (opcional, ej. Distrito Fam)" maxlength="60">
+      <div class="archive-modal-actions">
+        <button class="archive-modal-btn archive-modal-btn-cancel" id="archive-cancel">Cancelar</button>
+        <button class="archive-modal-btn archive-modal-btn-confirm" id="archive-confirm">Archivar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="archive-toast" class="archive-toast"></div>
+
+<script>
+let state = null;
+let busy = false;
+
+async function fetchState() {
+  try {
+    const r = await fetch('/api/state', { cache: 'no-store' });
+    state = await r.json();
+    render();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function go(action) {
+  if (busy) return;
+  busy = true;
+  try {
+    const r = await fetch(`/api/${action}`, { method: 'POST' });
+    state = await r.json();
+    render();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    busy = false;
+  }
+}
+
+async function gotoIdx(i) {
+  if (busy) return;
+  busy = true;
+  try {
+    const r = await fetch(`/api/goto/${i}`, { method: 'POST' });
+    state = await r.json();
+    render();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    busy = false;
+  }
+}
+
+async function reload() {
+  if (busy) return;
+  busy = true;
+  try {
+    await fetch('/api/reload', { method: 'POST' });
+    await fetchState();
+  } finally {
+    busy = false;
+  }
+}
+
+function render() {
+  const content = document.getElementById('content');
+  if (!state || (state.total === 0)) {
+    content.innerHTML = `
+      <div class="empty">
+        Sin vinos cargados.<br><br>
+        <button class="btn" onclick="reload()" style="display:inline-block;padding:14px 28px">Recargar</button>
+      </div>`;
+    return;
+  }
+
+  // ─── Card superior: vino actual o "Resumen" ───
+  let cardHtml;
+  if (state.is_welcome) {
+    cardHtml = `
+      <div class="current-card">
+        <div class="current-label">Pantalla actual</div>
+        <div class="current-name">Bienvenida</div>
+        <div class="current-winery">${state.total} vinos preparados</div>
+        <div class="current-counter">La cata aún no ha empezado</div>
+      </div>`;
+  } else if (state.is_summary) {
+    cardHtml = `
+      <div class="current-card">
+        <div class="current-label">Pantalla actual</div>
+        <div class="current-name">Resumen de la cata</div>
+        <div class="current-winery">${state.total} vinos</div>
+        <div class="current-counter">Final de la velada</div>
+      </div>`;
+  } else {
+    // Meta (solo puntuación, precio queda oculto)
+    let metaHtml = '';
+    const hasRating = state.wine.rating && String(state.wine.rating).trim();
+    if (hasRating) {
+      const m = String(state.wine.rating).match(/^(\S+)\s+(.+)$/);
+      if (m) {
+        metaHtml = `<div class="current-meta"><span class="current-meta-system">${escapeHtml(m[1])}</span><span class="current-meta-score">${escapeHtml(m[2])}</span></div>`;
+      } else {
+        metaHtml = `<div class="current-meta"><span class="current-meta-score">${escapeHtml(state.wine.rating)}</span></div>`;
+      }
+    }
+    cardHtml = `
+      <div class="current-card">
+        <div class="current-label">Sirviendo ahora</div>
+        <div class="current-name">${escapeHtml(state.wine.name || '—')}</div>
+        <div class="current-winery">${escapeHtml(state.wine.winery || '—')}</div>
+        ${metaHtml}
+        <div class="current-counter">${state.index + 1} de ${state.total}</div>
+      </div>`;
+  }
+
+  // ─── Botones prev/next ───
+  // En welcome: prev oculto, next = "Empezar la cata"
+  // Anterior: deshabilitado si estamos en el primer vino (idx==0), no se muestra en welcome
+  // Siguiente: deshabilitado si ya estamos en el resumen (idx == total)
+  let prevDisabled, nextDisabled, nextLabel, prevLabel;
+  if (state.is_welcome) {
+    prevDisabled = true;
+    nextDisabled = false;
+    prevLabel = '◀ Anterior';
+    nextLabel = '▶ Empezar la cata';
+  } else {
+    prevDisabled = state.index <= 0;
+    nextDisabled = state.index >= state.total;
+    prevLabel = '◀ Anterior';
+    nextLabel = (state.index === state.total - 1) ? 'Ir a resumen ▶' : 'Siguiente ▶';
+  }
+
+  content.innerHTML = `
+    ${cardHtml}
+
+    <div class="buttons">
+      <button class="btn" id="btn-prev" ${prevDisabled ? 'disabled' : ''}>${prevLabel}</button>
+      <button class="btn ${state.is_welcome ? 'btn-primary-start' : ''}" id="btn-next" ${nextDisabled ? 'disabled' : ''}>${nextLabel}</button>
+    </div>
+
+    <div class="list-title">Carta de la velada</div>
+    <div class="wine-list" id="list"></div>
+
+    <div class="footer">
+      <button onclick="reload()">↻ Recargar wines.json</button>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-title">Administración</div>
+      <button class="admin-btn admin-btn-warn" id="btn-welcome-back" ${state.is_welcome ? 'disabled style="opacity:0.4"' : ''}>
+        <span class="admin-btn-label">Volver a la pantalla de bienvenida</span>
+        <span class="admin-btn-sub">Sin tocar votos ni invitados</span>
+      </button>
+      <button class="admin-btn admin-btn-warn" id="btn-clear-votes">
+        <span class="admin-btn-label">Limpiar votos</span>
+        <span class="admin-btn-sub">Borra los votos, mantiene los invitados</span>
+      </button>
+      <button class="admin-btn admin-btn-danger" id="btn-archive">
+        <span class="admin-btn-label">Archivar y reiniciar</span>
+        <span class="admin-btn-sub">Guarda copia y vuelve a bienvenida (votos + invitados)</span>
+      </button>
+    </div>
+
+    <div class="admin-section admin-test-section">
+      <div class="admin-title admin-test-title">Pruebas</div>
+      <button class="admin-btn admin-btn-test" id="btn-wipe">
+        <span class="admin-btn-label">Borrar todo</span>
+        <span class="admin-btn-sub">Sin archivar nada. Como si no hubiera pasado nada.</span>
+      </button>
+    </div>
+  `;
+
+  document.getElementById('btn-prev').onclick = () => go('prev');
+  document.getElementById('btn-next').onclick = () => go('next');
+  document.getElementById('btn-welcome-back').onclick = handleWelcomeBack;
+  document.getElementById('btn-clear-votes').onclick = handleClearVotes;
+  document.getElementById('btn-archive').onclick = openArchiveModal;
+  document.getElementById('btn-wipe').onclick = handleWipe;
+
+  const list = document.getElementById('list');
+
+  // Vinos uno por uno
+  state.all_titles.forEach((w, i) => {
+    const item = document.createElement('div');
+    item.className = 'wine-item';
+    if (i === state.index)      item.classList.add('active');
+    else if (i < state.index)   item.classList.add('done');
+    item.innerHTML = `
+      <div class="wine-num">${i + 1}</div>
+      <div class="wine-info">
+        <div class="wine-item-name">${escapeHtml(w.name || '—')}</div>
+        <div class="wine-item-winery">${escapeHtml(w.winery || '—')}</div>
+      </div>
+    `;
+    item.onclick = () => gotoIdx(i);
+    list.appendChild(item);
+  });
+
+  // Entrada extra "Resumen" al final
+  const summary = document.createElement('div');
+  summary.className = 'wine-item summary-item';
+  if (state.is_summary) summary.classList.add('active');
+  summary.innerHTML = `
+    <div class="wine-num">∑</div>
+    <div class="wine-info">
+      <div class="wine-item-name">Resumen</div>
+      <div class="wine-item-winery">${state.total} vinos · final</div>
+    </div>
+  `;
+  summary.onclick = () => gotoIdx(state.total);
+  list.appendChild(summary);
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ──────────────────────────────────────────
+// Administración: clear votes + archive
+// ──────────────────────────────────────────
+function showToast(msg, isError) {
+  const t = document.getElementById('archive-toast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 3500);
+}
+
+async function handleWipe() {
+  if (!confirm('⚠️ MODO PRUEBAS ⚠️\n\n¿Borrar TODO sin guardar copia?\n\n• Todos los invitados\n• Todos los votos y comentarios\n• Vuelve a la pantalla de bienvenida\n\nNo se podrá recuperar nada.')) {
+    return;
+  }
+  if (!confirm('Última oportunidad.\n\n¿De verdad borrar todo sin archivar?')) {
+    return;
+  }
+  try {
+    const r = await fetch('/api/votes/wipe', { method: 'POST' });
+    const data = await r.json();
+    if (data.status === 'ok') {
+      showToast('Todo borrado. Listo para empezar de cero.');
+    } else {
+      showToast('Error', true);
+    }
+  } catch (e) {
+    showToast('Error de red', true);
+  }
+}
+
+async function handleWelcomeBack() {
+  if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen. La pantalla TV mostrará el QR otra vez.')) {
+    return;
+  }
+  try {
+    const r = await fetch('/api/welcome', { method: 'POST' });
+    const data = await r.json();
+    if (data.status === 'ok') {
+      showToast('Pantalla de bienvenida activada');
+    } else {
+      showToast('Error', true);
+    }
+  } catch (e) {
+    showToast('Error de red', true);
+  }
+}
+
+async function handleClearVotes() {
+  if (!confirm('¿Borrar TODOS los votos?\n\nLos invitados (nombres y colores) se mantendrán y podrán seguir votando desde cero.')) {
+    return;
+  }
+  try {
+    const r = await fetch('/api/votes/clear', { method: 'POST' });
+    const data = await r.json();
+    if (data.status === 'ok') {
+      showToast(`Votos borrados (${data.votes_cleared}). Invitados mantenidos (${data.users_kept}).`);
+    } else {
+      showToast('Error al limpiar votos', true);
+    }
+  } catch (e) {
+    showToast('Error de red', true);
+  }
+}
+
+const archiveModal = document.getElementById('archive-modal');
+const archiveNameInput = document.getElementById('archive-name');
+const archiveConfirmBtn = document.getElementById('archive-confirm');
+const archiveCancelBtn = document.getElementById('archive-cancel');
+
+function openArchiveModal() {
+  archiveNameInput.value = '';
+  archiveModal.classList.add('visible');
+  setTimeout(() => archiveNameInput.focus(), 100);
+}
+
+archiveCancelBtn.onclick = () => archiveModal.classList.remove('visible');
+
+archiveConfirmBtn.onclick = async () => {
+  const name = archiveNameInput.value.trim();
+  archiveConfirmBtn.disabled = true;
+  try {
+    const r = await fetch('/api/votes/archive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name }),
+    });
+    const data = await r.json();
+    if (data.status === 'ok') {
+      archiveModal.classList.remove('visible');
+      showToast(`Archivado en ${data.archived_to} (${data.users_archived} invitados, ${data.votes_archived} votos). Todo reseteado.`);
+    } else {
+      showToast(data.error || 'Error al archivar', true);
+    }
+  } catch (e) {
+    showToast('Error de red', true);
+  } finally {
+    archiveConfirmBtn.disabled = false;
+  }
+};
+
+archiveModal.onclick = (e) => {
+  if (e.target === archiveModal) archiveModal.classList.remove('visible');
+};
+
+fetchState();
+setInterval(fetchState, 3000);
+</script>
+</body>
+</html>

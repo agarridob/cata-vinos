@@ -1,0 +1,3539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cata · In Vino Veritas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍷</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #f5ecd5;
+    color: #3a2418;
+    font-family: 'Montserrat', -apple-system, sans-serif;
+    overflow: hidden;
+    cursor: default;
+  }
+  .tv-frame {
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 50%, #f5ecd5 100%);
+    padding: 3vh 3.5vw;
+    display: grid;
+    grid-template-columns: 38% 1fr;
+    grid-template-rows: auto 1fr auto;
+    gap: 2.5vh;
+    position: relative;
+    overflow: hidden;
+  }
+  .tv-header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid #6e0f2a;
+    padding-bottom: 1.5vh;
+  }
+  .session-title {
+    font-size: 2.1vh;
+    letter-spacing: 0.5vh;
+    color: #6e0f2a;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .counter {
+    font-size: 1.9vh;
+    color: #8a5a2a;
+    letter-spacing: 0.3vh;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .bottle-area {
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid #c8a878;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2vh;
+    overflow: hidden;
+    transition: opacity 0.4s ease;
+  }
+  .bottle-area img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 1.5vh 2.5vh rgba(80, 40, 20, 0.25));
+  }
+  .bottle-placeholder {
+    color: #a8771a;
+    width: 60%;
+    height: 80%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+  }
+  .info-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8vh;
+    min-height: 0;
+    transition: opacity 0.4s ease;
+  }
+  .fade-out { opacity: 0; }
+  .wine-name {
+    font-size: 6vh;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.1vh;
+    color: #2a1812;
+  }
+  .winery {
+    font-size: 2.1vh;
+    color: #6e0f2a;
+    letter-spacing: 0.4vh;
+    text-transform: uppercase;
+    margin-top: 1vh;
+    font-weight: 600;
+  }
+  .meta {
+    display: flex;
+    align-items: baseline;
+    gap: 1.2vh;
+    padding: 0.4vh 0;
+  }
+  .meta.hidden { display: none; }
+  .meta-system {
+    font-size: 1.6vh;
+    letter-spacing: 0.4vh;
+    text-transform: uppercase;
+    color: #8a5a2a;
+    font-weight: 600;
+  }
+  .meta-score {
+    font-size: 3.5vh;
+    font-weight: 700;
+    color: #a8771a;
+    letter-spacing: -0.1vh;
+  }
+  .data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.6vh 3vh;
+    padding: 2vh 0;
+    border-top: 1px solid #c8a878;
+    border-bottom: 1px solid #c8a878;
+  }
+  .data-row { display: flex; flex-direction: column; }
+  .data-label {
+    font-size: 1.5vh;
+    color: #8a5a2a;
+    letter-spacing: 0.4vh;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .data-value {
+    font-size: 2.6vh;
+    margin-top: 0.5vh;
+    color: #2a1812;
+    font-weight: 500;
+  }
+  .curio {
+    display: flex;
+    gap: 1.5vh;
+    padding: 1.5vh 1.8vh 1.5vh 2vh;
+    background: rgba(168, 119, 26, 0.10);
+    border-left: 0.35vh solid #a8771a;
+    border-radius: 2px;
+    align-items: flex-start;
+  }
+  .curio-mark {
+    color: #a8771a;
+    font-size: 3.8vh;
+    line-height: 1;
+    margin-top: -0.2vh;
+    flex-shrink: 0;
+    font-family: Georgia, serif;
+  }
+  .curio-text {
+    font-size: 2.1vh;
+    font-style: italic;
+    color: #5a3a20;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+  .curio.hidden { display: none; }
+  .map-container {
+    background: #ede0bc;
+    border: 1px solid #c8a878;
+    border-radius: 4px;
+    flex: 1;
+    min-height: 14vh;
+    position: relative;
+    overflow: hidden;
+  }
+  .map-label {
+    position: absolute;
+    top: 1vh;
+    left: 1.2vh;
+    font-size: 1.5vh;
+    letter-spacing: 0.4vh;
+    color: #6e0f2a;
+    text-transform: uppercase;
+    z-index: 1000;
+    background: rgba(245, 236, 213, 0.85);
+    padding: 0.6vh 1.2vh;
+    border-radius: 2px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+  #map-inner { width: 100%; height: 100%; }
+  /* Mapa Leaflet en móvil, teñido a tono sepia/papel para combinar con la paleta */
+  #map-leaflet { width: 100%; height: 100%; background: #ede0bc; }
+  #map-leaflet .leaflet-tile {
+    filter: sepia(0.55) saturate(0.75) brightness(1.02) hue-rotate(-12deg) contrast(0.95);
+  }
+  #map-leaflet .leaflet-control-attribution {
+    background: rgba(245, 236, 213, 0.85) !important;
+    color: #8a5a2a !important;
+    font-size: 9px !important;
+  }
+  #map-leaflet .leaflet-control-attribution a { color: #6e0f2a !important; }
+  .map-pin-pulse {
+    width: 14px; height: 14px;
+    background: #6e0f2a;
+    border-radius: 50%;
+    box-shadow: 0 0 0 rgba(110, 15, 42, 0.6);
+    animation: mapPulse 2s infinite;
+  }
+  @keyframes mapPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(110, 15, 42, 0.6); }
+    70%  { box-shadow: 0 0 0 16px rgba(110, 15, 42, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(110, 15, 42, 0); }
+  }
+  #map-svg { width: 100%; height: 100%; display: block; }
+  #map-svg .country { fill: #d4c08a; stroke: #a8771a; stroke-width: 0.6; opacity: 0.7; }
+  #map-svg .sea { fill: #ede0bc; }
+  #map-pin { display: none; }
+  #map-pin.visible { display: block; }
+  #map-pin .pulse {
+    fill: #6e0f2a;
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: pin-pulse 2s infinite;
+  }
+  #map-pin .dot { fill: #6e0f2a; }
+  @keyframes pin-pulse {
+    0%   { transform: scale(1); opacity: 0.7; }
+    70%  { transform: scale(4); opacity: 0; }
+    100% { transform: scale(4); opacity: 0; }
+  }
+  .map-outside-label {
+    position: absolute;
+    bottom: 1vh;
+    right: 1.2vh;
+    font-size: 1.5vh;
+    color: #6e0f2a;
+    font-weight: 600;
+    letter-spacing: 0.2vh;
+    text-transform: uppercase;
+    background: rgba(245, 236, 213, 0.85);
+    padding: 0.5vh 1vh;
+    border-radius: 2px;
+    display: none;
+  }
+  .map-outside-label.visible { display: block; }
+  .tv-footer {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    gap: 1.2vh;
+    padding-top: 0.5vh;
+  }
+  .dot {
+    width: 1.2vh;
+    height: 1.2vh;
+    border-radius: 50%;
+    background: #d8c094;
+  }
+  .dot.active {
+    background: #a8771a;
+    box-shadow: 0 0 1.5vh rgba(168, 119, 26, 0.6);
+  }
+  .dot.done { background: #6e0f2a; }
+  .dot.locked {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+  .dot.clickable {
+    cursor: pointer;
+  }
+  .dot.clickable:active {
+    transform: scale(0.85);
+  }
+  .corner {
+    position: absolute;
+    width: 2vh;
+    height: 2vh;
+    border: 1px solid #a8771a;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .corner.tl { top: 1vh; left: 1vh;     border-right: none; border-bottom: none; }
+  .corner.tr { top: 1vh; right: 1vh;    border-left: none;  border-bottom: none; }
+  .corner.bl { bottom: 1vh; left: 1vh;  border-right: none; border-top: none; }
+  .corner.br { bottom: 1vh; right: 1vh; border-left: none;  border-top: none; }
+
+  .empty-state {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 50%, #f5ecd5 100%);
+  }
+  .empty-state h1 {
+    font-size: 7vh;
+    color: #6e0f2a;
+    margin-bottom: 2vh;
+    letter-spacing: 0.6vh;
+    font-style: italic;
+    font-weight: 600;
+  }
+  .empty-state p {
+    font-size: 2.4vh;
+    color: #8a5a2a;
+    letter-spacing: 0.3vh;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Pantalla resumen ── */
+  .summary-frame {
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 50%, #f5ecd5 100%);
+    padding: 2.5vh 3.5vw 1.5vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: baseline;
+    border-bottom: 1px solid #6e0f2a;
+    padding-bottom: 1vh;
+  }
+  .summary-header .session-title { justify-self: start; }
+  .summary-header .counter { justify-self: end; }
+  .summary-title-big {
+    font-size: 3.5vh;
+    letter-spacing: 1vh;
+    color: #a8771a;
+    text-transform: uppercase;
+    font-weight: 700;
+    justify-self: center;
+  }
+  .summary-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2vh;
+    min-height: 0;
+  }
+  .summary-row {
+    display: flex;
+    gap: 1.5vh;
+    justify-content: center;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+  }
+  .summary-card {
+    flex: 1 1 0;
+    max-width: 31%;
+    background: #f5ecd5;
+    border: 1px solid #c8a878;
+    border-radius: 4px;
+    padding: 1.2vh 1.6vh;
+    display: flex;
+    gap: 1.6vh;
+    align-items: stretch;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .summary-card.clickable {
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .summary-card.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.6vh 1.5vh rgba(110, 15, 42, 0.15);
+  }
+  .summary-card-photo {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 11vh;
+    min-height: 0;
+  }
+  .summary-card-photo img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0.6vh 1.2vh rgba(80, 40, 20, 0.25));
+  }
+  .summary-card-photo .placeholder-svg {
+    height: 100%;
+    width: auto;
+    max-height: 100%;
+  }
+  .summary-card-info {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2vh;
+    min-width: 0;
+  }
+  .summary-card.is-favorite .summary-card-info {
+    justify-content: flex-start;
+  }
+  .summary-card-info > * {
+    flex-shrink: 0;
+  }
+  .summary-card-name-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8vh;
+    min-width: 0;
+  }
+  .summary-card-name {
+    font-size: 2.4vh;
+    font-weight: 700;
+    color: #2a1812;
+    line-height: 1.15;
+    letter-spacing: -0.05vh;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .summary-card-vintage {
+    font-size: 1.7vh;
+    color: #8a5a2a;
+    font-weight: 500;
+    letter-spacing: 0.05vh;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .summary-card-winery {
+    font-size: 1.8vh;
+    color: #6e0f2a;
+    letter-spacing: 0.25vh;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 0.6vh;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .summary-card-grape {
+    font-size: 2vh;
+    color: #4a2818;
+    font-weight: 500;
+    font-style: italic;
+    margin-top: 0.8vh;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .summary-card-do {
+    font-size: 1.7vh;
+    color: #8a5a2a;
+    font-weight: 500;
+    letter-spacing: 0.05vh;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .summary-card-rating {
+    display: none;
+    align-items: baseline;
+    gap: 0.8vh;
+    margin-top: 0.8vh;
+  }
+  .summary-card-rating-sys {
+    font-size: 1.7vh;
+    letter-spacing: 0.3vh;
+    text-transform: uppercase;
+    color: #8a5a2a;
+    font-weight: 600;
+  }
+  .summary-card-rating-sco {
+    font-size: 3.2vh;
+    font-weight: 700;
+    color: #a8771a;
+    letter-spacing: -0.08vh;
+  }
+  .dot.summary {
+    width: 2.6vh;
+    border-radius: 0.5vh;
+    background: #a8771a;
+    box-shadow: 0 0 1vh rgba(168, 119, 26, 0.5);
+  }
+
+  /* Botón fullscreen flotante */
+  #fs-btn {
+    position: fixed;
+    bottom: 1.5vh;
+    right: 1.5vh;
+    width: 4.5vh;
+    height: 4.5vh;
+    border-radius: 50%;
+    background: rgba(168, 119, 26, 0.15);
+    border: 1px solid #a8771a;
+    color: #a8771a;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0.6;
+    transition: opacity 0.3s, transform 0.15s;
+    padding: 0;
+    font-family: inherit;
+  }
+  #fs-btn:hover { opacity: 1; }
+  #fs-btn:active { transform: scale(0.92); }
+  #fs-btn svg {
+    width: 2.4vh; height: 2.4vh;
+  }
+  :fullscreen #fs-btn { display: none; }
+  :-webkit-full-screen #fs-btn { display: none; }
+
+  /* Version tag (solo TV/desktop) */
+  #version-tag {
+    position: fixed;
+    bottom: 1.5vh;
+    right: 7vh;
+    font-size: 1.4vh;
+    color: #8a5a2a;
+    letter-spacing: 0.2vh;
+    font-weight: 500;
+    opacity: 0.5;
+    z-index: 2000;
+    font-family: inherit;
+    user-select: none;
+    pointer-events: none;
+  }
+  @media (max-width: 1100px) {
+    #version-tag { display: none; }
+  }
+
+  /* Widget QR */
+  #qr-widget {
+    position: fixed;
+    bottom: 1.5vh;
+    left: 1.5vh;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #c8a878;
+    border-radius: 6px;
+    padding: 1vh;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6vh;
+    box-shadow: 0 0.5vh 1.5vh rgba(80, 40, 20, 0.15);
+  }
+  #qr-widget img,
+  #qr-widget svg {
+    width: 10vh; height: 10vh;
+    display: block;
+  }
+  #qr-widget .qr-label {
+    font-size: 1.1vh;
+    color: #6e0f2a;
+    letter-spacing: 0.15vh;
+    text-transform: uppercase;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.3;
+    max-width: 12vh;
+  }
+  /* Ocultar QR en móviles/tablets: solo tiene sentido en pantallas grandes (TV) */
+  @media (max-width: 1100px) {
+    #qr-widget, #fs-btn { display: none; }
+  }
+
+  /* ═══════════════════════════════════════
+     VERSIÓN MÓVIL (≤ 900px)
+     ═══════════════════════════════════════ */
+  @media (max-width: 900px) {
+    html, body {
+      overflow-y: auto;
+      overflow-x: hidden;
+      height: auto;
+      min-height: 100%;
+    }
+    /* Vista individual */
+    .tv-frame {
+      height: auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 12px 18px;
+      gap: 12px;
+    }
+    .tv-header {
+      grid-column: auto;
+      padding-bottom: 8px;
+    }
+    .session-title { font-size: 10px; letter-spacing: 2px; }
+    .counter       { font-size: 10px; letter-spacing: 1.5px; }
+
+    /* Foto compacta horizontal con CTA "tocar para ampliar" */
+    .bottle-area {
+      height: 90px;
+      flex-direction: row;
+      justify-content: flex-start;
+      gap: 12px;
+      padding: 8px 14px 8px 10px;
+      cursor: pointer;
+      position: relative;
+    }
+    .bottle-area img {
+      max-height: 100%;
+      max-width: 110px;
+      width: auto;
+    }
+    .bottle-area .placeholder-svg,
+    .bottle-area #bottle-placeholder {
+      max-height: 100%;
+      width: auto;
+      max-width: 80px;
+    }
+    .bottle-area::after {
+      content: '↗ Tocar para ampliar';
+      margin-left: auto;
+      font-size: 11px;
+      color: #8a5a2a;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .info-area { gap: 14px; }
+    .wine-name { font-size: 32px; line-height: 1.05; letter-spacing: -0.8px; }
+    .winery    { font-size: 13px; letter-spacing: 2.5px; margin-top: 6px; }
+    .meta      { gap: 7px; padding: 4px 0; }
+    .meta-system { font-size: 11px; letter-spacing: 2px; }
+    .meta-score  { font-size: 26px; }
+    .data-grid {
+      grid-template-columns: 1fr;
+      gap: 12px 0;
+      padding: 14px 0;
+    }
+    .data-label { font-size: 10px; letter-spacing: 2px; }
+    .data-value { font-size: 18px; }
+    .curio { padding: 12px 14px; gap: 10px; }
+    .curio-mark { font-size: 26px; }
+    .curio-text { font-size: 14px; line-height: 1.45; }
+
+    .map-container {
+      height: 170px;
+      min-height: 170px;
+    }
+    .map-label   { font-size: 11px; padding: 5px 10px; letter-spacing: 1.8px; }
+    .map-outside-label { font-size: 11px; padding: 5px 10px; letter-spacing: 1.8px; }
+
+    .tv-footer { gap: 7px; padding-top: 6px; }
+    .dot { width: 9px; height: 9px; }
+    .dot.active { width: 9px; height: 9px; box-shadow: 0 0 6px rgba(168,119,26,0.5); }
+
+    .corner { width: 12px; height: 12px; }
+
+    /* ─── Resumen móvil: 1 tarjeta por fila ─── */
+    .summary-frame {
+      height: auto;
+      min-height: 100vh;
+      padding: 14px 12px 18px;
+      gap: 12px;
+    }
+    .summary-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding-bottom: 8px;
+    }
+    .summary-header .session-title,
+    .summary-header .counter {
+      justify-self: center;
+      font-size: 10px;
+    }
+    .summary-title-big {
+      font-size: 22px;
+      letter-spacing: 5px;
+    }
+    .summary-rows { gap: 10px; flex: none; }
+    .summary-row {
+      flex-direction: column;
+      gap: 10px;
+      flex: none;
+    }
+    .summary-card {
+      max-width: 100%;
+      width: 100%;
+      padding: 12px 14px;
+      gap: 12px;
+      min-height: auto;
+      height: auto;
+      cursor: pointer;
+      align-items: center;
+      overflow: visible;
+    }
+    .summary-card-info {
+      justify-content: flex-start;
+      gap: 4px;
+    }
+    .summary-card-info > * {
+      flex-shrink: 1;
+    }
+    .summary-card-photo {
+      width: 80px;
+      align-self: center;
+    }
+    .summary-card-photo img { max-height: 150px; }
+    .summary-card-photo .placeholder-svg { max-height: 150px; }
+    .summary-card-info {
+      justify-content: flex-start;
+      gap: 4px;
+    }
+    .summary-card-name-row {
+      gap: 6px;
+    }
+    .summary-card-name {
+      font-size: 18px;
+      letter-spacing: -0.3px;
+      line-height: 1.15;
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .summary-card-vintage { font-size: 13px; }
+    .summary-card-winery {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .summary-card-grape {
+      font-size: 13px;
+      margin-top: 4px;
+      -webkit-line-clamp: 2;
+    }
+    .summary-card-do {
+      font-size: 13px;
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .summary-card-rating  { display: flex; gap: 5px; margin-top: 4px; }
+    .summary-card-rating-sys { font-size: 9px; letter-spacing: 1.5px; }
+    .summary-card-rating-sco { font-size: 18px; }
+  }
+
+  /* Overlay de foto ampliada (móvil) */
+  .photo-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 12, 8, 0.92);
+    z-index: 3000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+    cursor: zoom-out;
+  }
+  .photo-overlay.visible { display: flex; }
+  .photo-overlay img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+  }
+  .photo-overlay-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(245, 236, 213, 0.15);
+    border: 1px solid rgba(245, 236, 213, 0.5);
+    color: #f5ecd5;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+
+  /* ─── Bloque de votación (solo móvil/tablet) ─── */
+  .vote-block { display: none; }
+  @media (max-width: 1100px) {
+    .vote-block {
+      display: block;
+      background: rgba(168, 119, 26, 0.10);
+      border: 1px solid #c8a878;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-top: 6px;
+    }
+    .vote-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .vote-user {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .vote-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1.5px solid #6e0f2a;
+      background: #d8c094;
+    }
+    .vote-user-name {
+      font-size: 11px; letter-spacing: 2px; color: #6e0f2a;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .vote-edit-btn {
+      background: none; border: none; color: #8a5a2a; font-size: 11px;
+      cursor: pointer; text-decoration: underline; font-family: inherit;
+      padding: 4px 6px;
+    }
+    .vote-stars {
+      display: flex; justify-content: space-between; gap: 6px;
+      margin-bottom: 12px; user-select: none;
+    }
+    .vote-star {
+      font-size: 36px; line-height: 1; cursor: pointer;
+      color: #d8c094;
+      transition: color 0.15s, transform 0.1s;
+    }
+    .vote-star:active { transform: scale(0.92); }
+    .vote-star.filled { color: #a8771a; }
+    .vote-comment-wrap {
+      position: relative;
+    }
+    .vote-comment {
+      width: 100%; padding: 8px 10px 28px 10px;
+      border: 1px solid #c8a878; border-radius: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      font-family: inherit; font-size: 12px; color: #3a2418;
+      resize: none; min-height: 60px; box-sizing: border-box;
+    }
+    .vote-comment-btn {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: #6e0f2a;
+      color: #f5ecd5;
+      border: none;
+      padding: 4px 10px;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      transition: background 0.15s, color 0.15s;
+    }
+    .vote-comment-btn:active {
+      background: #5a0c22;
+    }
+    .vote-comment-btn.saved {
+      background: transparent;
+      color: #6FA936;
+      border: 1px solid #6FA936;
+      cursor: default;
+    }
+    .vote-comment-btn:disabled {
+      cursor: default;
+    }
+    .vote-aggregate {
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px dashed #c8a878;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .vote-agg-label {
+      font-size: 10px; letter-spacing: 1.5px; color: #8a5a2a;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .vote-agg-stars {
+      color: #a8771a; font-size: 14px; letter-spacing: 1px;
+    }
+    .vote-agg-value {
+      font-size: 14px; color: #2a1812; font-weight: 700; margin-left: 8px;
+    }
+    .vote-agg-count {
+      font-size: 11px; color: #8a5a2a; margin-left: 4px;
+    }
+    .vote-agg-empty {
+      font-size: 11px; color: #8a5a2a; font-style: italic;
+    }
+  }
+
+  /* ─── Modal de onboarding ─── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20, 12, 8, 0.55);
+    z-index: 4000; display: none;
+    align-items: center; justify-content: center;
+    padding: 24px 14px;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal-card {
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 100%);
+    border: 1px solid #c8a878;
+    border-radius: 10px;
+    padding: 22px 18px 20px;
+    width: 100%; max-width: 360px;
+    color: #3a2418;
+    font-family: inherit;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(168, 119, 26, 0.10);
+    border: 1px solid #c8a878;
+    color: #6e0f2a;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-weight: 600;
+    padding: 0;
+  }
+  .modal-close:active {
+    background: rgba(168, 119, 26, 0.20);
+  }
+  .modal-card-header {
+    text-align: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #c8a878;
+    margin-bottom: 16px;
+  }
+  .modal-card-eyebrow {
+    font-size: 11px; letter-spacing: 3px; color: #a8771a;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .modal-card-title {
+    font-size: 18px; letter-spacing: 5px; color: #6e0f2a;
+    text-transform: uppercase; font-style: italic;
+    font-weight: 600; margin-top: 6px;
+  }
+  .modal-card-intro {
+    font-size: 13px; color: #5a3a20; line-height: 1.5;
+    margin-bottom: 16px; text-align: center;
+  }
+  .modal-card-intro strong { color: #6e0f2a; }
+  .modal-section-label {
+    font-size: 10px; letter-spacing: 2px; color: #8a5a2a;
+    text-transform: uppercase; font-weight: 600; margin-bottom: 8px;
+  }
+  .modal-section-label .optional {
+    text-transform: none; letter-spacing: 0.3px;
+    color: #b08770; font-weight: 500;
+  }
+  .modal-color-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 7px;
+    margin-bottom: 14px;
+  }
+  .modal-color {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s;
+  }
+  .modal-color:active { transform: scale(0.92); }
+  .modal-color.selected {
+    border: 3px solid #6e0f2a;
+    box-shadow: 0 0 0 1.5px #f5ecd5 inset;
+  }
+  .modal-color.taken {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .modal-color.taken::after {
+    content: '✕';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 14px; font-weight: 700;
+  }
+  .modal-color-hint {
+    font-size: 10px; color: #8a5a2a; text-align: center;
+    margin-bottom: 14px; font-style: italic; min-height: 14px;
+  }
+  .modal-name-input {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid #c8a878; border-radius: 6px;
+    background: rgba(255, 255, 255, 0.5);
+    font-family: inherit; font-size: 13px; color: #3a2418;
+    margin-bottom: 16px; box-sizing: border-box;
+  }
+  .modal-name-input:focus {
+    outline: none; border-color: #a8771a;
+  }
+  .modal-btn-primary {
+    width: 100%; padding: 13px;
+    background: #a8771a; border: none; color: #f5ecd5;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase;
+    border-radius: 6px; cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .modal-btn-primary:active { transform: scale(0.98); }
+  .modal-btn-primary:disabled {
+    background: #c8a878; cursor: not-allowed; opacity: 0.6;
+  }
+  .modal-btn-secondary {
+    width: 100%; padding: 10px;
+    background: none; border: none; color: #8a5a2a;
+    font-family: inherit; font-size: 12px;
+    text-decoration: underline; cursor: pointer;
+    margin-top: 8px;
+  }
+  .modal-error {
+    background: rgba(192, 57, 43, 0.12);
+    border: 1px solid #c0392b;
+    color: #6b1f15;
+    font-size: 12px; padding: 8px 12px;
+    border-radius: 5px; margin-bottom: 12px;
+    text-align: center;
+  }
+  .modal-error.hidden { display: none; }
+
+  /* Cuando estamos en welcome, ocultar el QR pequeño de esquina (ya hay uno grande) */
+  body.welcome-active #qr-widget { display: none; }
+
+  /* ─── Popups de votos en TV (esquina superior derecha) ─── */
+  #vote-popup-container {
+    position: fixed;
+    top: 3vh;
+    right: 3vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    z-index: 2000;
+    pointer-events: none;
+  }
+  .vote-popup {
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 100%);
+    border: 1px solid #c8a878;
+    border-left: 0.6vh solid #a8771a;
+    border-radius: 6px;
+    padding: 1.3vh 1.8vh;
+    display: flex;
+    align-items: center;
+    gap: 1.2vh;
+    font-size: 2vh;
+    color: #2a1812;
+    box-shadow: 0 0.8vh 2.5vh rgba(80, 40, 20, 0.25);
+    opacity: 0;
+    transform: translateX(120%);
+    transition: opacity 0.3s ease-out, transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+    white-space: nowrap;
+    min-width: 28vh;
+  }
+  .vote-popup.show {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .vote-popup.hide {
+    opacity: 0;
+    transform: translateX(120%);
+    transition: opacity 0.3s ease-in, transform 0.4s ease-in;
+  }
+  .vote-popup-dot {
+    width: 2vh;
+    height: 2vh;
+    border-radius: 50%;
+    border: 0.25vh solid #6e0f2a;
+    flex-shrink: 0;
+  }
+  .vote-popup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2vh;
+  }
+  .vote-popup-name {
+    font-weight: 700;
+    color: #6e0f2a;
+    font-size: 1.9vh;
+    letter-spacing: 0.05vh;
+  }
+  .vote-popup-action {
+    font-size: 1.6vh;
+    color: #5a3a20;
+    font-style: italic;
+  }
+  .vote-popup-stars {
+    color: #a8771a;
+    font-weight: 700;
+    letter-spacing: 0.15vh;
+    font-size: 2.2vh;
+    margin-left: 0.6vh;
+  }
+  .vote-popup-comment {
+    font-style: italic;
+    color: #2a1812;
+    font-size: 1.6vh;
+    margin-top: 0.4vh;
+    max-width: 40vh;
+    white-space: normal;
+    line-height: 1.3;
+  }
+  /* Borde izquierdo según tipo de voto */
+  .vote-popup.score-5 { border-left-color: #6FA936; }
+  .vote-popup.score-4 { border-left-color: #a8771a; }
+  .vote-popup.score-3 { border-left-color: #c8a878; }
+  .vote-popup.score-2 { border-left-color: #c87832; }
+  .vote-popup.score-1 { border-left-color: #a02818; }
+  .vote-popup.comment { border-left-color: #6e0f2a; }
+  /* Ocultar popups en móvil */
+  @media (max-width: 1100px) {
+    #vote-popup-container { display: none; }
+  }
+
+  /* Invitados ya registrados (TV grande) */
+  .welcome-guests {
+    margin-top: 2vh;
+    text-align: center;
+    max-width: 80%;
+  }
+  .welcome-guests-title {
+    font-size: 1.6vh;
+    color: #8a5a2a;
+    letter-spacing: 0.3vh;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 1.2vh;
+  }
+  .welcome-guests-empty {
+    font-size: 1.6vh;
+    color: #8a5a2a;
+    font-style: italic;
+    opacity: 0.7;
+  }
+  .welcome-guests-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1vh;
+  }
+  .welcome-guest {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8vh;
+    background: rgba(168, 119, 26, 0.08);
+    padding: 0.5vh 1.3vh;
+    border-radius: 100px;
+    font-size: 1.8vh;
+    color: #2a1812;
+    border: 1px solid transparent;
+    animation: guest-appear 0.4s ease-out;
+  }
+  .welcome-guest.is-me {
+    background: rgba(110, 15, 42, 0.10);
+    border-color: #6e0f2a;
+    font-weight: 600;
+  }
+  .welcome-guest-dot {
+    width: 1.8vh;
+    height: 1.8vh;
+    border-radius: 50%;
+    border: 0.2vh solid #6e0f2a;
+    flex-shrink: 0;
+  }
+  .welcome-guest-name {
+    font-weight: 500;
+  }
+  @keyframes guest-appear {
+    0%   { opacity: 0; transform: scale(0.6); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  /* Móvil: lista más compacta */
+  @media (max-width: 1100px) {
+    .welcome-guests {
+      margin-top: 16px;
+      max-width: 100%;
+    }
+    .welcome-guests-title {
+      font-size: 10px;
+      letter-spacing: 1.8px;
+      margin-bottom: 10px;
+    }
+    .welcome-guests-empty {
+      font-size: 12px;
+    }
+    .welcome-guests-list { gap: 6px; }
+    .welcome-guest {
+      font-size: 12px;
+      padding: 5px 10px;
+      gap: 6px;
+    }
+    .welcome-guest-dot {
+      width: 12px;
+      height: 12px;
+      border-width: 1.5px;
+    }
+  }
+
+  /* ─── Pantalla de bienvenida ─── */
+  .welcome-frame {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5vh;
+    padding: 3vh 2vh;
+    box-sizing: border-box;
+    position: relative;
+    text-align: center;
+  }
+  .welcome-eyebrow {
+    font-size: 1.9vh;
+    letter-spacing: 0.8vh;
+    color: #6e0f2a;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .welcome-title {
+    font-size: 8vh;
+    letter-spacing: 1.4vh;
+    color: #a8771a;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-style: italic;
+    line-height: 1;
+    margin: 0.5vh 0 1.5vh;
+  }
+  .welcome-session {
+    font-size: 4vh;
+    color: #2a1812;
+    font-weight: 600;
+    letter-spacing: -0.05vh;
+    margin-bottom: 1.5vh;
+  }
+  .welcome-qr-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5vh;
+  }
+  .welcome-qr-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5vh;
+  }
+  .welcome-qr-title {
+    font-size: 2.2vh;
+    color: #6e0f2a;
+    font-weight: 700;
+    letter-spacing: 0.28vh;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .welcome-qr-credentials {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5vh;
+    align-items: center;
+    margin-top: 0.4vh;
+  }
+  .welcome-qr-cred-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1.2vh;
+  }
+  .welcome-qr-cred-label {
+    font-size: 1.5vh;
+    color: #8a5a2a;
+    letter-spacing: 0.15vh;
+    text-transform: uppercase;
+    font-weight: 600;
+    min-width: 6.5vh;
+    text-align: right;
+  }
+  .welcome-qr-cred-value {
+    font-size: 2.3vh;
+    color: #2a1812;
+    font-weight: 700;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.1vh;
+  }
+  .welcome-qr {
+    background: #fff;
+    padding: 2.5vh;
+    border-radius: 8px;
+    box-shadow: 0 1vh 3vh rgba(80, 40, 20, 0.18);
+  }
+  .welcome-qr img,
+  .welcome-qr svg {
+    display: block;
+    width: 28vh;
+    height: 28vh;
+  }
+  .welcome-cta {
+    font-size: 2.4vh;
+    color: #8a5a2a;
+    letter-spacing: 0.3vh;
+    text-transform: uppercase;
+    margin-top: 1.5vh;
+    font-weight: 500;
+  }
+  .welcome-host-info {
+    position: static;
+    margin-top: 3.2vh;
+    font-size: 1.4vh;
+    color: #8a5a2a;
+    opacity: 0.6;
+    letter-spacing: 0.15vh;
+    font-style: italic;
+    text-align: center;
+  }
+  /* Móvil: layout más vertical */
+  @media (max-width: 1100px) {
+    .welcome-frame {
+      gap: 24px;
+      padding: 40px 20px;
+    }
+    .welcome-eyebrow {
+      font-size: 11px;
+      letter-spacing: 3px;
+    }
+    .welcome-title {
+      font-size: 36px;
+      letter-spacing: 6px;
+      margin: 6px 0 12px;
+    }
+    .welcome-session {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .welcome-qr { display: none; }
+    .welcome-qr-row { display: none; }
+    .welcome-cta {
+      font-size: 13px;
+      letter-spacing: 2px;
+      margin-top: 12px;
+    }
+    .welcome-host-info { display: none; }
+  }
+  .welcome-actions {
+    margin-top: 18px;
+    display: none;
+  }
+  @media (max-width: 1100px) {
+    .welcome-actions { display: block; }
+  }
+  .welcome-btn {
+    background: #a8771a;
+    border: none;
+    color: #f5ecd5;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px 26px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .welcome-btn-edit {
+    background: transparent;
+    color: #6e0f2a;
+    border: 1px solid #6e0f2a;
+  }
+  .welcome-status {
+    margin-top: 20px;
+    padding: 12px 18px;
+    background: rgba(168, 119, 26, 0.12);
+    border: 1px solid #c8a878;
+    border-radius: 8px;
+    color: #5a3a20;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 320px;
+  }
+  .welcome-status .name-dot {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid #6e0f2a;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes vote-pulse {
+    0%, 100% { transform: scale(1); }
+    35%      { transform: scale(1.18); }
+    70%      { transform: scale(0.98); }
+  }
+  @keyframes vote-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(168, 119, 26, 0); }
+    50%      { box-shadow: 0 0 0 0.6vh rgba(168, 119, 26, 0.25); }
+  }
+  .tv-vote-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.8vh;
+    padding: 0.6vh 1.4vh;
+    background: rgba(168, 119, 26, 0.08);
+    border: 1px solid rgba(168, 119, 26, 0.5);
+    border-radius: 100px;
+    align-self: flex-start;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .tv-vote-pill.has-votes {
+    background: rgba(168, 119, 26, 0.14);
+    border-color: #a8771a;
+  }
+  .tv-vote-pill.bump {
+    animation: vote-glow 1s ease-out;
+  }
+  .tv-vote-stars {
+    color: #a8771a;
+    font-size: 2.4vh;
+    letter-spacing: 0.2vh;
+    display: inline-block;
+  }
+  .tv-vote-pill.empty .tv-vote-stars {
+    color: #c8a878;
+  }
+  .tv-vote-pill.bump .tv-vote-stars {
+    animation: vote-pulse 0.6s ease-out;
+  }
+  .tv-vote-value {
+    font-size: 2.4vh;
+    font-weight: 700;
+    color: #a8771a;
+    letter-spacing: -0.05vh;
+  }
+  .tv-vote-pill.empty .tv-vote-value {
+    display: none;
+  }
+  .tv-vote-count {
+    font-size: 1.6vh;
+    color: #8a5a2a;
+    letter-spacing: 0.1vh;
+  }
+  .tv-vote-pill.bump .tv-vote-count {
+    color: #6e0f2a;
+    font-weight: 600;
+    transition: color 0.3s, font-weight 0.3s;
+  }
+  /* Oculto en móvil — allí ya está el bloque de votación grande */
+  @media (max-width: 1100px) {
+    .tv-vote-pill { display: none; }
+  }
+
+  /* Agregado mini en cada tarjeta */
+  .summary-card-agg {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #c8a878;
+  }
+  .summary-card-agg-stars {
+    color: #a8771a;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+  .summary-card-agg-value {
+    font-size: 14px;
+    color: #a8771a;
+    font-weight: 700;
+  }
+  .summary-card-agg-count {
+    font-size: 11px;
+    color: #8a5a2a;
+  }
+  .summary-card-agg-empty {
+    font-size: 11px;
+    color: #8a5a2a;
+    font-style: italic;
+  }
+
+  /* Tarjeta favorita */
+  .summary-card.is-favorite {
+    border: 2px solid #a8771a;
+  }
+  .summary-card-badge {
+    display: inline-block;
+    background: #a8771a;
+    color: #f5ecd5;
+    font-size: 1.1vh;
+    letter-spacing: 0.15vh;
+    padding: 0.25vh 0.8vh;
+    border-radius: 3px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 0.3vh;
+    align-self: flex-start;
+  }
+  /* Favorito personal: borde izquierdo grueso con el color del invitado */
+  .summary-card.is-my-favorite {
+    border-left-width: 6px;
+  }
+  /* Fans (favoritos personales) en cada tarjeta */
+  .summary-card-fans {
+    margin-top: 0.4vh;
+    padding-top: 0.4vh;
+    border-top: 1px dotted #c8a878;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3vh 0.7vh;
+  }
+  .summary-card-fans-label {
+    font-size: 1.1vh;
+    color: #8a5a2a;
+    letter-spacing: 0.1vh;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .summary-card-fan {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35vh;
+    font-size: 1.3vh;
+    color: #2a1812;
+    font-weight: 500;
+  }
+  .summary-card-fan-dot {
+    width: 1.2vh;
+    height: 1.2vh;
+    border-radius: 50%;
+    border: 0.15vh solid #6e0f2a;
+    flex-shrink: 0;
+  }
+  /* Cluster de dots cuando hay >2 fans */
+  .summary-card-fans-cluster {
+    display: inline-flex;
+    gap: 0.25vh;
+    align-items: center;
+  }
+  .summary-card-fans-count {
+    font-size: 1.3vh;
+    color: #2a1812;
+    font-weight: 600;
+    margin-left: 0.2vh;
+  }
+  @media (max-width: 1100px) {
+    .summary-card-fans {
+      margin-top: 6px;
+      padding-top: 6px;
+      gap: 3px 6px;
+    }
+    .summary-card-fans-label {
+      font-size: 9px;
+      letter-spacing: 1px;
+    }
+    .summary-card-fan {
+      font-size: 11px;
+      gap: 3px;
+    }
+    .summary-card-fan-dot {
+      width: 10px;
+      height: 10px;
+      border-width: 1.5px;
+    }
+    .summary-card-fans-cluster {
+      gap: 2px;
+    }
+    .summary-card-fans-count {
+      font-size: 11px;
+    }
+  }
+  .summary-card-mybadge {
+    display: inline-block;
+    color: #f5ecd5;
+    font-size: 1.3vh;
+    letter-spacing: 0.2vh;
+    padding: 0.4vh 1vh;
+    border-radius: 3px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 0.6vh;
+    align-self: flex-start;
+    /* background se setea inline con el color del invitado */
+  }
+  /* En móvil ajustes finos */
+  @media (max-width: 1100px) {
+    .summary-card.is-my-favorite {
+      border-left-width: 6px;
+    }
+    .summary-card-mybadge {
+      font-size: 9px;
+      padding: 2px 8px;
+    }
+  }
+
+  /* Overlay rotativo de destacados */
+  @keyframes highlight-pulse-glow {
+    0%, 100% { box-shadow: 0 6px 14px rgba(110, 15, 42, 0.25); }
+    50%      { box-shadow: 0 6px 22px rgba(110, 15, 42, 0.4); }
+  }
+  .highlights-overlay {
+    background: linear-gradient(135deg, #6e0f2a 0%, #5a0c22 100%);
+    color: #f5ecd5;
+    padding: 16px 22px;
+    border-radius: 8px;
+    margin: 0 auto 18px;
+    max-width: 90%;
+    position: relative;
+    animation: highlight-pulse-glow 3.5s ease-in-out infinite;
+    transition: opacity 0.4s ease;
+  }
+  .highlights-overlay.fading { opacity: 0; }
+  .highlights-overlay.empty { display: none; }
+  .highlights-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #f5d6a0;
+  }
+  .highlights-icon { font-size: 18px; }
+  .highlights-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    line-height: 1.15;
+    color: #f5ecd5;
+  }
+  .highlights-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .highlights-stars {
+    color: #f5d6a0;
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  .highlights-avg {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .highlights-extra {
+    font-size: 12px;
+    opacity: 0.85;
+  }
+  .highlights-quote {
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.35;
+    margin-top: 4px;
+  }
+  .highlights-quote::before { content: '« '; opacity: 0.6; }
+  .highlights-quote::after { content: ' »'; opacity: 0.6; }
+  .highlights-attrib {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 12px;
+  }
+  .highlights-attrib-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(245, 236, 213, 0.6);
+  }
+  .highlights-dots {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    display: flex;
+    gap: 4px;
+  }
+  .highlights-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(245, 214, 160, 0.3);
+    transition: background 0.3s;
+  }
+  .highlights-dot.active { background: #f5d6a0; }
+
+  /* Móvil: overlay full width */
+  @media (max-width: 1100px) {
+    .highlights-overlay {
+      max-width: 100%;
+      margin: 0 0 14px;
+      padding: 14px 16px;
+    }
+    .highlights-title { font-size: 18px; }
+    .highlights-quote { font-size: 15px; }
+    .summary-card-agg { padding-top: 6px; margin-top: 6px; }
+    .summary-card-badge {
+      font-size: 9px;
+      padding: 2px 8px;
+      top: -8px;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<div id="photo-overlay" class="photo-overlay" role="dialog" aria-label="Foto ampliada">
+  <button class="photo-overlay-close" aria-label="Cerrar">✕</button>
+  <img alt="">
+</div>
+
+<div id="onboarding" class="modal-overlay" role="dialog" aria-label="Identifícate">
+  <div class="modal-card">
+    <button class="modal-close" id="onboard-close" aria-label="Cerrar">✕</button>
+    <div class="modal-card-header">
+      <div class="modal-card-eyebrow" id="onboard-eyebrow">Bienvenido a</div>
+      <div class="modal-card-title">In Vino Veritas</div>
+    </div>
+    <p class="modal-card-intro" id="onboard-intro">
+      Identifícate para votar los vinos.<br>
+      Tu <strong>color</strong> es el marcador de tu copa.
+    </p>
+    <div id="onboard-error" class="modal-error hidden"></div>
+
+    <div class="modal-section-label">Elige tu color</div>
+    <div class="modal-color-grid" id="onboard-color-grid"></div>
+    <div class="modal-color-hint" id="onboard-color-hint">&nbsp;</div>
+
+    <div class="modal-section-label">
+      Tu nombre <span class="optional">(opcional)</span>
+    </div>
+    <input id="onboard-name" type="text" class="modal-name-input"
+           placeholder="Ej. Alberto. Si lo dejas vacío, te llamamos por una uva"
+           maxlength="40">
+
+    <button id="onboard-submit" class="modal-btn-primary">Empezar a votar</button>
+    <button id="onboard-cancel" class="modal-btn-secondary" style="display:none">Cancelar</button>
+  </div>
+</div>
+
+<div id="qr-widget" title="Escanea para ver esta pantalla en tu móvil">
+  <div id="qr-img"></div>
+  <div class="qr-label">Escanea para<br>ver en tu móvil</div>
+</div>
+
+<button id="fs-btn" title="Pantalla completa" aria-label="Pantalla completa">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7V3h4"></path>
+    <path d="M17 3h4v4"></path>
+    <path d="M21 17v4h-4"></path>
+    <path d="M7 21H3v-4"></path>
+  </svg>
+</button>
+<div id="version-tag">v1.0.5</div>
+
+<svg id="bottle-fallback" style="display:none;" viewBox="0 0 100 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="botfb" x1="0" x2="1">
+      <stop offset="0" stop-color="#c8a878"/>
+      <stop offset="0.5" stop-color="#d8b888"/>
+      <stop offset="1" stop-color="#a88858"/>
+    </linearGradient>
+  </defs>
+  <rect x="42" y="2" width="16" height="14" fill="#8a5a2a"/>
+  <rect x="40" y="14" width="20" height="50" fill="url(#botfb)"/>
+  <path d="M 40 60 Q 25 70 22 95 L 22 270 Q 22 278 30 278 L 70 278 Q 78 278 78 270 L 78 95 Q 75 70 60 60 Z" fill="url(#botfb)"/>
+  <rect x="28" y="130" width="44" height="60" fill="#f5ecd5" opacity="0.6"/>
+</svg>
+
+<script>
+const root = document.getElementById('root');
+let currentSig = null;
+// Instancia Leaflet (mapa móvil). Leaflet no permite re-inicializar el mismo div,
+// así que reutilizamos la instancia y solo recolocamos la vista/marcador.
+let leafletMap = null;
+let leafletMarker = null;
+
+// 4 mapas regionales (Iberia, Francia, Italia, Alemania)
+const MAPS_DATA = {"iberia":{"bbox":[-10,4,35.5,44],"size":[560,340],"path":"M500.9,-283.5 L504.3,-278.4 L503.5,-273.8 L511.5,-268.9 L515.5,-267.9 L525.2,-271.2 L529.3,-267.8 L530.8,-261.1 L544.3,-259.1 L547.9,-251.9 L560.1,-253.8 L567.9,-250.3 L565.0,-245.1 L568.4,-242.4 L565.3,-239.0 L577.4,-237.3 L585.8,-239.4 L587.3,-243.4 L592.6,-246.5 L594.9,-245.6 L591.4,-238.3 L594.4,-236.5 L594.0,-231.8 L610.4,-227.7 L618.2,-220.0 L629.9,-222.0 L638.4,-217.7 L647.7,-220.0 L656.1,-218.6 L660.5,-217.0 L668.6,-206.4 L676.6,-208.3 L681.7,-204.3 L691.0,-204.2 L696.4,-206.8 L705.4,-201.5 L728.0,-198.3 L723.6,-192.3 L712.4,-184.6 L710.0,-173.7 L703.4,-165.2 L704.8,-158.9 L700.5,-148.3 L703.4,-143.4 L695.1,-137.2 L678.9,-139.6 L674.7,-134.2 L681.5,-133.2 L666.6,-120.9 L657.7,-117.8 L657.2,-110.4 L644.7,-103.3 L642.2,-96.8 L645.4,-94.8 L643.8,-90.1 L638.2,-88.0 L638.4,-85.2 L645.6,-86.0 L651.2,-89.6 L648.6,-92.6 L650.8,-95.0 L659.3,-97.9 L671.5,-96.6 L670.0,-93.8 L673.1,-90.8 L670.6,-86.1 L680.9,-77.0 L672.0,-73.1 L671.8,-68.7 L678.5,-65.6 L679.3,-60.4 L686.4,-56.4 L682.2,-48.5 L664.1,-44.1 L668.9,-40.5 L669.8,-36.3 L680.3,-32.9 L682.2,-27.4 L678.4,-27.3 L673.4,-21.4 L676.7,-17.5 L674.6,-14.9 L679.3,-9.7 L693.2,-5.0 L706.2,-7.0 L707.6,-2.7 L699.1,5.4 L699.1,9.4 L686.1,13.8 L685.6,17.8 L678.5,18.4 L675.8,22.9 L669.2,23.7 L663.6,29.2 L667.7,29.1 L667.2,31.9 L656.1,34.1 L655.0,36.4 L647.7,35.6 L647.2,38.6 L637.6,34.6 L635.2,35.2 L638.1,36.8 L634.3,38.2 L627.0,32.8 L613.9,31.4 L614.8,29.2 L611.8,25.8 L601.4,26.6 L601.0,23.6 L609.1,20.8 L601.2,17.7 L602.0,22.8 L594.7,23.1 L596.0,25.3 L594.2,26.3 L590.3,23.1 L589.7,19.0 L587.8,16.8 L589.7,23.1 L592.8,26.1 L583.7,25.6 L580.5,21.8 L567.3,21.4 L564.2,17.9 L558.1,18.4 L540.5,28.8 L532.7,29.5 L524.6,35.7 L521.6,42.3 L521.7,54.8 L527.2,62.7 L517.3,61.2 L507.6,63.8 L506.5,66.4 L500.6,67.0 L491.1,62.9 L479.8,66.1 L477.1,62.5 L468.5,60.3 L470.6,57.5 L468.9,55.6 L461.7,54.0 L457.2,56.2 L453.7,51.7 L446.1,51.7 L432.5,46.7 L426.3,46.5 L425.7,52.6 L414.2,51.3 L411.0,53.3 L406.8,50.9 L398.4,52.6 L387.1,46.3 L377.2,49.1 L369.6,42.1 L354.0,39.8 L348.3,37.8 L348.6,35.6 L345.4,38.7 L341.7,38.2 L343.9,30.3 L335.1,30.1 L328.1,25.0 L333.6,24.0 L340.9,16.8 L349.7,-22.2 L352.5,-26.6 L358.2,-26.8 L353.1,-31.1 L349.6,-25.1 L356.6,-62.8 L369.4,-53.0 L371.4,-45.4 L378.6,-35.8 L376.2,-41.0 L380.2,-39.9 L373.8,-44.0 L368.2,-59.1 L350.1,-68.4 L350.8,-71.7 L353.4,-72.3 L360.5,-68.7 L353.9,-74.7 L357.1,-76.2 L355.6,-80.7 L358.1,-81.6 L351.6,-87.0 L355.6,-92.1 L350.4,-91.4 L328.2,-99.8 L323.6,-107.7 L315.2,-112.8 L314.8,-115.7 L320.4,-121.4 L310.4,-125.7 L313.4,-126.7 L313.6,-130.8 L319.4,-132.0 L327.8,-128.8 L330.9,-128.4 L319.6,-132.8 L308.9,-129.9 L298.3,-132.0 L302.6,-132.3 L297.7,-135.3 L304.3,-136.9 L300.2,-139.6 L305.4,-140.2 L294.7,-140.8 L296.0,-141.2 L296.9,-142.2 L287.3,-140.0 L283.6,-142.3 L290.3,-142.1 L292.5,-144.2 L292.6,-144.9 L291.7,-145.7 L283.2,-143.8 L281.0,-146.6 L282.4,-142.4 L275.1,-144.0 L276.6,-139.1 L274.7,-139.1 L272.0,-145.6 L275.3,-149.3 L272.3,-149.9 L273.6,-148.4 L271.0,-146.3 L265.7,-147.9 L268.7,-147.6 L265.7,-148.4 L268.7,-151.5 L262.1,-148.2 L258.9,-151.2 L245.9,-152.0 L241.5,-156.0 L238.5,-154.2 L234.7,-157.0 L235.6,-154.8 L232.6,-155.0 L232.6,-152.5 L225.1,-152.3 L226.1,-154.5 L222.6,-159.0 L210.9,-161.6 L228.6,-164.6 L224.8,-169.3 L220.6,-169.7 L217.7,-167.1 L218.1,-170.1 L214.9,-171.5 L218.1,-173.9 L219.4,-171.8 L229.2,-171.5 L232.5,-172.3 L227.0,-172.9 L229.2,-174.5 L221.9,-173.4 L228.4,-177.3 L209.3,-173.8 L209.4,-180.8 L216.9,-182.7 L217.5,-185.2 L232.2,-186.0 L241.0,-189.3 L241.8,-186.3 L245.9,-185.2 L247.6,-189.3 L256.6,-187.3 L258.9,-189.6 L256.7,-191.6 L259.4,-193.7 L264.1,-192.3 L270.8,-194.9 L271.2,-191.8 L276.3,-194.9 L275.0,-190.4 L279.7,-192.9 L278.3,-191.5 L282.7,-190.7 L292.7,-180.4 L307.4,-187.9 L306.8,-185.2 L310.0,-186.0 L311.5,-183.3 L317.9,-186.0 L320.8,-180.5 L321.9,-183.0 L318.9,-185.7 L322.2,-187.9 L326.3,-188.5 L325.6,-185.6 L328.2,-184.6 L345.7,-185.7 L337.9,-189.9 L335.9,-194.0 L339.7,-201.3 L336.3,-201.2 L335.6,-208.6 L338.1,-209.0 L335.0,-208.8 L332.0,-214.2 L327.3,-215.3 L324.6,-221.2 L326.4,-224.8 L322.6,-229.0 L335.7,-226.0 L349.5,-227.8 L350.9,-225.0 L347.7,-222.3 L355.1,-213.8 L362.4,-215.7 L391.2,-211.2 L416.5,-218.1 L419.7,-219.7 L410.3,-218.6 L403.1,-221.4 L409.4,-229.2 L448.8,-239.2 L460.8,-248.6 L466.9,-247.7 L461.7,-251.1 L464.4,-254.8 L462.2,-256.2 L464.4,-261.9 L463.2,-274.8 L476.9,-279.9 L500.9,-283.5Z M47.3,653.5 L49.9,672.4 L48.2,675.2 L23.5,676.5 L7.3,686.0 L-1.3,683.6 L-10.0,685.6 L-30.3,679.2 L-55.7,684.7 L-52.6,690.2 L-53.5,694.7 L-60.4,701.2 L-68.7,715.9 L-82.4,720.4 L-97.2,766.8 L-119.6,781.2 L-132.4,800.8 L-155.6,812.4 L-164.0,836.0 L-168.8,867.6 L-185.2,885.6 L-184.4,890.0 L-190.0,900.0 L-198.8,902.4 L-241.6,900.0 L-280.5,903.2 L-276.8,882.7 L-268.3,869.0 L-258.7,864.9 L-251.6,844.0 L-246.5,840.3 L-246.4,836.7 L-248.5,836.2 L-230.9,808.5 L-231.0,803.5 L-239.8,814.2 L-237.6,809.0 L-195.8,771.8 L-192.8,746.8 L-180.6,722.5 L-178.6,712.2 L-167.2,703.0 L-156.9,700.0 L-142.4,690.0 L-126.9,652.6 L-121.8,649.6 L-118.1,642.9 L-82.5,636.4 L-59.4,627.0 L-42.5,609.9 L-23.0,600.4 L-9.9,588.0 L13.8,554.9 L15.5,543.8 L12.0,538.3 L4.5,534.1 L7.5,526.9 L6.1,503.9 L13.3,490.8 L25.4,478.9 L28.9,472.1 L29.6,456.9 L45.3,444.7 L58.8,429.3 L98.8,414.7 L127.1,398.4 L148.3,364.8 L162.9,328.8 L176.0,327.1 L184.0,323.0 L190.0,336.6 L197.3,343.3 L209.2,350.4 L225.0,353.9 L243.2,349.3 L243.8,351.4 L248.5,351.6 L252.0,348.4 L267.2,351.9 L276.9,348.5 L281.3,342.1 L281.4,348.6 L285.8,354.7 L290.1,355.4 L284.9,350.1 L293.3,355.7 L303.3,354.0 L309.0,355.6 L329.2,370.3 L325.2,376.1 L331.9,380.8 L327.6,385.1 L333.2,396.8 L330.1,411.9 L335.3,417.8 L333.0,430.5 L340.0,437.6 L337.6,442.7 L343.1,450.3 L358.7,460.2 L350.2,465.7 L347.6,473.3 L352.2,474.2 L351.6,476.4 L299.4,474.7 L284.8,476.9 L282.5,478.1 L286.9,488.2 L253.6,494.1 L253.1,504.4 L247.4,506.5 L246.3,513.2 L250.7,512.9 L257.8,521.8 L253.6,526.5 L254.2,531.5 L225.1,539.7 L215.0,548.6 L193.0,560.9 L178.4,579.1 L171.2,579.1 L169.8,575.4 L149.1,576.8 L132.0,579.4 L128.7,582.1 L114.1,579.6 L106.0,584.7 L93.9,585.0 L53.3,611.5 L52.7,653.5 L47.3,653.5Z M328.2,24.6 L330.1,28.4 L343.9,30.3 L341.7,38.2 L345.4,38.7 L346.1,36.3 L348.6,35.6 L348.3,37.8 L354.0,39.8 L369.6,42.1 L377.2,49.1 L387.1,46.3 L398.4,52.6 L406.8,50.9 L411.0,53.3 L414.2,51.3 L426.3,52.5 L426.3,46.5 L432.5,46.7 L446.1,51.7 L453.7,51.7 L457.2,56.2 L457.9,62.6 L468.3,59.9 L477.1,62.5 L480.4,66.1 L491.1,62.9 L500.6,67.0 L517.3,61.2 L527.2,62.7 L527.5,66.0 L532.7,67.1 L530.5,70.4 L524.8,71.3 L529.3,82.2 L517.3,91.5 L490.7,102.1 L485.2,107.9 L440.7,117.9 L428.6,127.4 L434.9,130.9 L434.3,132.5 L427.1,137.4 L423.7,136.7 L429.3,134.7 L422.5,136.4 L387.1,179.4 L393.7,199.9 L409.4,210.3 L379.6,226.5 L379.8,231.7 L375.1,233.5 L369.6,248.2 L365.8,250.3 L371.8,255.2 L363.0,257.8 L356.5,256.8 L355.8,258.7 L347.1,257.5 L333.2,265.5 L327.5,271.7 L324.0,282.4 L314.9,290.5 L305.5,286.5 L297.6,287.2 L291.3,292.7 L282.7,289.9 L263.4,292.2 L246.5,289.9 L223.9,291.0 L213.6,299.7 L203.9,299.7 L192.5,303.6 L186.4,314.4 L183.0,312.8 L182.5,317.5 L175.5,319.7 L163.3,312.6 L158.5,312.4 L147.6,298.6 L150.7,301.1 L152.8,299.5 L144.2,294.5 L142.7,290.0 L146.2,288.2 L146.5,284.7 L151.1,283.9 L152.2,282.7 L146.2,283.9 L144.5,287.7 L140.0,281.6 L124.3,273.3 L125.9,268.2 L121.5,270.6 L122.9,273.1 L116.0,271.0 L103.4,272.3 L99.4,255.9 L109.1,240.9 L119.0,239.1 L122.1,232.1 L115.9,233.1 L105.6,222.1 L109.2,210.5 L117.8,205.8 L121.1,199.4 L119.4,196.1 L113.7,195.8 L109.7,191.5 L107.5,181.7 L97.7,172.8 L119.2,172.2 L124.8,159.6 L118.3,152.7 L128.2,145.7 L125.7,142.3 L127.4,125.7 L122.3,119.4 L127.8,117.4 L134.1,109.3 L147.2,103.6 L151.8,97.2 L145.4,93.5 L138.3,93.6 L136.9,90.4 L139.0,85.3 L135.6,81.5 L117.9,82.3 L114.2,80.5 L111.3,84.8 L102.3,87.8 L91.1,84.0 L84.1,85.7 L83.8,83.4 L78.1,87.3 L72.8,87.6 L70.8,83.8 L76.2,78.4 L71.8,77.2 L71.1,73.9 L54.9,78.0 L44.7,84.3 L44.2,75.2 L46.9,74.8 L55.1,66.1 L45.3,69.7 L46.8,66.3 L53.8,62.3 L46.3,63.9 L42.3,61.2 L46.9,61.5 L50.8,52.5 L48.6,54.4 L46.4,52.7 L38.9,58.3 L37.2,56.2 L38.8,51.7 L44.5,46.8 L36.0,49.7 L34.6,43.3 L32.2,42.0 L29.1,44.3 L28.8,37.8 L35.7,34.4 L31.3,33.8 L42.7,30.6 L40.5,28.7 L46.8,26.4 L52.3,28.3 L64.5,24.6 L65.9,26.1 L66.8,23.8 L71.6,27.5 L73.0,23.3 L67.8,22.0 L73.3,20.3 L66.7,21.1 L67.5,17.3 L77.9,14.3 L77.6,11.6 L83.7,9.3 L86.1,11.3 L83.7,13.2 L85.7,13.3 L92.6,8.3 L92.3,10.9 L105.3,12.8 L109.2,17.6 L118.2,17.6 L118.2,20.8 L122.2,17.4 L157.2,17.2 L163.7,16.5 L165.9,13.5 L172.9,17.6 L184.2,17.8 L183.4,19.7 L188.0,18.5 L220.7,24.7 L246.9,20.1 L249.2,20.8 L247.6,23.0 L256.8,19.3 L262.7,21.3 L259.9,22.8 L261.6,23.5 L279.7,27.2 L278.8,25.0 L282.1,22.8 L289.3,21.9 L292.4,25.3 L293.6,23.5 L314.9,28.5 L328.2,24.6Z M525.5,168.4 L539.0,170.0 L538.2,173.6 L530.1,184.6 L522.4,189.2 L518.4,185.5 L511.5,185.0 L507.3,177.7 L499.7,181.2 L494.0,176.9 L512.5,165.1 L527.2,161.2 L523.9,163.5 L528.3,164.3 L525.5,168.4Z M207.1,760.2 L52.7,668.6 L52.8,612.3 L95.2,584.4 L106.0,584.7 L114.1,579.6 L128.7,582.1 L132.0,579.4 L143.5,577.4 L169.8,575.4 L171.2,579.1 L178.4,579.1 L193.0,560.9 L215.0,548.6 L225.1,539.7 L254.2,531.5 L253.6,526.5 L257.8,521.8 L250.7,512.9 L246.3,513.2 L247.4,506.5 L253.1,504.4 L253.6,494.1 L286.9,488.2 L282.5,478.1 L284.8,476.9 L299.4,474.7 L351.6,476.4 L352.2,474.2 L347.6,473.3 L350.2,465.7 L358.7,460.2 L343.1,450.3 L337.6,442.7 L340.0,437.6 L333.0,430.5 L335.3,417.8 L330.1,411.9 L333.2,396.8 L327.6,385.1 L331.9,380.8 L325.2,376.1 L329.2,370.3 L312.2,359.9 L311.1,356.4 L329.6,354.8 L348.2,345.4 L352.7,336.9 L358.7,332.7 L367.9,329.0 L374.9,331.1 L380.8,324.4 L386.1,323.7 L388.6,326.9 L396.7,328.2 L413.7,311.8 L441.8,300.5 L453.9,298.2 L478.9,297.5 L494.1,294.5 L504.0,296.1 L517.3,287.7 L525.6,290.3 L529.1,287.5 L539.2,288.9 L555.0,283.3 L591.5,284.2 L612.2,294.3 L618.6,293.4 L629.3,286.7 L647.9,283.9 L650.7,279.3 L656.6,276.3 L661.8,277.6 L664.0,281.1 L677.9,284.4 L689.3,281.3 L690.2,279.4 L687.3,276.9 L688.9,276.4 L708.5,281.5 L711.9,280.3 L710.9,284.4 L716.3,286.0 L729.3,281.7 L738.5,283.9 L744.1,282.4 L745.7,286.5 L736.5,288.6 L738.5,290.7 L737.2,293.5 L726.8,299.0 L734.3,302.8 L729.7,326.9 L733.5,338.5 L731.8,347.0 L737.3,350.3 L732.0,357.3 L729.5,374.1 L713.3,383.4 L710.6,390.2 L700.7,396.2 L699.2,404.2 L708.3,423.4 L709.0,430.7 L723.5,436.2 L731.3,446.5 L733.3,458.9 L761.8,477.1 L780.8,550.8 L771.5,555.3 L786.7,575.7 L793.0,594.9 L794.1,608.6 L791.1,629.3 L797.4,646.9 L788.9,668.3 L793.0,683.2 L796.3,685.7 L795.9,693.9 L793.4,699.8 L779.3,705.9 L775.1,713.2 L800.3,746.7 L801.3,765.7 L807.7,770.0 L809.7,776.2 L816.4,781.1 L828.0,777.8 L861.7,788.1 L878.8,819.3 L699.3,925.1 L631.8,982.0 L533.3,1001.0 L524.2,994.6 L530.4,984.5 L528.0,967.2 L517.8,962.3 L496.0,957.7 L488.0,949.0 L482.8,951.5 L471.1,947.8 L462.4,936.1 L451.9,930.7 L446.2,930.4 L445.9,915.9 L207.1,760.2Z M115.8,206.9 L109.2,210.5 L105.6,222.1 L115.9,233.1 L122.1,232.1 L119.0,239.1 L109.1,240.9 L98.8,257.3 L103.7,273.4 L99.5,273.1 L87.2,280.1 L56.8,275.0 L40.1,279.1 L47.4,263.3 L46.9,256.0 L49.9,250.8 L47.7,251.1 L47.8,243.9 L44.2,241.9 L49.0,232.5 L48.2,225.6 L42.3,220.7 L48.1,223.0 L55.7,223.3 L50.6,221.9 L49.1,217.4 L48.5,220.7 L43.8,219.5 L30.8,223.3 L32.6,217.9 L29.9,213.4 L35.7,213.6 L42.3,209.0 L39.5,203.5 L42.3,199.4 L46.9,198.0 L49.4,196.1 L42.6,198.4 L36.0,206.8 L35.5,211.4 L21.1,211.9 L20.1,207.6 L26.0,192.1 L23.6,185.0 L31.3,183.8 L36.4,176.8 L45.3,155.0 L48.6,155.3 L43.7,152.0 L49.9,134.4 L57.1,129.8 L53.3,130.1 L52.7,128.7 L54.2,127.1 L53.8,126.2 L50.0,133.9 L54.1,113.9 L50.5,110.0 L46.8,93.1 L52.2,91.1 L44.8,90.5 L45.3,85.6 L54.9,78.0 L71.1,73.9 L71.8,77.2 L76.2,78.4 L70.7,84.6 L76.3,87.7 L83.8,83.4 L84.1,85.7 L91.1,84.0 L102.3,87.8 L111.3,84.8 L113.6,80.6 L135.6,81.5 L139.0,85.3 L136.9,90.4 L138.3,93.6 L145.4,93.5 L151.8,97.2 L147.2,103.6 L134.1,109.3 L127.8,117.4 L122.3,119.4 L127.4,125.7 L125.7,142.3 L128.2,145.7 L118.3,152.7 L124.8,159.6 L119.2,172.2 L97.7,172.8 L107.5,181.7 L106.9,186.3 L110.2,192.2 L113.7,195.8 L120.6,197.3 L115.8,206.9Z"},"france":{"bbox":[-5,9,41,51],"size":[560,400],"path":"M300.9,-3.5 L304.3,1.6 L303.5,6.2 L311.5,11.1 L315.5,12.1 L325.2,8.8 L329.3,12.2 L330.8,18.9 L344.3,20.9 L347.9,28.1 L360.1,26.2 L367.9,29.7 L365.0,34.9 L368.4,37.6 L365.3,41.0 L377.4,42.7 L385.8,40.6 L387.3,36.6 L392.6,33.5 L394.9,34.4 L391.4,41.7 L394.4,43.5 L394.0,48.2 L410.4,52.3 L418.2,60.0 L429.9,58.0 L438.4,62.3 L447.7,60.0 L456.1,61.4 L460.5,63.0 L468.6,73.6 L476.6,71.7 L481.7,75.7 L491.0,75.8 L496.4,73.2 L505.4,78.5 L528.0,81.7 L523.6,87.7 L512.4,95.4 L510.0,106.3 L503.4,114.8 L504.8,121.1 L500.5,131.7 L503.4,136.6 L495.1,142.8 L478.9,140.4 L474.7,145.8 L481.5,146.8 L466.6,159.1 L457.7,162.2 L457.2,169.6 L444.7,176.7 L442.2,183.2 L445.4,185.2 L443.8,189.9 L438.2,192.0 L438.4,194.8 L445.6,194.0 L451.2,190.4 L448.6,187.4 L450.8,185.0 L459.3,182.1 L471.5,183.4 L470.0,186.2 L473.1,189.2 L470.6,193.9 L480.9,203.0 L472.0,206.9 L471.8,211.3 L478.5,214.4 L479.3,219.6 L486.4,223.6 L482.2,231.5 L464.1,235.9 L468.9,239.5 L469.8,243.7 L480.3,247.1 L482.2,252.6 L478.4,252.7 L473.4,258.6 L476.7,262.5 L474.6,265.1 L479.3,270.3 L493.2,275.0 L506.2,273.0 L507.6,277.3 L499.1,285.4 L499.1,289.4 L486.1,293.8 L485.6,297.8 L478.5,298.4 L475.8,302.9 L469.2,303.7 L463.6,309.2 L467.7,309.1 L467.2,311.9 L456.1,314.1 L455.0,316.4 L447.7,315.6 L447.2,318.6 L437.6,314.6 L435.2,315.2 L438.1,316.8 L434.3,318.2 L427.0,312.8 L413.9,311.4 L414.8,309.2 L411.8,305.8 L401.4,306.6 L401.0,303.6 L409.1,300.8 L401.2,297.7 L402.0,302.8 L394.7,303.1 L396.0,305.3 L394.2,306.3 L390.3,303.1 L389.7,299.0 L387.8,296.8 L389.7,303.1 L392.8,306.1 L383.7,305.6 L380.5,301.8 L367.3,301.4 L364.2,297.9 L358.1,298.4 L340.5,308.8 L332.7,309.5 L324.6,315.7 L321.6,322.3 L321.7,334.8 L327.2,342.7 L317.3,341.2 L307.6,343.8 L306.5,346.4 L300.6,347.0 L291.1,342.9 L279.8,346.1 L277.1,342.5 L268.5,340.3 L270.6,337.5 L268.9,335.6 L261.7,334.0 L257.2,336.2 L253.7,331.7 L246.1,331.7 L232.5,326.7 L226.3,326.5 L225.7,332.6 L214.2,331.3 L211.0,333.3 L206.8,330.9 L198.4,332.6 L187.1,326.3 L177.2,329.1 L169.6,322.1 L154.0,319.8 L148.3,317.8 L148.6,315.6 L145.4,318.7 L141.7,318.2 L143.9,310.3 L135.1,310.1 L128.1,305.0 L133.6,304.0 L140.9,296.8 L149.7,257.8 L152.5,253.4 L158.2,253.2 L153.1,248.9 L149.6,254.9 L156.6,217.2 L169.4,227.0 L171.4,234.6 L178.6,244.2 L176.2,239.0 L180.2,240.1 L173.8,236.0 L168.2,220.9 L150.1,211.6 L150.8,208.3 L153.4,207.7 L160.5,211.3 L153.9,205.3 L157.1,203.8 L155.6,199.3 L158.1,198.4 L151.6,193.0 L155.6,187.9 L150.4,188.6 L128.2,180.2 L123.6,172.3 L115.2,167.2 L114.8,164.3 L120.4,158.6 L110.4,154.3 L113.4,153.3 L113.6,149.2 L119.4,148.0 L127.8,151.2 L130.9,151.6 L119.6,147.2 L108.9,150.1 L98.3,148.0 L102.6,147.7 L97.7,144.7 L104.3,143.1 L100.2,140.4 L105.4,139.8 L94.7,139.2 L96.0,138.8 L96.9,137.8 L87.3,140.0 L83.6,137.7 L90.3,137.9 L92.5,135.8 L92.6,135.1 L91.7,134.3 L83.2,136.2 L81.0,133.4 L82.4,137.6 L75.1,136.0 L76.6,140.9 L74.7,140.9 L72.0,134.4 L75.3,130.7 L72.3,130.1 L73.6,131.6 L71.0,133.7 L65.7,132.1 L68.7,132.4 L65.7,131.6 L68.7,128.5 L62.1,131.8 L58.9,128.8 L45.9,128.0 L41.5,124.0 L38.5,125.8 L34.7,123.0 L35.6,125.2 L32.6,125.0 L32.6,127.5 L25.1,127.7 L26.1,125.5 L22.6,121.0 L10.9,118.4 L28.6,115.4 L24.8,110.7 L20.6,110.3 L17.7,112.9 L18.1,109.9 L14.9,108.5 L18.1,106.1 L19.4,108.2 L29.2,108.5 L32.5,107.7 L27.0,107.1 L29.2,105.5 L21.9,106.6 L28.4,102.7 L9.3,106.2 L9.4,99.2 L16.9,97.3 L17.5,94.8 L32.2,94.0 L41.0,90.7 L41.8,93.7 L45.9,94.8 L47.6,90.7 L56.6,92.7 L58.9,90.4 L56.7,88.4 L59.4,86.3 L64.1,87.7 L70.8,85.1 L71.2,88.2 L76.3,85.1 L75.0,89.6 L79.7,87.1 L78.3,88.5 L82.7,89.3 L92.7,99.6 L107.4,92.1 L106.8,94.8 L110.0,94.0 L111.5,96.7 L117.9,94.0 L120.8,99.5 L121.9,97.0 L118.9,94.3 L122.2,92.1 L126.3,91.5 L125.6,94.4 L128.2,95.4 L145.7,94.3 L137.9,90.1 L135.9,86.0 L139.7,78.7 L136.3,78.8 L135.6,71.4 L138.1,71.0 L135.0,71.2 L132.0,65.8 L127.3,64.7 L124.6,58.8 L126.4,55.2 L122.6,51.0 L135.7,54.0 L149.5,52.2 L150.9,55.0 L147.7,57.7 L155.1,66.2 L162.4,64.3 L191.2,68.8 L216.5,61.9 L219.7,60.3 L210.3,61.4 L203.1,58.6 L209.4,50.8 L248.8,40.8 L260.8,31.4 L266.9,32.3 L261.7,28.9 L264.4,25.2 L262.2,23.8 L264.4,18.1 L263.2,5.2 L276.9,0.1 L300.9,-3.5Z M542.4,353.8 L547.5,349.1 L542.0,344.9 L546.4,342.8 L548.4,336.8 L551.5,337.5 L564.7,330.7 L571.7,333.0 L573.9,319.9 L578.6,320.4 L577.7,334.4 L581.1,337.5 L582.4,354.1 L576.1,361.9 L576.1,371.7 L571.7,374.9 L574.0,376.8 L568.4,382.1 L568.9,385.1 L563.9,383.9 L563.2,380.7 L551.7,377.6 L552.1,374.4 L556.9,372.2 L546.2,370.0 L551.4,367.0 L552.2,363.7 L544.6,364.0 L543.5,361.2 L549.8,357.7 L542.4,353.8Z M752.6,89.3 L752.1,95.5 L748.7,99.1 L738.2,97.1 L736.2,104.9 L709.6,115.5 L719.6,126.1 L715.7,131.1 L722.9,133.6 L720.1,141.4 L711.2,137.8 L712.5,135.5 L710.5,133.3 L699.9,134.8 L697.0,132.3 L689.5,132.8 L689.7,130.7 L687.1,131.8 L686.9,135.8 L664.8,136.4 L649.5,144.2 L639.2,144.4 L634.3,138.8 L617.2,136.9 L617.1,144.2 L606.4,149.2 L608.4,145.1 L603.3,145.6 L597.8,138.4 L591.3,136.5 L584.5,139.1 L567.3,133.2 L555.3,133.8 L542.3,128.0 L535.7,133.4 L544.3,133.7 L543.0,136.3 L529.3,135.1 L521.7,137.6 L504.4,137.4 L506.4,136.1 L503.4,136.6 L500.5,131.7 L504.8,121.1 L503.2,115.4 L510.0,106.3 L512.4,95.4 L523.6,87.7 L528.0,81.7 L505.4,78.5 L496.4,73.2 L491.0,75.8 L481.7,75.7 L476.6,71.7 L469.0,73.8 L460.5,63.0 L453.8,61.8 L454.0,57.3 L460.0,51.5 L460.1,48.2 L452.1,46.6 L443.9,38.1 L445.9,31.4 L455.0,27.4 L453.5,20.8 L446.8,19.3 L450.0,15.4 L440.5,11.7 L438.9,8.7 L442.5,3.7 L434.3,-0.8 L445.9,-6.1 L442.3,-8.5 L448.3,-15.5 L447.7,-20.4 L437.6,-29.3 L437.3,-32.6 L446.2,-33.7 L445.1,-35.9 L453.8,-32.8 L469.8,-36.3 L472.4,-39.2 L467.2,-42.4 L481.1,-49.2 L481.9,-54.6 L478.9,-58.1 L468.6,-58.5 L466.9,-61.7 L469.8,-62.4 L469.5,-65.4 L480.7,-65.0 L482.5,-73.0 L487.7,-79.9 L487.8,-89.8 L490.2,-92.8 L494.7,-92.1 L480.9,-95.1 L482.1,-100.5 L485.7,-101.5 L483.5,-103.5 L489.0,-106.7 L521.3,-108.3 L526.7,-102.1 L523.1,-98.7 L528.2,-96.4 L532.6,-99.0 L529.2,-101.0 L530.8,-104.5 L542.1,-101.7 L539.6,-99.5 L540.2,-94.3 L539.9,-99.0 L542.6,-101.9 L539.4,-108.0 L543.5,-114.8 L554.4,-113.2 L568.4,-114.9 L583.3,-103.7 L593.3,-101.7 L583.3,-104.5 L575.8,-113.2 L570.3,-115.4 L559.4,-115.9 L556.6,-117.5 L553.3,-121.5 L559.9,-121.2 L560.7,-123.9 L552.5,-127.2 L558.5,-132.7 L547.1,-130.8 L544.0,-133.5 L547.8,-134.3 L545.9,-136.3 L555.4,-136.7 L560.5,-140.3 L547.5,-149.4 L546.4,-155.9 L556.2,-155.9 L569.8,-152.1 L583.2,-154.7 L592.9,-150.3 L597.9,-151.2 L600.7,-148.0 L597.2,-147.0 L601.6,-146.7 L601.1,-142.4 L593.6,-139.0 L605.7,-139.7 L608.2,-138.4 L605.7,-133.0 L612.7,-137.7 L629.3,-132.4 L645.4,-135.4 L642.7,-134.3 L642.7,-127.4 L630.1,-122.0 L636.1,-118.5 L647.0,-120.7 L649.7,-117.8 L658.3,-116.2 L660.8,-121.5 L667.6,-126.2 L683.5,-127.8 L683.7,-124.6 L684.6,-123.9 L684.4,-127.3 L701.4,-139.5 L716.8,-137.3 L705.0,-136.9 L701.1,-134.9 L697.5,-135.5 L694.8,-130.8 L696.5,-130.1 L698.3,-130.2 L696.4,-130.8 L699.1,-133.3 L707.2,-136.4 L714.2,-134.3 L720.4,-137.5 L724.6,-131.2 L739.3,-123.7 L748.5,-126.9 L752.3,-124.2 L749.8,-121.5 L756.2,-117.7 L752.7,-114.1 L761.5,-110.2 L770.6,-110.1 L768.5,-108.3 L770.6,-108.0 L777.7,-90.1 L773.7,-81.9 L765.8,-78.4 L765.0,-74.0 L785.8,-63.1 L781.8,-55.3 L783.4,-51.6 L788.5,-49.4 L787.5,-44.8 L790.5,-43.1 L783.4,-32.2 L789.3,-26.3 L788.4,-21.2 L798.2,-17.4 L800.9,-9.5 L798.2,-2.6 L790.4,7.6 L784.5,6.2 L785.2,3.2 L782.0,3.5 L783.0,1.0 L779.3,-1.5 L771.5,-1.5 L769.5,0.7 L775.3,3.2 L773.9,4.8 L753.4,11.1 L742.3,11.7 L737.9,16.1 L734.8,14.9 L726.4,20.1 L720.4,20.3 L718.1,23.8 L712.7,22.3 L700.4,24.4 L692.0,33.6 L689.6,29.7 L683.0,27.4 L689.9,38.2 L701.0,43.8 L695.3,50.3 L699.9,53.2 L705.7,62.8 L711.1,66.7 L720.0,68.2 L727.1,75.3 L732.0,76.3 L738.4,82.2 L744.3,82.2 L752.6,89.3Z M444.7,35.2 L443.9,38.1 L448.9,44.5 L452.1,46.6 L453.4,46.4 L455.9,47.7 L458.5,47.8 L459.9,48.0 L460.1,48.2 L460.0,51.5 L454.0,57.3 L453.8,61.8 L447.7,60.0 L438.4,62.3 L431.6,58.5 L435.4,54.3 L429.1,48.0 L428.8,44.3 L438.5,33.4 L444.7,35.2Z M300.9,-3.5 L334.0,-15.0 L335.7,-9.9 L344.4,-11.6 L357.1,-8.3 L368.9,-14.7 L372.3,-10.8 L370.4,-14.8 L376.4,-14.3 L375.1,-17.7 L377.2,-18.5 L385.2,-16.7 L391.1,-19.8 L392.9,-16.5 L390.5,-16.5 L396.4,-15.7 L401.1,-19.1 L408.6,-10.3 L419.7,-11.5 L422.7,-8.3 L433.2,-6.3 L433.8,-4.1 L428.9,1.6 L430.6,1.6 L425.0,6.8 L428.3,9.8 L439.8,10.0 L450.0,15.4 L446.8,19.3 L453.5,20.8 L455.0,27.4 L446.3,31.1 L444.7,35.2 L438.5,33.4 L428.8,44.3 L429.1,48.0 L435.4,54.3 L433.5,57.6 L418.2,60.0 L410.4,52.3 L394.0,48.2 L394.4,43.5 L391.4,41.7 L394.5,34.1 L387.3,36.6 L386.3,40.4 L378.6,42.6 L365.3,41.0 L368.4,37.6 L365.0,34.9 L367.9,29.7 L360.1,26.2 L347.9,28.1 L344.3,20.9 L330.8,18.9 L329.3,12.2 L325.2,8.8 L315.5,12.1 L311.5,11.1 L303.5,6.2 L304.3,1.6 L300.9,-3.5Z M128.2,304.6 L130.1,308.4 L143.9,310.3 L141.7,318.2 L145.4,318.7 L146.1,316.3 L148.6,315.6 L148.3,317.8 L154.0,319.8 L169.6,322.1 L177.2,329.1 L187.1,326.3 L198.4,332.6 L206.8,330.9 L211.0,333.3 L214.2,331.3 L226.3,332.5 L226.3,326.5 L232.5,326.7 L246.1,331.7 L253.7,331.7 L257.2,336.2 L257.9,342.6 L268.3,339.9 L277.1,342.5 L280.4,346.1 L291.1,342.9 L300.6,347.0 L317.3,341.2 L327.2,342.7 L327.5,346.0 L332.7,347.1 L330.5,350.4 L324.8,351.3 L329.3,362.2 L317.3,371.5 L290.7,382.1 L285.2,387.9 L240.7,397.9 L228.6,407.4 L234.9,410.9 L234.3,412.5 L227.1,417.4 L223.7,416.7 L229.3,414.7 L222.5,416.4 L187.1,459.4 L193.7,479.9 L209.4,490.3 L179.6,506.5 L179.8,511.7 L175.1,513.5 L169.6,528.2 L165.8,530.3 L171.8,535.2 L163.0,537.8 L156.5,536.8 L155.8,538.7 L147.1,537.5 L133.2,545.5 L127.5,551.7 L124.0,562.4 L114.9,570.5 L105.5,566.5 L97.6,567.2 L91.3,572.7 L82.7,569.9 L63.4,572.2 L46.5,569.9 L23.9,571.0 L13.6,579.7 L3.9,579.7 L-7.5,583.6 L-13.6,594.4 L-17.0,592.8 L-17.5,597.5 L-24.5,599.7 L-36.7,592.6 L-41.5,592.4 L-52.4,578.6 L-49.3,581.1 L-47.2,579.5 L-55.8,574.5 L-57.3,570.0 L-53.8,568.2 L-53.5,564.7 L-48.9,563.9 L-47.8,562.7 L-53.8,563.9 L-55.5,567.7 L-60.0,561.6 L-75.7,553.3 L-74.1,548.2 L-78.5,550.6 L-77.1,553.1 L-84.0,551.0 L-96.6,552.3 L-100.6,535.9 L-90.9,520.9 L-81.0,519.1 L-77.9,512.1 L-84.1,513.1 L-94.4,502.1 L-90.8,490.5 L-82.2,485.8 L-78.9,479.4 L-80.6,476.1 L-86.3,475.8 L-90.3,471.5 L-92.5,461.7 L-102.3,452.8 L-80.8,452.2 L-75.2,439.6 L-81.7,432.7 L-71.8,425.7 L-74.3,422.3 L-72.6,405.7 L-77.7,399.4 L-72.2,397.4 L-65.9,389.3 L-52.8,383.6 L-48.2,377.2 L-54.6,373.5 L-61.7,373.6 L-63.1,370.4 L-61.0,365.3 L-64.4,361.5 L-82.1,362.3 L-85.8,360.5 L-88.7,364.8 L-97.7,367.8 L-108.9,364.0 L-115.9,365.7 L-116.2,363.4 L-121.9,367.3 L-127.2,367.6 L-129.2,363.8 L-123.8,358.4 L-128.2,357.2 L-128.9,353.9 L-145.1,358.0 L-155.3,364.3 L-155.8,355.2 L-153.1,354.8 L-144.9,346.1 L-154.7,349.7 L-153.2,346.3 L-146.2,342.3 L-153.7,343.9 L-157.7,341.2 L-153.1,341.5 L-149.2,332.5 L-151.4,334.4 L-153.6,332.7 L-161.1,338.3 L-162.8,336.2 L-161.2,331.7 L-155.5,326.8 L-164.0,329.7 L-165.4,323.3 L-167.8,322.0 L-170.9,324.3 L-171.2,317.8 L-164.3,314.4 L-168.7,313.8 L-157.3,310.6 L-159.5,308.7 L-153.2,306.4 L-147.7,308.3 L-135.5,304.6 L-134.1,306.1 L-133.2,303.8 L-128.4,307.5 L-127.0,303.3 L-132.2,302.0 L-126.7,300.3 L-133.3,301.1 L-132.5,297.3 L-122.1,294.3 L-122.4,291.6 L-116.3,289.3 L-113.9,291.3 L-116.3,293.2 L-114.3,293.3 L-107.4,288.3 L-107.7,290.9 L-94.7,292.8 L-90.8,297.6 L-81.8,297.6 L-81.8,300.8 L-77.8,297.4 L-42.8,297.2 L-36.3,296.5 L-34.1,293.5 L-27.1,297.6 L-15.8,297.8 L-16.6,299.7 L-12.0,298.5 L20.7,304.7 L46.9,300.1 L49.2,300.8 L47.6,303.0 L56.8,299.3 L62.7,301.3 L59.9,302.8 L61.6,303.5 L79.7,307.2 L78.8,305.0 L82.1,302.8 L89.3,301.9 L92.4,305.3 L93.6,303.5 L114.9,308.5 L128.2,304.6Z M93.4,-24.7 L81.0,-22.5 L72.6,-15.9 L58.4,-15.9 L50.5,-19.6 L46.3,-24.9 L28.4,-22.2 L28.4,-24.7 L36.3,-25.6 L37.2,-27.0 L27.4,-27.1 L25.4,-31.6 L2.4,-23.9 L-4.8,-27.1 L6.2,-28.6 L4.8,-30.5 L7.0,-31.8 L2.7,-31.0 L3.6,-28.7 L-7.3,-27.6 L-10.0,-29.3 L-4.4,-31.1 L-5.0,-34.2 L-12.4,-34.6 L-2.8,-41.1 L6.3,-40.6 L11.2,-44.5 L27.4,-48.7 L35.6,-54.6 L37.7,-61.2 L42.1,-62.0 L35.0,-64.2 L40.5,-69.4 L34.0,-72.5 L36.9,-77.1 L23.7,-75.7 L19.3,-71.6 L9.5,-71.6 L25.7,-81.1 L26.4,-84.5 L32.9,-88.7 L46.7,-91.6 L44.9,-93.5 L55.9,-91.6 L66.8,-94.1 L76.5,-89.4 L72.5,-95.7 L77.7,-97.4 L84.7,-91.5 L92.0,-94.1 L83.0,-94.0 L75.9,-102.3 L84.0,-109.4 L78.0,-110.8 L77.7,-116.2 L85.7,-118.7 L86.8,-120.6 L83.3,-121.4 L88.2,-125.0 L85.8,-127.8 L87.6,-128.5 L88.2,-129.9 L82.4,-126.2 L78.0,-128.9 L74.2,-122.6 L70.4,-124.5 L71.7,-130.5 L67.7,-127.7 L54.6,-140.5 L64.5,-155.3 L79.1,-159.0 L57.2,-159.8 L56.7,-155.3 L47.3,-155.4 L47.0,-153.0 L39.5,-150.7 L37.4,-153.3 L35.1,-150.9 L32.0,-154.7 L29.2,-153.6 L23.9,-156.3 L23.3,-153.8 L26.2,-151.8 L24.7,-147.2 L5.6,-154.7 L1.8,-152.2 L5.6,-145.3 L-6.3,-155.2 L-6.8,-160.3 L-4.6,-161.3 L0.2,-156.8 L-2.0,-161.1 L-0.3,-165.6 L15.3,-179.8 L12.3,-184.2 L3.2,-188.3 L5.6,-190.3 L4.5,-196.8 L20.7,-197.1 L13.1,-198.5 L7.0,-203.1 L8.8,-199.7 L5.9,-199.5 L5.4,-202.7 L9.8,-208.3 L5.9,-204.5 L3.2,-206.7 L4.3,-199.6 L1.8,-199.9 L3.5,-198.5 L0.7,-194.8 L-4.9,-200.4 L-3.5,-196.1 L-7.2,-198.8 L-9.7,-195.7 L-8.0,-193.3 L-11.9,-194.1 L-13.5,-199.9 L3.2,-211.1 L-14.7,-200.4 L-17.8,-201.1 L-18.2,-198.2 L-12.7,-191.3 L-19.6,-185.8 L-18.2,-183.7 L-23.4,-177.1 L-21.0,-174.3 L-31.3,-172.5 L-27.2,-187.0 L-18.2,-193.8 L-24.0,-190.6 L-26.4,-191.9 L-22.8,-197.4 L-27.9,-196.6 L-22.8,-201.5 L-28.3,-197.7 L-21.3,-203.5 L-20.4,-207.5 L-24.2,-205.6 L-19.7,-210.4 L-23.7,-210.0 L-22.9,-213.1 L-17.9,-214.4 L-21.5,-214.4 L-18.3,-217.6 L-8.3,-217.9 L-4.7,-220.3 L-2.6,-222.6 L-8.0,-218.5 L-18.7,-219.0 L-17.1,-221.5 L-14.3,-220.8 L-9.7,-222.6 L-16.6,-221.8 L-12.7,-226.5 L0.2,-228.6 L-9.5,-228.7 L-4.8,-232.7 L-27.0,-219.9 L-40.3,-225.7 L-21.7,-227.8 L-46.5,-227.1 L-49.4,-229.1 L-30.3,-231.4 L-34.0,-233.2 L-29.4,-233.8 L-26.4,-234.9 L-36.8,-235.8 L-34.1,-236.0 L-33.3,-239.9 L-30.2,-241.1 L-26.3,-239.2 L-22.9,-239.4 L-20.9,-240.2 L-25.2,-239.7 L-31.0,-243.0 L-25.8,-245.2 L-22.3,-244.0 L-16.0,-244.3 L-27.2,-246.3 L-23.1,-250.7 L-16.3,-249.2 L-20.1,-251.1 L-17.6,-252.8 L-29.2,-251.9 L-20.1,-254.8 L-17.9,-256.9 L-32.3,-254.2 L-34.9,-259.7 L-33.6,-263.2 L-25.6,-260.4 L-20.5,-261.7 L-26.4,-261.8 L-32.2,-265.7 L-31.6,-267.8 L-27.0,-268.4 L-32.2,-269.8 L-32.4,-273.3 L-27.9,-274.8 L-26.4,-271.7 L-24.2,-270.8 L-23.4,-273.3 L-26.1,-275.8 L-24.5,-277.2 L-19.5,-274.2 L-16.6,-276.3 L-8.9,-273.9 L-14.6,-277.7 L-2.8,-273.3 L-17.9,-283.4 L-12.0,-282.8 L-9.7,-285.9 L-15.7,-290.5 L2.7,-288.9 L-6.9,-294.2 L-5.7,-296.6 L-0.6,-295.5 L-3.9,-296.6 L0.2,-297.5 L-4.2,-300.2 L0.5,-305.1 L6.6,-304.2 L7.3,-301.0 L8.9,-304.3 L13.6,-302.2 L9.6,-297.9 L16.6,-303.0 L22.9,-301.9 L20.2,-298.0 L26.2,-301.6 L38.8,-303.8 L65.4,-304.0 L63.5,-306.2 L65.0,-307.1 L79.2,-305.6 L74.8,-300.5 L77.9,-298.6 L74.8,-294.8 L39.9,-277.4 L36.6,-278.6 L40.5,-276.3 L39.6,-274.7 L24.3,-276.3 L38.4,-272.7 L48.8,-274.2 L40.5,-267.8 L38.3,-269.5 L28.2,-267.2 L22.9,-263.1 L39.6,-267.5 L35.8,-263.2 L29.5,-262.1 L31.7,-261.5 L30.0,-259.9 L38.6,-262.3 L36.6,-263.4 L56.4,-265.7 L63.6,-268.9 L78.6,-266.7 L120.1,-268.1 L126.8,-264.5 L129.6,-258.9 L120.8,-252.8 L112.5,-236.6 L102.9,-230.1 L99.4,-223.7 L90.9,-218.8 L77.6,-218.1 L67.1,-214.6 L84.6,-218.3 L87.9,-217.1 L87.9,-213.8 L96.9,-211.1 L88.7,-207.7 L81.4,-208.2 L73.5,-202.6 L66.3,-201.1 L46.5,-204.3 L53.8,-200.4 L76.9,-197.9 L87.1,-202.4 L94.6,-202.3 L114.5,-196.6 L127.3,-185.3 L134.8,-183.4 L139.3,-166.3 L149.0,-149.9 L153.1,-148.0 L151.9,-145.0 L177.5,-139.1 L185.2,-129.9 L197.0,-124.5 L191.2,-120.9 L205.3,-105.7 L206.0,-104.4 L205.2,-102.9 L189.6,-109.4 L174.5,-109.3 L170.9,-108.0 L188.8,-108.3 L208.8,-96.8 L214.3,-85.8 L200.4,-75.5 L215.4,-70.7 L222.8,-78.8 L251.0,-77.2 L265.8,-71.0 L269.9,-65.0 L270.8,-59.4 L263.3,-43.3 L253.3,-37.6 L250.6,-39.8 L246.3,-41.1 L251.0,-38.4 L242.8,-38.1 L251.3,-37.9 L248.0,-35.1 L251.1,-33.8 L242.6,-31.0 L239.2,-33.7 L234.9,-29.9 L227.9,-28.8 L237.2,-29.7 L237.0,-23.5 L218.2,-20.2 L215.4,-18.1 L227.8,-19.1 L228.9,-17.9 L222.2,-16.5 L239.1,-14.0 L257.9,-15.3 L255.1,-13.0 L255.4,-6.1 L242.7,-2.6 L238.7,0.7 L239.2,3.3 L230.5,2.8 L210.8,10.1 L189.2,6.7 L169.7,8.9 L168.4,10.8 L162.4,6.3 L156.7,8.8 L157.2,6.3 L153.4,6.3 L154.0,8.7 L141.3,3.3 L147.3,8.0 L137.6,11.2 L122.4,12.4 L118.4,10.4 L116.7,12.0 L121.9,12.9 L121.4,15.9 L104.1,14.2 L101.9,18.9 L100.7,16.4 L85.4,10.6 L65.3,15.3 L61.4,12.9 L60.5,21.6 L57.7,22.7 L60.5,23.8 L54.7,27.5 L53.6,31.2 L37.8,28.0 L32.0,21.6 L28.4,24.1 L32.2,24.9 L32.2,27.1 L26.5,25.2 L12.2,26.3 L-0.1,34.2 L-2.1,32.2 L-5.0,36.1 L-2.3,37.6 L-7.6,41.6 L-12.2,36.8 L-19.0,34.8 L-28.2,37.9 L-27.4,33.5 L-12.6,29.9 L-2.0,22.9 L-0.6,18.5 L6.2,19.4 L3.2,16.4 L8.3,16.2 L16.9,9.0 L18.9,-0.6 L26.5,0.1 L31.7,-3.1 L30.9,-7.7 L49.2,-9.9 L79.1,-7.7 L81.0,-15.4 L92.2,-20.5 L104.7,-30.9 L93.4,-24.7Z M480.9,203.0 L486.1,204.9 L501.6,200.6 L513.7,203.2 L524.4,194.9 L523.5,189.1 L536.0,181.9 L537.5,190.6 L544.1,195.1 L552.4,196.4 L550.7,200.7 L554.8,202.1 L556.0,206.9 L560.1,207.2 L562.5,204.0 L559.2,201.4 L560.1,198.4 L569.0,190.8 L571.3,180.1 L577.4,180.1 L577.8,185.0 L581.5,188.1 L596.7,185.2 L603.0,191.2 L606.4,189.5 L603.7,186.8 L605.6,183.9 L601.1,182.1 L601.3,178.7 L607.7,174.9 L617.8,178.5 L618.4,175.1 L614.8,173.1 L618.2,165.4 L639.9,169.2 L647.0,161.4 L669.4,161.2 L687.2,156.6 L685.1,163.6 L690.7,165.3 L690.8,168.5 L696.2,172.4 L748.0,179.2 L747.1,181.9 L734.6,188.4 L736.4,191.7 L745.5,192.8 L738.5,199.7 L744.2,200.6 L742.6,206.8 L751.1,210.3 L755.8,214.7 L753.9,216.6 L748.5,216.3 L752.3,215.4 L743.0,208.4 L736.1,213.0 L737.3,211.7 L734.8,210.2 L724.8,209.1 L723.0,212.1 L726.0,211.8 L723.4,214.3 L696.9,222.5 L703.3,217.9 L695.9,218.4 L697.0,220.1 L692.4,220.4 L688.7,227.4 L686.2,227.5 L687.2,229.7 L688.7,228.2 L689.2,231.8 L692.3,230.8 L691.9,236.5 L694.8,239.6 L694.8,237.4 L701.4,241.2 L697.8,247.2 L696.3,244.3 L696.6,247.9 L690.7,246.9 L691.3,260.5 L694.8,270.0 L707.7,280.4 L744.6,297.6 L763.0,336.0 L782.4,351.0 L788.4,353.0 L789.6,356.6 L806.6,362.9 L845.6,363.2 L847.4,368.8 L836.0,375.4 L838.4,381.6 L882.3,396.7 L899.0,406.8 L920.3,414.0 L921.5,417.7 L929.5,421.7 L940.6,434.4 L935.6,447.3 L922.9,443.5 L914.5,428.6 L900.5,427.9 L888.0,423.2 L892.9,420.1 L879.0,420.3 L864.2,436.6 L865.3,441.4 L859.6,449.0 L861.8,453.6 L871.3,455.5 L886.3,463.8 L884.6,469.2 L885.0,476.4 L888.3,478.8 L886.9,481.6 L884.2,484.0 L873.5,483.3 L863.4,488.1 L861.4,492.0 L862.8,502.8 L846.8,514.3 L843.1,522.4 L827.4,521.9 L825.3,511.2 L832.5,508.0 L836.7,499.3 L833.5,494.0 L846.1,490.8 L848.9,485.7 L843.3,477.0 L839.8,462.4 L832.3,452.2 L831.0,444.4 L825.0,436.9 L816.4,440.2 L810.4,438.8 L805.1,433.2 L796.4,430.3 L799.9,424.1 L791.3,413.2 L773.7,417.2 L779.0,410.8 L771.8,406.4 L761.9,408.4 L760.9,403.1 L748.9,389.9 L741.8,391.7 L731.4,388.2 L721.8,390.9 L715.7,384.0 L705.4,382.1 L689.6,370.5 L686.8,364.8 L680.8,360.3 L673.1,358.6 L666.3,348.8 L655.1,343.7 L644.3,344.3 L644.0,342.3 L647.5,340.8 L646.3,337.4 L637.7,330.3 L629.3,327.8 L630.5,323.3 L620.0,322.4 L621.1,310.1 L612.7,300.3 L610.1,286.1 L603.6,279.0 L593.8,275.7 L593.3,278.3 L569.2,265.9 L568.4,267.8 L550.5,262.7 L538.6,267.8 L522.7,284.1 L500.1,288.3 L499.1,285.4 L507.6,277.3 L506.2,273.0 L493.6,275.1 L478.9,270.0 L474.8,265.5 L476.7,262.5 L473.4,258.6 L478.4,252.7 L482.2,252.6 L480.2,246.9 L469.8,243.7 L468.9,239.5 L464.1,235.9 L473.8,234.8 L484.3,229.6 L486.4,223.6 L479.3,219.6 L478.5,214.4 L472.6,212.1 L471.3,208.9 L480.9,203.0Z M586.3,408.0 L592.0,421.8 L585.0,429.5 L589.3,436.6 L585.4,468.1 L582.7,474.0 L580.7,475.8 L571.7,471.1 L566.6,472.5 L560.6,469.4 L563.2,471.0 L560.7,474.2 L561.0,480.2 L554.1,484.9 L548.7,482.7 L545.6,485.4 L542.4,477.7 L534.9,471.1 L537.3,467.9 L535.0,464.8 L538.5,456.9 L537.8,449.7 L540.7,451.9 L542.6,452.0 L540.2,451.1 L542.2,445.9 L535.8,443.5 L535.1,438.6 L539.6,435.8 L539.0,428.3 L535.4,425.9 L535.2,421.3 L531.7,416.2 L525.9,416.3 L527.7,401.4 L532.4,406.0 L540.8,406.9 L552.9,402.1 L569.2,389.5 L570.7,390.5 L570.7,391.9 L571.1,392.2 L576.9,392.8 L577.7,396.3 L578.8,394.2 L582.4,395.0 L580.5,399.3 L586.5,399.9 L580.2,402.9 L585.7,403.2 L589.0,406.2 L586.3,408.0Z M618.2,165.4 L614.8,173.1 L618.4,175.1 L617.8,178.5 L607.7,174.9 L601.3,178.7 L601.1,182.1 L605.6,183.9 L604.7,190.8 L601.7,191.2 L596.7,185.2 L581.5,188.1 L577.8,185.0 L577.4,180.1 L570.5,180.6 L569.0,190.8 L560.1,198.4 L559.2,201.4 L562.5,204.0 L560.1,207.2 L556.0,206.9 L554.8,202.1 L550.7,200.7 L552.4,196.4 L544.1,195.1 L537.5,190.6 L536.0,181.9 L523.5,189.1 L524.4,194.9 L513.2,203.4 L501.6,200.6 L482.7,204.4 L474.0,198.0 L474.8,195.5 L471.0,194.6 L473.1,189.2 L470.0,186.2 L471.5,183.4 L464.5,181.8 L452.1,184.2 L448.6,187.4 L451.2,190.4 L444.3,194.5 L438.4,194.8 L438.3,191.5 L443.6,190.1 L445.5,185.6 L442.2,183.2 L444.7,176.7 L457.2,169.6 L457.7,162.2 L466.6,159.1 L481.5,146.8 L474.7,145.8 L478.9,140.4 L487.2,140.5 L489.5,143.3 L496.3,142.5 L499.3,138.3 L505.5,136.2 L504.4,137.4 L507.3,138.2 L529.3,135.1 L542.4,136.4 L544.3,133.7 L535.7,133.4 L542.3,128.0 L555.3,133.8 L570.9,134.0 L586.0,141.9 L579.5,151.6 L579.1,157.4 L594.3,159.4 L595.0,162.9 L604.5,166.1 L615.2,160.2 L618.2,165.4Z M487.8,-89.8 L487.7,-79.9 L482.5,-73.0 L481.5,-65.9 L469.5,-65.4 L469.8,-62.4 L466.9,-61.7 L468.6,-58.5 L478.9,-58.1 L481.9,-54.6 L481.1,-49.2 L466.9,-42.0 L472.4,-38.4 L453.8,-32.8 L445.1,-35.9 L446.2,-33.7 L437.3,-32.6 L437.6,-29.3 L444.0,-25.8 L448.2,-18.3 L447.7,-13.8 L442.3,-8.5 L445.9,-6.1 L437.5,-1.2 L434.1,-1.7 L435.0,1.4 L440.1,1.1 L442.5,3.7 L438.8,8.2 L439.8,10.0 L428.3,9.8 L425.0,6.8 L430.6,1.6 L428.9,1.6 L433.8,-4.1 L433.2,-6.3 L422.7,-8.3 L419.7,-11.5 L408.6,-10.3 L401.1,-19.1 L396.4,-15.7 L390.5,-16.5 L392.9,-16.5 L391.1,-19.8 L385.2,-16.7 L379.3,-19.0 L375.1,-17.7 L375.7,-14.0 L360.0,-18.1 L353.1,-15.6 L338.0,-21.2 L342.4,-23.8 L354.0,-24.4 L354.9,-22.0 L360.6,-21.2 L364.2,-17.8 L371.3,-17.9 L370.7,-20.3 L359.5,-23.6 L368.3,-23.6 L364.5,-25.6 L367.1,-27.4 L354.5,-32.6 L363.1,-33.7 L360.6,-39.5 L365.7,-40.2 L380.3,-53.5 L389.8,-78.7 L395.0,-76.2 L403.1,-78.2 L415.2,-83.9 L417.9,-88.8 L423.7,-92.1 L439.2,-96.2 L473.2,-98.0 L476.0,-94.1 L487.8,-89.8Z"},"italy":{"bbox":[6,19,36,47],"size":[520,440],"path":"M-139.1,-163.5 L-135.7,-158.4 L-136.5,-153.8 L-128.5,-148.9 L-124.5,-147.9 L-114.8,-151.2 L-110.7,-147.8 L-109.2,-141.1 L-95.7,-139.1 L-92.1,-131.9 L-79.9,-133.8 L-72.1,-130.3 L-75.0,-125.1 L-71.6,-122.4 L-74.7,-119.0 L-62.6,-117.3 L-54.2,-119.4 L-52.7,-123.4 L-47.4,-126.5 L-45.1,-125.6 L-48.6,-118.3 L-45.6,-116.5 L-46.0,-111.8 L-29.6,-107.7 L-21.8,-100.0 L-10.1,-102.0 L-1.6,-97.7 L7.7,-100.0 L16.1,-98.6 L20.5,-97.0 L28.6,-86.4 L36.6,-88.3 L41.7,-84.3 L51.0,-84.2 L56.4,-86.8 L65.4,-81.5 L88.0,-78.3 L83.6,-72.3 L72.4,-64.6 L70.0,-53.7 L63.4,-45.2 L64.8,-38.9 L60.5,-28.3 L63.4,-23.4 L55.1,-17.2 L38.9,-19.6 L34.7,-14.2 L41.5,-13.2 L26.6,-0.9 L17.7,2.2 L17.2,9.6 L4.7,16.7 L2.2,23.2 L5.4,25.2 L3.8,29.9 L-1.8,32.0 L-1.6,34.8 L5.6,34.0 L11.2,30.4 L8.6,27.4 L10.8,25.0 L19.3,22.1 L31.5,23.4 L30.0,26.2 L33.1,29.2 L30.6,33.9 L40.9,43.0 L32.0,46.9 L31.8,51.3 L38.5,54.4 L39.3,59.6 L46.4,63.6 L42.2,71.5 L24.1,75.9 L28.9,79.5 L29.8,83.7 L40.3,87.1 L42.2,92.6 L38.4,92.7 L33.4,98.6 L36.7,102.5 L34.6,105.1 L39.3,110.3 L53.2,115.0 L66.2,113.0 L67.6,117.3 L59.1,125.4 L59.1,129.4 L46.1,133.8 L45.6,137.8 L38.5,138.4 L35.8,142.9 L29.2,143.7 L23.6,149.2 L27.7,149.1 L27.2,151.9 L16.1,154.1 L15.0,156.4 L7.7,155.6 L7.2,158.6 L-2.4,154.6 L-4.8,155.2 L-1.9,156.8 L-5.7,158.2 L-13.0,152.8 L-26.1,151.4 L-25.2,149.2 L-28.2,145.8 L-38.6,146.6 L-39.0,143.6 L-30.9,140.8 L-38.8,137.7 L-38.0,142.8 L-45.3,143.1 L-44.0,145.3 L-45.8,146.3 L-49.7,143.1 L-50.3,139.0 L-52.2,136.8 L-50.3,143.1 L-47.2,146.1 L-56.3,145.6 L-59.5,141.8 L-72.7,141.4 L-75.8,137.9 L-81.9,138.4 L-99.5,148.8 L-107.3,149.5 L-115.4,155.7 L-118.4,162.3 L-118.3,174.8 L-112.8,182.7 L-122.7,181.2 L-132.4,183.8 L-133.5,186.4 L-139.4,187.0 L-148.9,182.9 L-160.2,186.1 L-162.9,182.5 L-171.5,180.3 L-169.4,177.5 L-171.1,175.6 L-178.3,174.0 L-182.8,176.2 L-186.3,171.7 L-193.9,171.7 L-207.5,166.7 L-213.7,166.5 L-214.3,172.6 L-225.8,171.3 L-229.0,173.3 L-233.2,170.9 L-241.6,172.6 L-252.9,166.3 L-262.8,169.1 L-270.4,162.1 L-286.0,159.8 L-291.7,157.8 L-291.4,155.6 L-294.6,158.7 L-298.3,158.2 L-296.1,150.3 L-304.9,150.1 L-311.9,145.0 L-306.4,144.0 L-299.1,136.8 L-290.3,97.8 L-287.5,93.4 L-281.8,93.2 L-286.9,88.9 L-290.4,94.9 L-283.4,57.2 L-270.6,67.0 L-268.6,74.6 L-261.4,84.2 L-263.8,79.0 L-259.8,80.1 L-266.2,76.0 L-271.8,60.9 L-289.9,51.6 L-289.2,48.3 L-286.6,47.7 L-279.5,51.3 L-286.1,45.3 L-282.9,43.8 L-284.4,39.3 L-281.9,38.4 L-288.4,33.0 L-284.4,27.9 L-289.6,28.6 L-311.8,20.2 L-316.4,12.3 L-324.8,7.2 L-325.2,4.3 L-319.6,-1.4 L-329.6,-5.7 L-326.6,-6.7 L-326.4,-10.8 L-320.6,-12.0 L-312.2,-8.8 L-309.1,-8.4 L-320.4,-12.8 L-331.1,-9.9 L-341.7,-12.0 L-337.4,-12.3 L-342.3,-15.3 L-335.7,-16.9 L-339.8,-19.6 L-334.6,-20.2 L-345.3,-20.8 L-344.0,-21.2 L-343.1,-22.2 L-352.7,-20.0 L-356.4,-22.3 L-349.7,-22.1 L-347.5,-24.2 L-347.4,-24.9 L-348.3,-25.7 L-356.8,-23.8 L-359.0,-26.6 L-357.6,-22.4 L-364.9,-24.0 L-363.4,-19.1 L-365.3,-19.1 L-368.0,-25.6 L-364.7,-29.3 L-367.7,-29.9 L-366.4,-28.4 L-369.0,-26.3 L-374.3,-27.9 L-371.3,-27.6 L-374.3,-28.4 L-371.3,-31.5 L-377.9,-28.2 L-381.1,-31.2 L-394.1,-32.0 L-398.5,-36.0 L-401.5,-34.2 L-405.3,-37.0 L-404.4,-34.8 L-407.4,-35.0 L-407.4,-32.5 L-414.9,-32.3 L-413.9,-34.5 L-417.4,-39.0 L-429.1,-41.6 L-411.4,-44.6 L-415.2,-49.3 L-419.4,-49.7 L-422.3,-47.1 L-421.9,-50.1 L-425.1,-51.5 L-421.9,-53.9 L-420.6,-51.8 L-410.8,-51.5 L-407.5,-52.3 L-413.0,-52.9 L-410.8,-54.5 L-418.1,-53.4 L-411.6,-57.3 L-430.7,-53.8 L-430.6,-60.8 L-423.1,-62.7 L-422.5,-65.2 L-407.8,-66.0 L-399.0,-69.3 L-398.2,-66.3 L-394.1,-65.2 L-392.4,-69.3 L-383.4,-67.3 L-381.1,-69.6 L-383.3,-71.6 L-380.6,-73.7 L-375.9,-72.3 L-369.2,-74.9 L-368.8,-71.8 L-363.7,-74.9 L-365.0,-70.4 L-360.3,-72.9 L-361.7,-71.5 L-357.3,-70.7 L-347.3,-60.4 L-332.6,-67.9 L-333.2,-65.2 L-330.0,-66.0 L-328.5,-63.3 L-322.1,-66.0 L-319.2,-60.5 L-318.1,-63.0 L-321.1,-65.7 L-317.8,-67.9 L-313.7,-68.5 L-314.4,-65.6 L-311.8,-64.6 L-294.3,-65.7 L-302.1,-69.9 L-304.1,-74.0 L-300.3,-81.3 L-303.7,-81.2 L-304.4,-88.6 L-301.9,-89.0 L-305.0,-88.8 L-308.0,-94.2 L-312.7,-95.3 L-315.4,-101.2 L-313.6,-104.8 L-317.4,-109.0 L-304.3,-106.0 L-290.5,-107.8 L-289.1,-105.0 L-292.3,-102.3 L-284.9,-93.8 L-277.6,-95.7 L-248.8,-91.2 L-223.5,-98.1 L-220.3,-99.7 L-229.7,-98.6 L-236.9,-101.4 L-230.6,-109.2 L-191.2,-119.2 L-179.2,-128.6 L-173.1,-127.7 L-178.3,-131.1 L-175.6,-134.8 L-177.8,-136.2 L-175.6,-141.9 L-176.8,-154.8 L-163.1,-159.9 L-139.1,-163.5Z M102.4,193.8 L107.5,189.1 L102.0,184.9 L106.4,182.8 L108.4,176.8 L111.5,177.5 L124.7,170.7 L131.7,173.0 L133.9,159.9 L138.6,160.4 L137.7,174.4 L141.1,177.5 L142.4,194.1 L136.1,201.9 L136.1,211.7 L131.7,214.9 L134.0,216.8 L128.4,222.1 L128.9,225.1 L123.9,223.9 L123.2,220.7 L111.7,217.6 L112.1,214.4 L116.9,212.2 L106.2,210.0 L111.4,207.0 L112.2,203.7 L104.6,204.0 L103.5,201.2 L109.8,197.7 L102.4,193.8Z M220.2,552.8 L218.0,574.5 L222.4,579.7 L221.9,582.6 L194.9,594.5 L190.9,599.8 L184.2,601.9 L180.0,610.2 L170.6,612.8 L164.2,622.8 L169.8,636.9 L170.2,646.3 L154.9,665.8 L140.8,670.8 L121.8,597.1 L93.3,578.9 L91.3,566.5 L83.5,556.2 L69.0,550.7 L67.7,541.8 L59.4,525.8 L60.7,516.2 L70.6,510.2 L73.3,503.4 L89.5,494.1 L92.0,477.3 L97.3,470.3 L91.8,467.0 L93.5,458.5 L89.7,446.9 L94.3,422.8 L86.8,419.0 L97.2,413.5 L98.5,410.7 L96.5,408.6 L105.7,406.5 L104.1,402.4 L113.0,400.8 L128.4,390.6 L149.8,386.2 L154.4,386.8 L150.9,391.5 L152.6,393.9 L156.6,392.9 L152.8,390.9 L155.3,389.5 L170.9,392.9 L165.1,393.7 L169.1,395.3 L167.3,398.9 L173.9,404.8 L167.5,408.1 L170.9,407.4 L174.2,410.8 L180.7,409.8 L183.4,405.0 L189.3,404.2 L196.1,398.0 L202.0,396.8 L205.2,405.8 L200.9,408.5 L192.0,421.9 L182.0,424.9 L179.0,435.5 L184.9,446.3 L201.6,454.5 L200.6,457.8 L203.4,459.7 L201.7,466.6 L206.4,471.2 L196.7,481.7 L194.9,488.1 L185.0,494.7 L183.9,498.2 L165.1,507.0 L160.2,513.2 L162.9,522.2 L173.2,531.9 L179.6,534.1 L188.7,531.7 L189.5,535.9 L187.0,538.2 L189.5,540.9 L196.4,538.4 L197.4,534.5 L201.7,535.3 L204.5,538.4 L204.1,545.4 L211.7,548.5 L205.3,547.5 L207.2,551.6 L217.3,552.3 L214.1,549.6 L220.2,552.8Z M437.8,-64.2 L433.8,-54.6 L443.2,-43.9 L442.8,-41.4 L445.9,-40.2 L440.2,-34.5 L443.0,-28.3 L431.9,-27.0 L422.7,-30.2 L416.3,-26.5 L425.2,-24.9 L427.6,-21.5 L425.6,-18.1 L417.4,-15.9 L418.9,-11.1 L416.5,-7.5 L420.4,-5.5 L417.0,-1.0 L419.5,0.1 L411.0,-0.2 L399.3,6.9 L400.7,13.2 L394.0,11.0 L385.4,11.3 L378.5,15.4 L362.5,14.0 L354.0,16.0 L351.5,19.7 L341.6,24.9 L335.8,22.4 L256.2,12.4 L250.8,8.5 L250.7,5.3 L245.1,3.6 L247.2,-3.4 L229.4,1.2 L207.0,1.4 L199.9,9.2 L188.9,8.5 L189.6,6.8 L185.9,5.4 L179.5,6.1 L174.9,0.1 L164.5,6.1 L155.0,2.9 L154.3,-0.6 L143.2,-2.3 L144.6,-4.3 L140.8,-10.5 L146.0,-16.4 L141.9,-21.4 L147.1,-20.9 L151.3,-23.5 L160.9,-19.5 L163.3,-14.4 L168.4,-14.9 L166.4,-10.8 L177.1,-15.8 L177.2,-23.1 L194.3,-21.2 L199.2,-15.6 L209.5,-15.8 L224.8,-23.6 L246.9,-24.2 L247.1,-28.2 L249.7,-29.3 L249.5,-27.2 L257.0,-27.7 L259.9,-25.2 L270.5,-26.7 L272.5,-24.5 L271.2,-22.2 L280.1,-18.6 L282.9,-26.4 L275.7,-28.9 L279.6,-33.9 L269.8,-44.8 L296.2,-55.1 L298.2,-62.9 L308.7,-60.9 L312.1,-64.5 L312.6,-70.7 L319.3,-68.3 L323.0,-63.7 L333.0,-62.3 L338.3,-65.7 L347.0,-63.0 L352.0,-71.1 L357.6,-70.5 L359.3,-80.3 L365.5,-79.7 L365.7,-77.5 L371.0,-79.5 L387.3,-74.3 L392.7,-74.9 L403.4,-69.7 L414.3,-69.1 L420.8,-72.2 L434.9,-68.8 L437.8,-64.2Z M40.9,43.0 L46.1,44.9 L61.6,40.6 L73.7,43.2 L84.4,34.9 L83.5,29.1 L96.0,21.9 L97.5,30.6 L104.1,35.1 L112.4,36.4 L110.7,40.7 L114.8,42.1 L116.0,46.9 L120.1,47.2 L122.5,44.0 L119.2,41.4 L120.1,38.4 L129.0,30.8 L131.3,20.1 L137.4,20.1 L137.8,25.0 L141.5,28.1 L156.7,25.2 L163.0,31.2 L166.4,29.5 L163.7,26.8 L165.6,23.9 L161.1,22.1 L161.3,18.7 L167.7,14.9 L177.8,18.5 L178.4,15.1 L174.8,13.1 L178.2,5.4 L199.9,9.2 L207.0,1.4 L229.4,1.2 L247.2,-3.4 L245.1,3.6 L250.7,5.3 L250.8,8.5 L256.2,12.4 L308.0,19.2 L307.1,21.9 L294.6,28.4 L296.4,31.7 L305.5,32.8 L298.5,39.7 L304.2,40.6 L302.6,46.8 L311.1,50.3 L315.8,54.7 L313.9,56.6 L308.5,56.3 L312.3,55.4 L303.0,48.4 L296.1,53.0 L297.3,51.7 L294.8,50.2 L284.8,49.1 L283.0,52.1 L286.0,51.8 L283.4,54.3 L256.9,62.5 L263.3,57.9 L255.9,58.4 L257.0,60.1 L252.4,60.4 L248.7,67.4 L246.2,67.5 L247.2,69.7 L248.7,68.2 L249.2,71.8 L252.3,70.8 L251.9,76.5 L254.8,79.6 L254.8,77.4 L261.4,81.2 L257.8,87.2 L256.3,84.3 L256.6,87.9 L250.7,86.9 L251.3,100.5 L254.8,110.0 L267.7,120.4 L304.6,137.6 L323.0,176.0 L342.4,191.0 L348.4,193.0 L349.6,196.6 L366.6,202.9 L405.6,203.2 L407.4,208.8 L396.0,215.4 L398.4,221.6 L442.3,236.7 L459.0,246.8 L480.3,254.0 L481.5,257.7 L489.5,261.7 L500.6,274.4 L495.6,287.3 L482.9,283.5 L474.5,268.6 L460.5,267.9 L448.0,263.2 L452.9,260.1 L439.0,260.3 L424.2,276.6 L425.3,281.4 L419.6,289.0 L421.8,293.6 L431.3,295.5 L446.3,303.8 L444.6,309.2 L445.0,316.4 L448.3,318.8 L446.9,321.6 L444.2,324.0 L433.5,323.3 L423.4,328.1 L421.4,332.0 L422.8,342.8 L406.8,354.3 L403.1,362.4 L387.4,361.9 L385.3,351.2 L392.5,348.0 L396.7,339.3 L393.5,334.0 L406.1,330.8 L408.9,325.7 L403.3,317.0 L399.8,302.4 L392.3,292.2 L391.0,284.4 L385.0,276.9 L376.4,280.2 L370.4,278.8 L365.1,273.2 L356.4,270.3 L359.9,264.1 L351.3,253.2 L333.7,257.2 L339.0,250.8 L331.8,246.4 L321.9,248.4 L320.9,243.1 L308.9,229.9 L301.8,231.7 L291.4,228.2 L281.8,230.9 L275.7,224.0 L265.4,222.1 L249.6,210.5 L246.8,204.8 L240.8,200.3 L233.1,198.6 L226.3,188.8 L215.1,183.7 L204.3,184.3 L204.0,182.3 L207.5,180.8 L206.3,177.4 L197.7,170.3 L189.3,167.8 L190.5,163.3 L180.0,162.4 L181.1,150.1 L172.7,140.3 L170.1,126.1 L163.6,119.0 L153.8,115.7 L153.3,118.3 L129.2,105.9 L128.4,107.8 L110.5,102.7 L98.6,107.8 L82.7,124.1 L60.1,128.3 L59.1,125.4 L67.6,117.3 L66.2,113.0 L53.6,115.1 L38.9,110.0 L34.8,105.5 L36.7,102.5 L33.4,98.6 L38.4,92.7 L42.2,92.6 L40.2,86.9 L29.8,83.7 L28.9,79.5 L24.1,75.9 L33.8,74.8 L44.3,69.6 L46.4,63.6 L39.3,59.6 L38.5,54.4 L32.6,52.1 L31.3,48.9 L40.9,43.0Z M381.1,347.9 L386.1,349.0 L368.5,369.5 L363.7,380.9 L364.1,386.8 L370.1,389.7 L367.3,391.7 L373.3,399.5 L366.3,403.0 L363.8,413.8 L339.5,408.3 L331.2,398.2 L308.6,393.1 L287.0,380.5 L281.1,380.3 L277.7,377.3 L266.4,377.4 L257.1,368.1 L259.7,359.1 L268.2,355.6 L269.3,352.3 L276.0,358.9 L282.5,356.7 L284.0,352.4 L292.7,351.2 L295.7,355.9 L300.5,355.6 L311.6,361.1 L320.8,358.0 L340.5,358.2 L356.3,352.5 L363.5,354.9 L369.5,349.4 L371.7,351.7 L381.1,347.9Z M146.3,248.0 L152.0,261.8 L145.0,269.5 L149.3,276.6 L145.4,308.1 L142.7,314.0 L140.7,315.8 L131.7,311.1 L126.6,312.5 L120.6,309.4 L123.2,311.0 L120.7,314.2 L121.0,320.2 L114.1,324.9 L108.7,322.7 L105.6,325.4 L102.4,317.7 L94.9,311.1 L97.3,307.9 L95.0,304.8 L98.5,296.9 L97.8,289.7 L100.7,291.9 L102.6,292.0 L100.2,291.1 L102.2,285.9 L95.8,283.5 L95.1,278.6 L99.6,275.8 L99.0,268.3 L95.4,265.9 L95.2,261.3 L91.7,256.2 L85.9,256.3 L87.7,241.4 L92.4,246.0 L100.8,246.9 L112.9,242.1 L129.2,229.5 L130.7,230.5 L130.7,231.9 L131.1,232.2 L136.9,232.8 L137.7,236.3 L138.8,234.2 L142.4,235.0 L140.5,239.3 L146.5,239.9 L140.2,242.9 L145.7,243.2 L149.0,246.2 L146.3,248.0Z M178.2,5.4 L174.8,13.1 L178.4,15.1 L177.8,18.5 L167.7,14.9 L161.3,18.7 L161.1,22.1 L165.6,23.9 L164.7,30.8 L161.7,31.2 L156.7,25.2 L141.5,28.1 L137.8,25.0 L137.4,20.1 L130.5,20.6 L129.0,30.8 L120.1,38.4 L119.2,41.4 L122.5,44.0 L120.1,47.2 L116.0,46.9 L114.8,42.1 L110.7,40.7 L112.4,36.4 L104.1,35.1 L97.5,30.6 L96.0,21.9 L83.5,29.1 L84.4,34.9 L73.2,43.4 L61.6,40.6 L42.7,44.4 L34.0,38.0 L34.8,35.5 L31.0,34.6 L33.1,29.2 L30.0,26.2 L31.5,23.4 L24.5,21.8 L12.1,24.2 L8.6,27.4 L11.2,30.4 L4.3,34.5 L-1.6,34.8 L-1.7,31.5 L3.6,30.1 L5.5,25.6 L2.2,23.2 L4.7,16.7 L17.2,9.6 L17.7,2.2 L26.6,-0.9 L41.5,-13.2 L34.7,-14.2 L38.9,-19.6 L47.2,-19.5 L49.5,-16.7 L56.3,-17.5 L59.3,-21.7 L65.5,-23.8 L64.4,-22.6 L67.3,-21.8 L89.3,-24.9 L102.4,-23.6 L104.3,-26.3 L95.7,-26.6 L102.3,-32.0 L115.3,-26.2 L130.9,-26.0 L146.0,-18.1 L139.5,-8.4 L139.1,-2.6 L154.3,-0.6 L155.0,2.9 L164.5,6.1 L175.2,0.2 L178.2,5.4Z M413.8,18.1 L433.5,24.7 L442.1,33.9 L448.3,35.3 L451.6,40.6 L463.6,42.6 L466.3,46.2 L474.3,49.1 L496.2,50.3 L506.2,43.7 L516.1,42.8 L513.8,47.4 L518.7,53.3 L516.1,57.1 L524.3,59.5 L520.4,60.1 L521.3,63.4 L519.1,65.2 L536.3,71.9 L524.9,72.2 L525.5,74.2 L521.8,74.5 L525.3,81.9 L519.7,83.4 L520.6,85.4 L515.6,85.6 L511.3,83.5 L511.7,79.9 L507.4,76.6 L500.7,77.8 L489.5,73.7 L486.1,76.1 L480.1,74.0 L473.4,77.4 L467.4,73.4 L459.3,75.4 L450.8,72.4 L447.5,74.1 L437.0,68.6 L432.5,72.8 L421.2,71.1 L412.6,80.0 L400.8,71.4 L391.7,72.4 L389.1,89.2 L401.1,95.0 L400.2,98.4 L404.7,99.1 L408.6,111.7 L413.1,116.7 L441.2,138.1 L450.8,141.5 L451.6,147.9 L465.1,158.1 L465.4,162.0 L460.6,161.6 L460.1,158.8 L457.3,159.3 L435.2,143.8 L415.7,139.6 L418.9,138.5 L417.4,138.0 L398.4,139.8 L396.8,134.9 L398.7,134.4 L396.2,134.1 L398.1,134.0 L398.0,132.5 L388.3,129.5 L365.8,112.2 L365.6,108.7 L371.8,110.0 L370.4,106.7 L377.0,109.3 L381.1,109.1 L360.3,97.2 L355.4,91.1 L356.9,81.6 L354.1,76.3 L342.8,68.3 L332.5,66.2 L326.1,80.9 L322.8,82.0 L323.4,80.5 L321.6,78.4 L323.0,80.7 L318.9,84.0 L320.0,87.5 L315.6,86.7 L316.7,88.9 L316.1,89.1 L304.9,77.1 L304.5,75.3 L309.0,74.6 L303.8,74.2 L304.4,67.2 L301.7,66.2 L300.3,59.5 L315.6,63.1 L318.9,59.4 L334.9,60.9 L343.2,53.3 L351.9,61.4 L356.9,59.4 L365.6,62.8 L373.0,61.9 L374.5,60.7 L370.7,55.9 L375.0,54.4 L370.2,51.1 L387.0,46.3 L387.9,38.6 L383.6,35.5 L385.6,31.7 L400.8,28.0 L402.3,24.9 L411.0,25.1 L409.4,20.3 L413.8,18.1Z M305.7,61.6 L302.7,58.4 L315.8,54.7 L303.3,47.6 L304.2,40.6 L298.5,39.7 L305.5,32.8 L296.4,31.7 L294.6,28.4 L307.1,21.9 L308.0,19.2 L341.6,24.9 L351.5,19.7 L354.0,16.0 L362.5,14.0 L378.5,15.4 L385.4,11.3 L394.0,11.0 L400.7,13.2 L398.9,7.2 L403.8,5.5 L413.0,6.4 L412.6,10.3 L416.4,13.3 L415.1,14.8 L420.0,18.2 L420.6,19.9 L410.6,19.4 L411.0,25.1 L402.3,24.9 L400.8,28.0 L385.6,31.7 L383.6,35.5 L387.9,38.6 L387.0,46.3 L370.2,51.1 L375.0,54.4 L370.7,55.9 L374.5,60.7 L373.0,61.9 L365.6,62.8 L356.9,59.4 L351.9,61.4 L343.2,53.3 L334.9,60.9 L318.9,59.4 L315.6,63.1 L305.7,61.6Z"},"germany":{"bbox":[5,16,47,55],"size":[440,320],"path":"M-99.1,156.5 L-95.7,161.6 L-96.5,166.2 L-88.5,171.1 L-84.5,172.1 L-74.8,168.8 L-70.7,172.2 L-69.2,178.9 L-55.7,180.9 L-52.1,188.1 L-39.9,186.2 L-32.1,189.7 L-35.0,194.9 L-31.6,197.6 L-34.7,201.0 L-22.6,202.7 L-14.2,200.6 L-12.7,196.6 L-7.4,193.5 L-5.1,194.4 L-8.6,201.7 L-5.6,203.5 L-6.0,208.2 L10.4,212.3 L18.2,220.0 L29.9,218.0 L38.4,222.3 L47.7,220.0 L56.1,221.4 L60.5,223.0 L68.6,233.6 L76.6,231.7 L81.7,235.7 L91.0,235.8 L96.4,233.2 L105.4,238.5 L128.0,241.7 L123.6,247.7 L112.4,255.4 L110.0,266.3 L103.4,274.8 L104.8,281.1 L100.5,291.7 L103.4,296.6 L95.1,302.8 L78.9,300.4 L74.7,305.8 L81.5,306.8 L66.6,319.1 L57.7,322.2 L57.2,329.6 L44.7,336.7 L42.2,343.2 L45.4,345.2 L43.8,349.9 L38.2,352.0 L38.4,354.8 L45.6,354.0 L51.2,350.4 L48.6,347.4 L50.8,345.0 L59.3,342.1 L71.5,343.4 L70.0,346.2 L73.1,349.2 L70.6,353.9 L80.9,363.0 L72.0,366.9 L71.8,371.3 L78.5,374.4 L79.3,379.6 L86.4,383.6 L82.2,391.5 L64.1,395.9 L68.9,399.5 L69.8,403.7 L80.3,407.1 L82.2,412.6 L78.4,412.7 L73.4,418.6 L76.7,422.5 L74.6,425.1 L79.3,430.3 L93.2,435.0 L106.2,433.0 L107.6,437.3 L99.1,445.4 L99.1,449.4 L86.1,453.8 L85.6,457.8 L78.5,458.4 L75.8,462.9 L69.2,463.7 L63.6,469.2 L67.7,469.1 L67.2,471.9 L56.1,474.1 L55.0,476.4 L47.7,475.6 L47.2,478.6 L37.6,474.6 L35.2,475.2 L38.1,476.8 L34.3,478.2 L27.0,472.8 L13.9,471.4 L14.8,469.2 L11.8,465.8 L1.4,466.6 L1.0,463.6 L9.1,460.8 L1.2,457.7 L2.0,462.8 L-5.3,463.1 L-4.0,465.3 L-5.8,466.3 L-9.7,463.1 L-10.3,459.0 L-12.2,456.8 L-10.3,463.1 L-7.2,466.1 L-16.3,465.6 L-19.5,461.8 L-32.7,461.4 L-35.8,457.9 L-41.9,458.4 L-59.5,468.8 L-67.3,469.5 L-75.4,475.7 L-78.4,482.3 L-78.3,494.8 L-72.8,502.7 L-82.7,501.2 L-92.4,503.8 L-93.5,506.4 L-99.4,507.0 L-108.9,502.9 L-120.2,506.1 L-122.9,502.5 L-131.5,500.3 L-129.4,497.5 L-131.1,495.6 L-138.3,494.0 L-142.8,496.2 L-146.3,491.7 L-153.9,491.7 L-167.5,486.7 L-173.7,486.5 L-174.3,492.6 L-185.8,491.3 L-189.0,493.3 L-193.2,490.9 L-201.6,492.6 L-212.9,486.3 L-222.8,489.1 L-230.4,482.1 L-246.0,479.8 L-251.7,477.8 L-251.4,475.6 L-254.6,478.7 L-258.3,478.2 L-256.1,470.3 L-264.9,470.1 L-271.9,465.0 L-266.4,464.0 L-259.1,456.8 L-250.3,417.8 L-247.5,413.4 L-241.8,413.2 L-246.9,408.9 L-250.4,414.9 L-243.4,377.2 L-230.6,387.0 L-228.6,394.6 L-221.4,404.2 L-223.8,399.0 L-219.8,400.1 L-226.2,396.0 L-231.8,380.9 L-249.9,371.6 L-249.2,368.3 L-246.6,367.7 L-239.5,371.3 L-246.1,365.3 L-242.9,363.8 L-244.4,359.3 L-241.9,358.4 L-248.4,353.0 L-244.4,347.9 L-249.6,348.6 L-271.8,340.2 L-276.4,332.3 L-284.8,327.2 L-285.2,324.3 L-279.6,318.6 L-289.6,314.3 L-286.6,313.3 L-286.4,309.2 L-280.6,308.0 L-272.2,311.2 L-269.1,311.6 L-280.4,307.2 L-291.1,310.1 L-301.7,308.0 L-297.4,307.7 L-302.3,304.7 L-295.7,303.1 L-299.8,300.4 L-294.6,299.8 L-305.3,299.2 L-304.0,298.8 L-303.1,297.8 L-312.7,300.0 L-316.4,297.7 L-309.7,297.9 L-307.5,295.8 L-307.4,295.1 L-308.3,294.3 L-316.8,296.2 L-319.0,293.4 L-317.6,297.6 L-324.9,296.0 L-323.4,300.9 L-325.3,300.9 L-328.0,294.4 L-324.7,290.7 L-327.7,290.1 L-326.4,291.6 L-329.0,293.7 L-334.3,292.1 L-331.3,292.4 L-334.3,291.6 L-331.3,288.5 L-337.9,291.8 L-341.1,288.8 L-354.1,288.0 L-358.5,284.0 L-361.5,285.8 L-365.3,283.0 L-364.4,285.2 L-367.4,285.0 L-367.4,287.5 L-374.9,287.7 L-373.9,285.5 L-377.4,281.0 L-389.1,278.4 L-371.4,275.4 L-375.2,270.7 L-379.4,270.3 L-382.3,272.9 L-381.9,269.9 L-385.1,268.5 L-381.9,266.1 L-380.6,268.2 L-370.8,268.5 L-367.5,267.7 L-373.0,267.1 L-370.8,265.5 L-378.1,266.6 L-371.6,262.7 L-390.7,266.2 L-390.6,259.2 L-383.1,257.3 L-382.5,254.8 L-367.8,254.0 L-359.0,250.7 L-358.2,253.7 L-354.1,254.8 L-352.4,250.7 L-343.4,252.7 L-341.1,250.4 L-343.3,248.4 L-340.6,246.3 L-335.9,247.7 L-329.2,245.1 L-328.8,248.2 L-323.7,245.1 L-325.0,249.6 L-320.3,247.1 L-321.7,248.5 L-317.3,249.3 L-307.3,259.6 L-292.6,252.1 L-293.2,254.8 L-290.0,254.0 L-288.5,256.7 L-282.1,254.0 L-279.2,259.5 L-278.1,257.0 L-281.1,254.3 L-277.8,252.1 L-273.7,251.5 L-274.4,254.4 L-271.8,255.4 L-254.3,254.3 L-262.1,250.1 L-264.1,246.0 L-260.3,238.7 L-263.7,238.8 L-264.4,231.4 L-261.9,231.0 L-265.0,231.2 L-268.0,225.8 L-272.7,224.7 L-275.4,218.8 L-273.6,215.2 L-277.4,211.0 L-264.3,214.0 L-250.5,212.2 L-249.1,215.0 L-252.3,217.7 L-244.9,226.2 L-237.6,224.3 L-208.8,228.8 L-183.5,221.9 L-180.3,220.3 L-189.7,221.4 L-196.9,218.6 L-190.6,210.8 L-151.2,200.8 L-139.2,191.4 L-133.1,192.3 L-138.3,188.9 L-135.6,185.2 L-137.8,183.8 L-135.6,178.1 L-136.8,165.2 L-123.1,160.1 L-99.1,156.5Z M352.6,249.3 L352.1,255.5 L348.7,259.1 L338.2,257.1 L336.2,264.9 L309.6,275.5 L319.6,286.1 L315.7,291.1 L322.9,293.6 L320.1,301.4 L311.2,297.8 L312.5,295.5 L310.5,293.3 L299.9,294.8 L297.0,292.3 L289.5,292.8 L289.7,290.7 L287.1,291.8 L286.9,295.8 L264.8,296.4 L249.5,304.2 L239.2,304.4 L234.3,298.8 L217.2,296.9 L217.1,304.2 L206.4,309.2 L208.4,305.1 L203.3,305.6 L197.8,298.4 L191.3,296.5 L184.5,299.1 L167.3,293.2 L155.3,293.8 L142.3,288.0 L135.7,293.4 L144.3,293.7 L143.0,296.3 L129.3,295.1 L121.7,297.6 L104.4,297.4 L106.4,296.1 L103.4,296.6 L100.5,291.7 L104.8,281.1 L103.2,275.4 L110.0,266.3 L112.4,255.4 L123.6,247.7 L128.0,241.7 L105.4,238.5 L96.4,233.2 L91.0,235.8 L81.7,235.7 L76.6,231.7 L69.0,233.8 L60.5,223.0 L53.8,221.8 L54.0,217.3 L60.0,211.5 L60.1,208.2 L52.1,206.6 L43.9,198.1 L45.9,191.4 L55.0,187.4 L53.5,180.8 L46.8,179.3 L50.0,175.4 L40.5,171.7 L38.9,168.7 L42.5,163.7 L34.3,159.2 L45.9,153.9 L42.3,151.5 L48.3,144.5 L47.7,139.6 L37.6,130.7 L37.3,127.4 L46.2,126.3 L45.1,124.1 L53.8,127.2 L69.8,123.7 L72.4,120.8 L67.2,117.6 L81.1,110.8 L81.9,105.4 L78.9,101.9 L68.6,101.5 L66.9,98.3 L69.8,97.6 L69.5,94.6 L80.7,95.0 L82.5,87.0 L87.7,80.1 L87.8,70.2 L90.2,67.2 L94.7,67.9 L80.9,64.9 L82.1,59.5 L85.7,58.5 L83.5,56.5 L89.0,53.3 L121.3,51.7 L126.7,57.9 L123.1,61.3 L128.2,63.6 L132.6,61.0 L129.2,59.0 L130.8,55.5 L142.1,58.3 L139.6,60.5 L140.2,65.7 L139.9,61.0 L142.6,58.1 L139.4,52.0 L143.5,45.2 L154.4,46.8 L168.4,45.1 L183.3,56.3 L193.3,58.3 L183.3,55.5 L175.8,46.8 L170.3,44.6 L159.4,44.1 L156.6,42.5 L153.3,38.5 L159.9,38.8 L160.7,36.1 L152.5,32.8 L158.5,27.3 L147.1,29.2 L144.0,26.5 L147.8,25.7 L145.9,23.7 L155.4,23.3 L160.5,19.7 L147.5,10.6 L146.4,4.1 L156.2,4.1 L169.8,7.9 L183.2,5.3 L192.9,9.7 L197.9,8.8 L200.7,12.0 L197.2,13.0 L201.6,13.3 L201.1,17.6 L193.6,21.0 L205.7,20.3 L208.2,21.6 L205.7,27.0 L212.7,22.3 L229.3,27.6 L245.4,24.6 L242.7,25.7 L242.7,32.6 L230.1,38.0 L236.1,41.5 L247.0,39.3 L249.7,42.2 L258.3,43.8 L260.8,38.5 L267.6,33.8 L283.5,32.2 L283.7,35.4 L284.6,36.1 L284.4,32.7 L301.4,20.5 L316.8,22.7 L305.0,23.1 L301.1,25.1 L297.5,24.5 L294.8,29.2 L296.5,29.9 L298.3,29.8 L296.4,29.2 L299.1,26.7 L307.2,23.6 L314.2,25.7 L320.4,22.5 L324.6,28.8 L339.3,36.3 L348.5,33.1 L352.3,35.8 L349.8,38.5 L356.2,42.3 L352.7,45.9 L361.5,49.8 L370.6,49.9 L368.5,51.7 L370.6,52.0 L377.7,69.9 L373.7,78.1 L365.8,81.6 L365.0,86.0 L385.8,96.9 L381.8,104.7 L383.4,108.4 L388.5,110.6 L387.5,115.2 L390.5,116.9 L383.4,127.8 L389.3,133.7 L388.4,138.8 L398.2,142.6 L400.9,150.5 L398.2,157.4 L390.4,167.6 L384.5,166.2 L385.2,163.2 L382.0,163.5 L383.0,161.0 L379.3,158.5 L371.5,158.5 L369.5,160.7 L375.3,163.2 L373.9,164.8 L353.4,171.1 L342.3,171.7 L337.9,176.1 L334.8,174.9 L326.4,180.1 L320.4,180.3 L318.1,183.8 L312.7,182.3 L300.4,184.4 L292.0,193.6 L289.6,189.7 L283.0,187.4 L289.9,198.2 L301.0,203.8 L295.3,210.3 L299.9,213.2 L305.7,222.8 L311.1,226.7 L320.0,228.2 L327.1,235.3 L332.0,236.3 L338.4,242.2 L344.3,242.2 L352.6,249.3Z M44.7,195.2 L43.9,198.1 L48.9,204.5 L52.1,206.6 L53.4,206.4 L55.9,207.7 L58.5,207.8 L59.9,208.0 L60.1,208.2 L60.0,211.5 L54.0,217.3 L53.8,221.8 L47.7,220.0 L38.4,222.3 L31.6,218.5 L35.4,214.3 L29.1,208.0 L28.8,204.3 L38.5,193.4 L44.7,195.2Z M-99.1,156.5 L-66.0,145.0 L-64.3,150.1 L-55.6,148.4 L-42.9,151.7 L-31.1,145.3 L-27.7,149.2 L-29.6,145.2 L-23.6,145.7 L-24.9,142.3 L-22.8,141.5 L-14.8,143.3 L-8.9,140.2 L-7.1,143.5 L-9.5,143.5 L-3.6,144.3 L1.1,140.9 L8.6,149.7 L19.7,148.5 L22.7,151.7 L33.2,153.7 L33.8,155.9 L28.9,161.6 L30.6,161.6 L25.0,166.8 L28.3,169.8 L39.8,170.0 L50.0,175.4 L46.8,179.3 L53.5,180.8 L55.0,187.4 L46.3,191.1 L44.7,195.2 L38.5,193.4 L28.8,204.3 L29.1,208.0 L35.4,214.3 L33.5,217.6 L18.2,220.0 L10.4,212.3 L-6.0,208.2 L-5.6,203.5 L-8.6,201.7 L-5.5,194.1 L-12.7,196.6 L-13.7,200.4 L-21.4,202.6 L-34.7,201.0 L-31.6,197.6 L-35.0,194.9 L-32.1,189.7 L-39.9,186.2 L-52.1,188.1 L-55.7,180.9 L-69.2,178.9 L-70.7,172.2 L-74.8,168.8 L-84.5,172.1 L-88.5,171.1 L-96.5,166.2 L-95.7,161.6 L-99.1,156.5Z M146.4,4.1 L147.3,-5.3 L142.5,-5.7 L140.0,-2.6 L138.4,-4.1 L139.6,-7.9 L147.6,-5.7 L144.7,-17.5 L137.7,-18.6 L132.5,-23.3 L129.6,-22.3 L132.5,-18.8 L123.8,-22.0 L127.3,-29.2 L125.1,-39.5 L127.7,-32.5 L135.7,-36.4 L131.3,-43.0 L126.0,-44.4 L125.4,-39.8 L124.3,-41.0 L124.9,-62.1 L127.1,-66.9 L128.8,-68.4 L128.1,-65.6 L132.3,-62.2 L142.6,-63.2 L145.5,-59.2 L149.1,-59.3 L150.5,-62.5 L147.3,-65.1 L162.5,-72.5 L167.0,-68.3 L162.4,-65.4 L162.4,-62.6 L166.2,-66.5 L171.0,-65.3 L170.0,-63.2 L173.0,-61.2 L174.9,-62.6 L171.7,-62.4 L172.2,-67.8 L166.8,-67.5 L169.7,-69.9 L167.0,-72.2 L168.0,-77.6 L177.5,-81.0 L184.3,-78.8 L187.6,-81.6 L196.6,-82.3 L191.8,-84.3 L169.8,-80.1 L164.6,-82.3 L147.2,-78.1 L139.7,-71.8 L139.1,-68.6 L141.1,-67.8 L136.3,-67.5 L143.5,-67.5 L142.4,-63.7 L134.1,-67.7 L132.1,-70.5 L129.7,-71.1 L129.8,-68.2 L129.4,-70.8 L129.9,-72.5 L144.7,-84.9 L176.5,-86.6 L198.7,-103.7 L207.9,-104.0 L221.6,-109.8 L226.0,-109.5 L217.2,-102.8 L221.9,-97.4 L221.6,-89.5 L213.9,-80.4 L209.6,-79.7 L199.8,-83.7 L197.1,-82.3 L200.1,-83.4 L207.7,-79.8 L212.5,-79.3 L210.6,-76.3 L213.6,-68.7 L205.9,-68.9 L192.2,-65.6 L213.4,-68.2 L213.6,-64.8 L208.6,-62.3 L207.3,-58.8 L213.2,-64.1 L218.8,-60.8 L232.9,-61.4 L238.6,-57.9 L236.5,-53.4 L229.5,-46.2 L225.1,-49.5 L221.9,-44.1 L220.4,-46.8 L214.2,-48.1 L219.6,-48.7 L220.2,-51.1 L216.1,-51.9 L208.8,-45.9 L209.2,-40.7 L211.1,-40.7 L207.3,-33.3 L204.1,-35.3 L194.7,-34.1 L201.8,-32.6 L200.2,-28.0 L182.3,-28.5 L194.2,-25.1 L179.9,-19.6 L186.4,-19.1 L183.5,-17.1 L188.4,-9.9 L179.5,-6.2 L178.3,-5.0 L182.4,-3.4 L177.4,-1.5 L189.2,0.2 L189.8,6.6 L184.9,5.4 L184.6,2.7 L177.5,7.6 L172.7,7.9 L146.4,4.1Z M275.6,2.8 L286.8,6.5 L278.4,12.2 L278.0,17.3 L274.8,13.6 L276.4,11.1 L268.5,2.4 L275.3,0.7 L264.6,-3.7 L273.1,-2.0 L268.7,-5.0 L272.3,-5.9 L268.7,-8.3 L250.4,-8.0 L251.5,-10.2 L246.1,-13.1 L247.6,-13.8 L243.5,-14.3 L248.6,-16.2 L246.6,-20.1 L243.2,-20.5 L245.8,-23.0 L237.2,-26.7 L243.5,-26.4 L235.0,-29.7 L246.5,-30.0 L244.9,-29.5 L247.7,-28.0 L254.6,-30.6 L253.9,-33.5 L260.2,-34.7 L259.1,-37.7 L252.2,-38.7 L250.9,-39.9 L270.7,-38.8 L269.8,-36.2 L266.5,-36.3 L268.7,-32.4 L264.3,-31.3 L269.6,-31.9 L270.5,-30.0 L266.3,-29.2 L269.9,-29.2 L271.2,-26.4 L278.1,-34.1 L277.4,-37.3 L282.1,-29.5 L276.4,-26.4 L280.0,-27.9 L282.4,-26.2 L283.8,-29.2 L281.0,-37.7 L274.6,-38.9 L289.8,-45.1 L304.9,-41.8 L300.5,-37.1 L304.1,-28.3 L287.9,-19.5 L297.4,-14.5 L298.6,-11.6 L287.3,-9.1 L284.0,-5.7 L280.6,-6.7 L287.1,-4.2 L284.7,-2.9 L286.0,0.2 L275.9,0.2 L275.6,2.8Z M553.3,219.6 L551.5,213.3 L544.7,211.4 L542.4,203.7 L531.7,203.7 L520.1,198.1 L521.3,199.9 L513.6,201.1 L509.3,196.2 L505.3,195.7 L503.6,193.5 L509.9,191.3 L508.3,187.6 L497.0,190.4 L487.5,184.9 L475.7,182.7 L480.6,191.3 L466.4,196.3 L453.7,185.2 L448.0,183.7 L457.0,177.3 L453.3,174.2 L439.3,175.9 L438.9,172.9 L433.9,173.0 L431.7,170.3 L414.2,169.0 L410.8,161.9 L405.8,159.5 L398.4,160.3 L399.3,165.6 L392.4,165.7 L400.8,149.1 L397.8,142.0 L388.4,138.8 L389.3,133.7 L383.4,127.8 L390.5,116.9 L387.5,115.2 L388.5,110.6 L383.4,108.4 L381.8,104.7 L385.8,96.9 L365.0,86.0 L365.8,81.6 L373.7,78.1 L377.7,69.9 L370.6,52.0 L371.8,50.0 L383.6,56.1 L385.0,53.9 L381.8,51.8 L385.2,45.9 L383.5,47.5 L377.3,43.8 L372.8,47.3 L367.0,43.7 L434.4,30.0 L447.2,29.5 L448.6,28.0 L445.5,28.4 L453.0,26.0 L451.3,25.7 L462.8,17.7 L477.6,15.8 L493.5,10.0 L526.1,6.5 L533.6,6.7 L550.1,12.4 L553.4,15.9 L538.3,8.5 L536.5,10.1 L540.9,14.1 L543.5,22.7 L555.4,26.0 L575.1,24.9 L584.4,21.7 L707.9,26.3 L713.5,24.0 L738.0,33.8 L743.6,55.5 L755.7,73.9 L754.4,77.3 L756.9,90.3 L754.8,93.2 L735.7,99.6 L726.6,108.4 L745.5,116.6 L747.1,120.2 L741.7,136.3 L747.9,143.8 L745.4,147.8 L754.5,154.1 L759.2,162.5 L765.7,165.7 L758.3,167.7 L763.2,171.5 L764.3,178.4 L759.3,183.8 L747.3,185.3 L706.6,217.3 L709.5,229.0 L707.3,233.6 L714.1,236.6 L714.2,240.2 L681.6,232.1 L677.1,226.8 L664.0,222.9 L642.8,223.2 L642.9,225.7 L636.8,228.4 L627.6,224.0 L612.7,224.3 L605.4,227.6 L602.0,233.1 L597.5,231.0 L590.4,232.2 L592.3,229.2 L590.8,224.3 L585.1,223.9 L578.3,216.1 L569.4,219.7 L565.7,224.2 L558.5,224.4 L558.4,220.3 L553.3,219.6Z M477.8,255.8 L473.8,265.4 L483.2,276.1 L482.8,278.6 L485.9,279.8 L480.2,285.5 L483.0,291.7 L471.9,293.0 L462.7,289.8 L456.3,293.5 L465.2,295.1 L467.6,298.5 L465.6,301.9 L457.4,304.1 L458.9,308.9 L456.5,312.5 L460.4,314.5 L457.0,319.0 L459.5,320.1 L451.0,319.8 L439.3,326.9 L440.7,333.2 L434.0,331.0 L425.4,331.3 L418.5,335.4 L402.5,334.0 L394.0,336.0 L391.5,339.7 L381.6,344.9 L375.8,342.4 L296.2,332.4 L290.8,328.5 L290.7,325.3 L285.1,323.6 L287.2,316.6 L269.4,321.2 L247.0,321.4 L239.9,329.2 L228.9,328.5 L229.6,326.8 L225.9,325.4 L219.5,326.1 L214.9,320.1 L204.5,326.1 L195.0,322.9 L194.3,319.4 L183.2,317.7 L184.6,315.7 L180.8,309.5 L186.0,303.6 L181.9,298.6 L187.1,299.1 L191.3,296.5 L200.9,300.5 L203.3,305.6 L208.4,305.1 L206.4,309.2 L217.1,304.2 L217.2,296.9 L234.3,298.8 L239.2,304.4 L249.5,304.2 L264.8,296.4 L286.9,295.8 L287.1,291.8 L289.7,290.7 L289.5,292.8 L297.0,292.3 L299.9,294.8 L310.5,293.3 L312.5,295.5 L311.2,297.8 L320.1,301.4 L322.9,293.6 L315.7,291.1 L319.6,286.1 L309.8,275.2 L336.2,264.9 L338.2,257.1 L348.7,259.1 L352.1,255.5 L352.6,249.3 L359.3,251.7 L363.0,256.3 L373.0,257.7 L378.3,254.3 L387.0,257.0 L392.0,248.9 L397.6,249.5 L399.3,239.7 L405.5,240.3 L405.7,242.5 L411.0,240.5 L427.3,245.7 L432.7,245.1 L443.4,250.3 L454.3,250.9 L460.8,247.8 L474.9,251.2 L477.8,255.8Z M218.2,325.4 L214.8,333.1 L218.4,335.1 L217.8,338.5 L207.7,334.9 L201.3,338.7 L201.1,342.1 L205.6,343.9 L204.7,350.8 L201.7,351.2 L196.7,345.2 L181.5,348.1 L177.8,345.0 L177.4,340.1 L170.5,340.6 L169.0,350.8 L160.1,358.4 L159.2,361.4 L162.5,364.0 L160.1,367.2 L156.0,366.9 L154.8,362.1 L150.7,360.7 L152.4,356.4 L144.1,355.1 L137.5,350.6 L136.0,341.9 L123.5,349.1 L124.4,354.9 L113.2,363.4 L101.6,360.6 L82.7,364.4 L74.0,358.0 L74.8,355.5 L71.0,354.6 L73.1,349.2 L70.0,346.2 L71.5,343.4 L64.5,341.8 L52.1,344.2 L48.6,347.4 L51.2,350.4 L44.3,354.5 L38.4,354.8 L38.3,351.5 L43.6,350.1 L45.5,345.6 L42.2,343.2 L44.7,336.7 L57.2,329.6 L57.7,322.2 L66.6,319.1 L81.5,306.8 L74.7,305.8 L78.9,300.4 L87.2,300.5 L89.5,303.3 L96.3,302.5 L99.3,298.3 L105.5,296.2 L104.4,297.4 L107.3,298.2 L129.3,295.1 L142.4,296.4 L144.3,293.7 L135.7,293.4 L142.3,288.0 L155.3,293.8 L170.9,294.0 L186.0,301.9 L179.5,311.6 L179.1,317.4 L194.3,319.4 L195.0,322.9 L204.5,326.1 L215.2,320.2 L218.2,325.4Z M87.8,70.2 L87.7,80.1 L82.5,87.0 L81.5,94.1 L69.5,94.6 L69.8,97.6 L66.9,98.3 L68.6,101.5 L78.9,101.9 L81.9,105.4 L81.1,110.8 L66.9,118.0 L72.4,121.6 L53.8,127.2 L45.1,124.1 L46.2,126.3 L37.3,127.4 L37.6,130.7 L44.0,134.2 L48.2,141.7 L47.7,146.2 L42.3,151.5 L45.9,153.9 L37.5,158.8 L34.1,158.3 L35.0,161.4 L40.1,161.1 L42.5,163.7 L38.8,168.2 L39.8,170.0 L28.3,169.8 L25.0,166.8 L30.6,161.6 L28.9,161.6 L33.8,155.9 L33.2,153.7 L22.7,151.7 L19.7,148.5 L8.6,149.7 L1.1,140.9 L-3.6,144.3 L-9.5,143.5 L-7.1,143.5 L-8.9,140.2 L-14.8,143.3 L-20.7,141.0 L-24.9,142.3 L-24.3,146.0 L-40.0,141.9 L-46.9,144.4 L-62.0,138.8 L-57.6,136.2 L-46.0,135.6 L-45.1,138.0 L-39.4,138.8 L-35.8,142.2 L-28.7,142.1 L-29.3,139.7 L-40.5,136.4 L-31.7,136.4 L-35.5,134.4 L-32.9,132.6 L-45.5,127.4 L-36.9,126.3 L-39.4,120.5 L-34.3,119.8 L-19.7,106.5 L-10.2,81.3 L-5.0,83.8 L3.1,81.8 L15.2,76.1 L17.9,71.2 L23.7,67.9 L39.2,63.8 L73.2,62.0 L76.0,65.9 L87.8,70.2Z"}};
+function pickMap(lat, lon) {
+  // Iberia primero: cualquier cosa al oeste de lon 4 y al sur de lat 44 (incluye Rioja y norte español)
+  if (lon >= -10 && lon <= 4 && lat >= 35 && lat <= 44) return 'iberia';
+  if (lon >= 6.5 && lon <= 19 && lat >= 36 && lat <= 47) return 'italy';
+  if (lon >= 5.5 && lon <= 16 && lat >= 47.5 && lat <= 55) return 'germany';
+  if (lon >= -5 && lon <= 8 && lat >= 41 && lat <= 51) return 'france';
+  return null;
+}
+function renderMap(lat, lon) {
+  const cont = document.getElementById('map-inner');
+  if (!cont) return null;
+  if (lat == null || lon == null) {
+    cont.innerHTML = '';
+    leafletMap = null; leafletMarker = null;
+    return null;
+  }
+
+  // En móvil: mapa Leaflet con tiles de OpenStreetMap teñidos en sepia/papel cálido,
+  // para que combine con la paleta crema/dorado/burdeos de la web.
+  if (isMobile()) {
+    // Si el contenedor fue recreado (cambio de vista), la instancia vieja ya no sirve.
+    let host = document.getElementById('map-leaflet');
+    if (!host || !cont.contains(host)) {
+      cont.innerHTML = '<div id="map-leaflet"></div>';
+      host = document.getElementById('map-leaflet');
+      leafletMap = null; leafletMarker = null;
+    }
+
+    const pinIcon = L.divIcon({
+      className: '',
+      html: '<div class="map-pin-pulse"></div>',
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+
+    if (!leafletMap) {
+      leafletMap = L.map(host, {
+        zoomControl: false,
+        attributionControl: true,
+        dragging: false,
+        touchZoom: false,
+        doubleClickZoom: false,
+        scrollWheelZoom: false,
+        boxZoom: false,
+        keyboard: false,
+      }).setView([lat, lon], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap',
+      }).addTo(leafletMap);
+      leafletMarker = L.marker([lat, lon], { icon: pinIcon }).addTo(leafletMap);
+      // El contenedor puede no tener tamaño aún al crearse; recalcular tras el layout.
+      setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 60);
+    } else {
+      leafletMap.setView([lat, lon], 5, { animate: true });
+      if (leafletMarker) {
+        leafletMarker.setLatLng([lat, lon]);
+      } else {
+        leafletMarker = L.marker([lat, lon], { icon: pinIcon }).addTo(leafletMap);
+      }
+      setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 60);
+    }
+    return 'leaflet';  // truthy: Leaflet cubre todo el mundo, nunca "internacional" en móvil
+  }
+
+  // TV/desktop: SVG regional con pin (Iberia, Francia, Italia, Alemania)
+  leafletMap = null; leafletMarker = null;
+  const key = pickMap(lat, lon);
+  if (!key) { cont.innerHTML = ''; return null; }
+  const m = MAPS_DATA[key];
+  const [lonMin, lonMax, latMin, latMax] = m.bbox;
+  const [w, h] = m.size;
+  const x = (lon - lonMin) / (lonMax - lonMin) * w;
+  const y = (latMax - lat) / (latMax - latMin) * h;
+  cont.innerHTML =
+      `<svg id="map-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">`
+    + `<rect class="sea" width="${w}" height="${h}"/>`
+    + `<path class="country" d="${m.path}"/>`
+    + `<g id="map-pin" class="visible" transform="translate(${x} ${y})">`
+    + `<circle class="pulse" cx="0" cy="0" r="6"/>`
+    + `<circle class="dot" cx="0" cy="0" r="4"/>`
+    + `</g></svg>`;
+  return key;
+}
+
+/**
+ * Devuelve un array con cuántos vinos van en cada fila del resumen,
+ * según el total. Sigue la heurística del usuario:
+ *  6→[3,3], 7→[2,3,2], 8→[3,2,3], 9→[3,3,3], 10→[3,4,3]...
+ */
+function getSummaryLayout(n) {
+  const fixed = {
+    1: [1], 2: [2], 3: [3],
+    4: [2, 2], 5: [2, 3],
+    6: [3, 3], 7: [2, 3, 2], 8: [3, 2, 3],
+    9: [3, 3, 3], 10: [3, 4, 3], 11: [4, 3, 4],
+    12: [4, 4, 4],
+  };
+  if (fixed[n]) return fixed[n];
+  // Fallback: 4 filas lo más uniformes posible para n >= 13
+  const rows = 4;
+  const base = Math.floor(n / rows);
+  let extra = n - base * rows;
+  // Empezamos uniformes y vamos sumando 1 a las filas centrales mientras quede
+  const out = new Array(rows).fill(base);
+  // Reparte el extra empezando por el centro (rows/2) hacia los lados
+  const order = [];
+  const mid = Math.floor((rows - 1) / 2);
+  for (let i = 0; i < rows; i++) {
+    order.push(mid + (i % 2 === 0 ? i / 2 : -Math.ceil(i / 2)));
+  }
+  for (const i of order) {
+    if (extra <= 0) break;
+    out[i] += 1; extra -= 1;
+  }
+  return out;
+}
+
+function renderEmpty(sessionName) {
+  root.innerHTML = `
+    <div class="empty-state">
+      <h1>In Vino Veritas</h1>
+      <p>${sessionName ? sessionName + ' · ' : ''}Esperando vinos…</p>
+    </div>`;
+  currentSig = '__empty__';
+}
+
+function renderWelcome(payload) {
+  const mobile = isMobile();
+  // Configuración WiFi (desde wines.json). Si no existe o show=false, no se muestra el QR del WiFi.
+  const wifi = payload.wifi_config || null;
+  const showWifi = !!(wifi && wifi.show && wifi.ssid);
+  // Generar QRs (solo necesario en TV)
+  let qrCataHtml = '';
+  let qrWifiHtml = '';
+  if (!mobile) {
+    try {
+      const qr = qrcode(0, 'M');
+      qr.addData(window.location.origin + '/');
+      qr.make();
+      qrCataHtml = qr.createSvgTag({ scalable: true, margin: 2 });
+    } catch (e) {
+      qrCataHtml = '';
+    }
+    if (showWifi) {
+      try {
+        // Formato estándar de QR para WiFi: WIFI:T:WPA;S:<ssid>;P:<password>;;
+        const ssid = String(wifi.ssid).replace(/([\\;,:"])/g, '\\$1');
+        const pass = String(wifi.password || '').replace(/([\\;,:"])/g, '\\$1');
+        const auth = wifi.password ? 'WPA' : 'nopass';
+        const qrw = qrcode(0, 'M');
+        qrw.addData(`WIFI:T:${auth};S:${ssid};P:${pass};;`);
+        qrw.make();
+        qrWifiHtml = qrw.createSvgTag({ scalable: true, margin: 2 });
+      } catch (e) {
+        qrWifiHtml = '';
+      }
+    }
+  }
+
+  // Lista de invitados ya registrados
+  const usersPublic = payload.users_public || {};
+  const userEntries = Object.entries(usersPublic);
+  let guestsHtml = '';
+  const myUid = myUser ? myUser.user_id : null;
+  if (userEntries.length === 0) {
+    guestsHtml = `
+      <div class="welcome-guests">
+        <div class="welcome-guests-title">Invitados a la mesa</div>
+        <div class="welcome-guests-empty">Esperando a los primeros invitados…</div>
+      </div>`;
+  } else {
+    const guestPills = userEntries.map(([uid, u]) => {
+      const hex = getColorHex(u.color);
+      const isMe = (uid === myUid) ? ' is-me' : '';
+      const name = escapeHtml(u.name || '—');
+      return `
+        <div class="welcome-guest${isMe}">
+          <span class="welcome-guest-dot" style="background:${hex}"></span>
+          <span class="welcome-guest-name">${name}</span>
+        </div>`;
+    }).join('');
+    const countLabel = userEntries.length === 1 ? '1 invitado' : `${userEntries.length} invitados`;
+    guestsHtml = `
+      <div class="welcome-guests">
+        <div class="welcome-guests-title">${countLabel} en la mesa</div>
+        <div class="welcome-guests-list">${guestPills}</div>
+      </div>`;
+  }
+
+  // En móvil mostramos también el estado del invitado (identidad/no)
+  let mobileBlockHtml = '';
+  if (mobile) {
+    if (myUser && myUser.user_id) {
+      const hex = getColorHex(myUser.color);
+      mobileBlockHtml = `
+        <div class="welcome-status">
+          <span class="name-dot" style="background:${hex}"></span>
+          <strong>${escapeHtml(myUser.name || '—')}</strong>, ya estás registrado.<br>
+          Espera a que el anfitrión empiece la cata.
+        </div>
+        <div class="welcome-actions">
+          <button class="welcome-btn welcome-btn-edit" id="welcome-edit-btn">Editar mi perfil</button>
+        </div>`;
+    } else {
+      mobileBlockHtml = `
+        <div class="welcome-status">
+          Toca el botón para registrarte.<br>
+          Cuando empiece la cata, podrás votar.
+        </div>
+        <div class="welcome-actions">
+          <button class="welcome-btn" id="welcome-register-btn">Registrarme</button>
+        </div>`;
+    }
+  }
+
+  // Bloques QR (solo TV): WiFi a la izquierda (si está configurado), Cata a la derecha
+  const wifiCredsHtml = (showWifi) ? `
+          <div class="welcome-qr-credentials">
+            <div class="welcome-qr-cred-row">
+              <span class="welcome-qr-cred-label">Red</span>
+              <span class="welcome-qr-cred-value">${escapeHtml(wifi.ssid)}</span>
+            </div>
+            ${wifi.password ? `
+            <div class="welcome-qr-cred-row">
+              <span class="welcome-qr-cred-label">Pass</span>
+              <span class="welcome-qr-cred-value">${escapeHtml(wifi.password)}</span>
+            </div>` : ''}
+          </div>` : '';
+  const qrRowHtml = !mobile && (qrWifiHtml || qrCataHtml) ? `
+    <div class="welcome-qr-row">
+      ${qrWifiHtml ? `
+        <div class="welcome-qr-block">
+          <div class="welcome-qr-title">Conéctate al WiFi primero</div>
+          <div class="welcome-qr">${qrWifiHtml}</div>
+          ${wifiCredsHtml}
+        </div>` : ''}
+      ${qrCataHtml ? `
+        <div class="welcome-qr-block">
+          <div class="welcome-qr-title">Entra a la cata</div>
+          <div class="welcome-qr">${qrCataHtml}</div>
+        </div>` : ''}
+    </div>` : '';
+
+  root.innerHTML = `
+    <div class="welcome-frame">
+      <div class="welcome-eyebrow">Bienvenidos a la cata</div>
+      <div class="welcome-title">In Vino Veritas</div>
+      <div class="welcome-session">${escapeHtml(payload.session || 'Cata')}</div>
+      ${qrRowHtml}
+      ${!mobile ? '<div class="welcome-cta">Escanea con tu móvil para unirte</div>' : ''}
+      ${mobileBlockHtml}
+      ${guestsHtml}
+      <div class="welcome-host-info">${payload.total} ${payload.total === 1 ? 'vino' : 'vinos'} en cata</div>
+    </div>`;
+
+  // En móvil, si NO hay identidad, abrir el modal directamente (a los 600ms para que se vea la bienvenida primero)
+  if (mobile && !myUser) {
+    setTimeout(() => {
+      if (!myUser) showOnboarding('first');
+    }, 600);
+    // Botón de registro manual
+    const btn = document.getElementById('welcome-register-btn');
+    if (btn) btn.onclick = () => showOnboarding('first');
+  }
+  // Botón de editar perfil (usuario ya registrado en welcome)
+  if (mobile && myUser) {
+    const editBtn = document.getElementById('welcome-edit-btn');
+    if (editBtn) editBtn.onclick = () => showOnboarding('edit');
+  }
+}
+
+function ensureLayout() {
+  if (root.querySelector('.tv-frame')) return;
+  root.innerHTML = `
+    <div class="tv-frame">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="tv-header">
+        <div class="session-title" id="session-title">Cata</div>
+        <div class="counter" id="counter">Vino — de —</div>
+      </div>
+      <div class="bottle-area" id="bottle-area">
+        <img id="bottle" style="display:none" alt="">
+        <div class="bottle-placeholder" id="bottle-placeholder"></div>
+      </div>
+      <div class="info-area" id="info-area">
+        <div>
+          <h1 class="wine-name" id="wine-name">—</h1>
+          <p class="winery" id="winery">—</p>
+        </div>
+        <div class="meta hidden" id="meta">
+          <span class="meta-system" id="meta-system"></span>
+          <span class="meta-score" id="meta-score"></span>
+        </div>
+        <div class="tv-vote-pill" id="tv-vote-pill">
+          <span class="tv-vote-stars" id="tv-vote-pill-stars">☆☆☆☆☆</span>
+          <span class="tv-vote-value" id="tv-vote-pill-value">—</span>
+          <span class="tv-vote-count" id="tv-vote-pill-count">Aún sin votos</span>
+        </div>
+        <div class="data-grid">
+          <div class="data-row"><span class="data-label">Añada</span><span class="data-value" id="d-vintage">—</span></div>
+          <div class="data-row"><span class="data-label">D.O.</span><span class="data-value" id="d-do">—</span></div>
+          <div class="data-row"><span class="data-label">Uva</span><span class="data-value" id="d-grape">—</span></div>
+          <div class="data-row"><span class="data-label">Región</span><span class="data-value" id="d-region">—</span></div>
+        </div>
+        <div class="vote-block" id="vote-block">
+          <div class="vote-header">
+            <div class="vote-user">
+              <div class="vote-dot" id="vote-dot"></div>
+              <div class="vote-user-name" id="vote-user-name">Tu voto</div>
+            </div>
+            <button class="vote-edit-btn" id="vote-edit-btn" style="display:none">Editar perfil</button>
+          </div>
+          <div class="vote-stars" id="vote-stars">
+            <span class="vote-star" data-score="1">★</span>
+            <span class="vote-star" data-score="2">★</span>
+            <span class="vote-star" data-score="3">★</span>
+            <span class="vote-star" data-score="4">★</span>
+            <span class="vote-star" data-score="5">★</span>
+          </div>
+          <div class="vote-comment-wrap">
+            <textarea class="vote-comment" id="vote-comment"
+                      placeholder="Comentario (opcional) — escribe tranquilo y pulsa Enviar · máx 140 caracteres"
+                      maxlength="140"></textarea>
+            <button type="button" class="vote-comment-btn saved" id="vote-comment-btn" disabled>✓ Guardado</button>
+          </div>
+          <div class="vote-aggregate">
+            <span class="vote-agg-label">La mesa</span>
+            <span id="vote-aggregate-value"><span class="vote-agg-empty">Aún sin votos</span></span>
+          </div>
+        </div>
+        <div class="curio hidden" id="curio">
+          <div class="curio-mark">&ldquo;</div>
+          <div class="curio-text" id="curio-text"></div>
+        </div>
+        <div class="map-container">
+          <div class="map-label" id="map-label">—</div>
+          <div id="map-inner"></div>
+          <div class="map-outside-label" id="map-outside">—</div>
+        </div>
+      </div>
+      <div class="tv-footer" id="dots"></div>
+    </div>`;
+
+  const ph = document.getElementById('bottle-placeholder');
+  ph.innerHTML = document.getElementById('bottle-fallback').outerHTML.replace('display:none', '');
+}
+
+function applyUpdate(payload) {
+  document.getElementById('session-title').textContent = payload.session || 'Cata';
+  document.getElementById('counter').textContent = `Vino ${payload.index + 1} de ${payload.total}`;
+
+  const w = payload.wine;
+
+  const img = document.getElementById('bottle');
+  const ph  = document.getElementById('bottle-placeholder');
+  if (w.photo) {
+    img.onload  = () => { img.style.display = ''; ph.style.display = 'none'; };
+    img.onerror = () => { img.style.display = 'none'; ph.style.display = ''; };
+    img.src = `/static/photos/${encodeURIComponent(w.photo)}`;
+  } else {
+    img.style.display = 'none';
+    ph.style.display  = '';
+  }
+
+  document.getElementById('wine-name').textContent = w.name || '—';
+  document.getElementById('winery').textContent    = w.winery || '—';
+  document.getElementById('d-vintage').textContent = w.vintage || '—';
+  document.getElementById('d-do').textContent      = w.do || '—';
+  document.getElementById('d-grape').textContent   = w.grape || '—';
+  document.getElementById('d-region').textContent  = w.region || w.do || '—';
+
+  // Meta: solo puntuación (precio se ignora, queda en JSON pero oculto)
+  const meta       = document.getElementById('meta');
+  const metaSystem = document.getElementById('meta-system');
+  const metaScore  = document.getElementById('meta-score');
+  const hasRating  = w.rating && String(w.rating).trim();
+  if (hasRating) {
+    const m = String(w.rating).match(/^(\S+)\s+(.+)$/);
+    if (m) {
+      metaSystem.textContent = m[1];
+      metaScore.textContent  = m[2];
+    } else {
+      metaSystem.textContent = '';
+      metaScore.textContent  = w.rating;
+    }
+    meta.classList.remove('hidden');
+  } else {
+    meta.classList.add('hidden');
+  }
+
+  const curio     = document.getElementById('curio');
+  const curioText = document.getElementById('curio-text');
+  if (w.curiosity && w.curiosity.trim()) {
+    curioText.textContent = w.curiosity;
+    curio.classList.remove('hidden');
+  } else {
+    curio.classList.add('hidden');
+  }
+
+  const mapLabel = document.getElementById('map-label');
+  const mapOutside = document.getElementById('map-outside');
+
+  if (w.coords && Array.isArray(w.coords) && w.coords.length === 2) {
+    const [lat, lon] = w.coords;
+    const mapKey = renderMap(lat, lon);
+    if (mapKey) {
+      mapOutside.classList.remove('visible');
+    } else {
+      // Vino fuera de los 4 mapas — mostrar etiqueta de internacional
+      mapOutside.textContent = w.region || w.do || 'Internacional';
+      mapOutside.classList.add('visible');
+    }
+    mapLabel.textContent = w.do || w.region || 'Región';
+  } else {
+    mapLabel.textContent = w.do || '—';
+    renderMap(null, null);
+    mapOutside.classList.remove('visible');
+  }
+
+  const serverIdx = (typeof payload._serverIdx === 'number') ? payload._serverIdx : payload.index;
+  const mobile = isMobile();
+  const dots = document.getElementById('dots');
+  dots.innerHTML = '';
+  for (let i = 0; i < payload.total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    if (i < payload.index)        d.classList.add('done');
+    else if (i === payload.index) d.classList.add('active');
+    if (i > serverIdx) {
+      d.classList.add('locked');
+    } else if (mobile && i !== payload.index) {
+      d.classList.add('clickable');
+      d.onclick = () => navigateTo(i);
+    }
+    dots.appendChild(d);
+  }
+  // Si el server está en el resumen, añadir el dot del resumen (sólo móvil clicable)
+  if (serverIdx === payload.total) {
+    const d = document.createElement('div');
+    d.className = 'dot summary' + (mobile ? ' clickable' : '');
+    if (mobile) d.onclick = () => navigateTo(payload.total);
+    dots.appendChild(d);
+  }
+}
+
+function renderSummary(payload) {
+  const layout = getSummaryLayout(payload.total);
+  const wines = payload.all_wines || [];
+  const votesSummary = payload.votes_summary || {};
+  const highlights = payload.highlights || [];
+  const personalFavorites = payload.personal_favorites || {};
+  const usersPublic = payload.users_public || {};
+
+  // Detectar el(los) índice(s) favorito(s) para resaltar la tarjeta
+  const favoriteIndices = new Set(
+    highlights.filter(h => h.type === 'favorite').map(h => h.wine_idx)
+  );
+
+  // Detectar favoritos personales (solo móvil, solo si hay identidad)
+  // El favorito personal es el/los vino(s) con la puntuación más alta del usuario
+  const myFavoriteIndices = new Set();
+  let myColorHex = null;
+  if (isMobile() && myUser && myUser._votes) {
+    let maxScore = 0;
+    for (const [idxStr, vote] of Object.entries(myUser._votes)) {
+      const s = vote && vote.score;
+      if (s && s > maxScore) maxScore = s;
+    }
+    // Mínimo 4★ — no resaltamos si todo es mediocre
+    if (maxScore >= 4) {
+      for (const [idxStr, vote] of Object.entries(myUser._votes)) {
+        if (vote && vote.score === maxScore) {
+          myFavoriteIndices.add(parseInt(idxStr, 10));
+        }
+      }
+      myColorHex = getColorHex(myUser.color);
+    }
+  }
+
+  let cardIdx = 0;
+  const rowsHtml = layout.map(rowCount => {
+    const cardsHtml = [];
+    for (let i = 0; i < rowCount && cardIdx < wines.length; i++) {
+      const thisIdx = cardIdx;
+      const w = wines[cardIdx++];
+      const photoHtml = w.photo
+        ? `<img src="/static/photos/${encodeURIComponent(w.photo)}" alt="" onerror="this.replaceWith(document.getElementById('bottle-fallback').cloneNode(true)); this.parentElement.querySelector('svg').style.display='';">`
+        : (document.getElementById('bottle-fallback').outerHTML.replace('display:none', '').replace('id="bottle-fallback"', 'class="placeholder-svg"'));
+
+      const grapeText = w.grape || '';
+      const doText = w.do || '';
+
+      let ratingHtml = '';
+      if (w.rating && String(w.rating).trim()) {
+        const m = String(w.rating).match(/^(\S+)\s+(.+)$/);
+        if (m) {
+          ratingHtml = `<div class="summary-card-rating">
+            <span class="summary-card-rating-sys">${escapeHtml(m[1])}</span>
+            <span class="summary-card-rating-sco">${escapeHtml(m[2])}</span>
+          </div>`;
+        } else {
+          ratingHtml = `<div class="summary-card-rating">
+            <span class="summary-card-rating-sco">${escapeHtml(w.rating)}</span>
+          </div>`;
+        }
+      }
+
+      const vintageInline = w.vintage ? `<span class="summary-card-vintage">${escapeHtml(String(w.vintage))}</span>` : '';
+      const grapeHtml = grapeText ? `<div class="summary-card-grape">${escapeHtml(grapeText)}</div>` : '';
+      const doHtml = doText ? `<div class="summary-card-do">${escapeHtml(doText)}</div>` : '';
+
+      // Agregado mini de votos
+      const agg = votesSummary[String(thisIdx)];
+      let aggHtml = '';
+      if (agg && agg.count > 0) {
+        const filled = Math.round(agg.avg);
+        let starStr = '';
+        for (let s = 0; s < 5; s++) starStr += (s < filled ? '★' : '☆');
+        const plural = agg.count === 1 ? 'voto' : 'votos';
+        aggHtml = `<div class="summary-card-agg">
+          <span class="summary-card-agg-stars">${starStr}</span>
+          <span class="summary-card-agg-value">${agg.avg.toFixed(1)}</span>
+          <span class="summary-card-agg-count">· ${agg.count} ${plural}</span>
+        </div>`;
+      }
+
+      // Fans: usuarios que tienen este vino como su favorito personal
+      const fans = personalFavorites[String(thisIdx)] || [];
+      let fansHtml = '';
+      if (fans.length > 0) {
+        let pillsHtml;
+        if (fans.length <= 2) {
+          // Pocos: mostrar dot + nombre
+          pillsHtml = fans.map(uid => {
+            const u = usersPublic[uid] || {};
+            const hex = getColorHex(u.color);
+            const name = escapeHtml(u.name || '—');
+            return `<span class="summary-card-fan"><span class="summary-card-fan-dot" style="background:${hex}"></span>${name}</span>`;
+          }).join('');
+        } else {
+          // Muchos: solo dots agrupados + contador entre paréntesis
+          const dots = fans.map(uid => {
+            const u = usersPublic[uid] || {};
+            const hex = getColorHex(u.color);
+            const name = escapeHtml(u.name || '—');
+            return `<span class="summary-card-fan-dot" style="background:${hex}" title="${name}"></span>`;
+          }).join('');
+          pillsHtml = `<span class="summary-card-fans-cluster">${dots}</span><span class="summary-card-fans-count">(${fans.length})</span>`;
+        }
+        fansHtml = `<div class="summary-card-fans"><span class="summary-card-fans-label">Favorito de:</span>${pillsHtml}</div>`;
+      }
+
+      const isFavorite = favoriteIndices.has(thisIdx);
+      const isMyFavorite = myFavoriteIndices.has(thisIdx);
+      const classes = ['summary-card'];
+      if (isFavorite) classes.push('is-favorite');
+      if (isMyFavorite) classes.push('is-my-favorite');
+
+      const badgeHtml = isFavorite ? '<div class="summary-card-badge">★ Favorito de la mesa</div>' : '';
+      const myBadgeHtml = isMyFavorite && myColorHex
+        ? `<div class="summary-card-mybadge" style="background:${myColorHex}">★ Mi favorito</div>`
+        : '';
+
+      // Cards clickables en móvil: tocar el card lleva a la vista de ese vino
+      const mobileNav = isMobile();
+      const clickableClass = mobileNav ? ' clickable' : '';
+      const clickAttr = mobileNav ? ` data-nav-idx="${thisIdx}"` : '';
+      // Estilo inline para el borde lateral coloreado si es favorito personal
+      const styleAttr = isMyFavorite && myColorHex
+        ? ` style="border-left-color: ${myColorHex}"`
+        : '';
+
+      cardsHtml.push(`
+        <div class="${classes.join(' ')}${clickableClass}"${clickAttr}${styleAttr}>
+          <div class="summary-card-photo">${photoHtml}</div>
+          <div class="summary-card-info">
+            ${badgeHtml}
+            ${myBadgeHtml}
+            <div class="summary-card-name-row">
+              <span class="summary-card-name">${escapeHtml(w.name || '—')}</span>
+              ${vintageInline}
+            </div>
+            <div class="summary-card-winery">${escapeHtml(w.winery || '—')}</div>
+            ${grapeHtml}
+            ${doHtml}
+            ${ratingHtml}
+            ${aggHtml}
+            ${fansHtml}
+          </div>
+        </div>
+      `);
+    }
+    return `<div class="summary-row">${cardsHtml.join('')}</div>`;
+  }).join('');
+
+  // Dots: todos hechos + uno especial del resumen activo
+  const serverIdx = (typeof payload._serverIdx === 'number') ? payload._serverIdx : payload.total;
+  const mobile = isMobile();
+  const dotsHtml = [];
+  for (let i = 0; i < payload.total; i++) {
+    const cls = ['dot', 'done'];
+    if (mobile && i <= serverIdx) cls.push('clickable');
+    dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}"></div>`);
+  }
+  dotsHtml.push('<div class="dot summary"></div>');
+
+  root.innerHTML = `
+    <div class="summary-frame">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="summary-header">
+        <div class="session-title">${escapeHtml(payload.session || 'Cata')}</div>
+        <div class="summary-title-big">Resumen</div>
+        <div class="counter">${payload.total} vinos</div>
+      </div>
+      <div id="highlights-overlay" class="highlights-overlay empty"></div>
+      <div class="summary-rows">${rowsHtml}</div>
+      <div class="tv-footer">${dotsHtml.join('')}</div>
+    </div>`;
+
+  // Conectar dots clicables (solo móvil)
+  root.querySelectorAll('.tv-footer .dot.clickable').forEach(el => {
+    const idx = parseInt(el.dataset.idx, 10);
+    if (!isNaN(idx)) el.onclick = () => navigateTo(idx);
+  });
+
+  // Conectar cards clickables (solo móvil: tap lleva al vino)
+  root.querySelectorAll('.summary-card.clickable').forEach(el => {
+    const idx = parseInt(el.dataset.navIdx, 10);
+    if (!isNaN(idx)) el.onclick = () => navigateTo(idx);
+  });
+
+  // Iniciar rotación de destacados
+  startHighlightsRotation(highlights);
+}
+
+// ── Rotación de destacados ──
+let highlightsRotationTimer = null;
+let highlightsCurrentIdx = 0;
+
+function stopHighlightsRotation() {
+  if (highlightsRotationTimer) {
+    clearTimeout(highlightsRotationTimer);
+    highlightsRotationTimer = null;
+  }
+}
+
+function startHighlightsRotation(highlights) {
+  stopHighlightsRotation();
+  const el = document.getElementById('highlights-overlay');
+  if (!el) return;
+  if (!highlights || highlights.length === 0) {
+    el.classList.add('empty');
+    return;
+  }
+  el.classList.remove('empty');
+  highlightsCurrentIdx = 0;
+  renderHighlight(el, highlights, 0);
+  if (highlights.length > 1) {
+    scheduleNextHighlight(el, highlights);
+  }
+}
+
+function scheduleNextHighlight(el, highlights) {
+  highlightsRotationTimer = setTimeout(() => {
+    // Fade out
+    el.classList.add('fading');
+    setTimeout(() => {
+      highlightsCurrentIdx = (highlightsCurrentIdx + 1) % highlights.length;
+      renderHighlight(el, highlights, highlightsCurrentIdx);
+      el.classList.remove('fading');
+      scheduleNextHighlight(el, highlights);
+    }, 400);
+  }, 6000);
+}
+
+function getColorHexFromKey(key) {
+  // Buscar en la cache de colores cargada por fetchColors
+  if (typeof onboardingColors !== 'undefined' && onboardingColors.length) {
+    const found = onboardingColors.find(c => c.key === key);
+    if (found) return found.hex;
+  }
+  return '#d8c094';
+}
+
+function renderHighlight(el, highlights, idx) {
+  const h = highlights[idx];
+  if (!h) { el.innerHTML = ''; return; }
+
+  // Indicadores de rotación (solo si hay >1 destacado)
+  const dotsHtml = highlights.length > 1
+    ? highlights.map((_, i) =>
+        `<div class="highlights-dot${i === idx ? ' active' : ''}"></div>`
+      ).join('')
+    : '';
+
+  let iconChar = '✦';
+  let bodyHtml = '';
+
+  if (h.type === 'favorite') {
+    iconChar = '🏆';
+    const filled = Math.round(h.avg || 0);
+    let starStr = '';
+    for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
+    const plural = h.count === 1 ? 'voto' : 'votos';
+    bodyHtml = `
+      <div class="highlights-title">${escapeHtml(h.wine_name || '')}</div>
+      <div class="highlights-meta">
+        <span class="highlights-stars">${starStr}</span>
+        <span class="highlights-avg">${(h.avg || 0).toFixed(1)}</span>
+        <span class="highlights-extra">· ${h.count} ${plural} · ${escapeHtml(h.winery || '')}</span>
+      </div>`;
+  } else if (h.type === 'polarizing') {
+    iconChar = '⚡';
+    bodyHtml = `
+      <div class="highlights-title">${escapeHtml(h.wine_name || '')}</div>
+      <div class="highlights-meta">
+        <span class="highlights-extra">De ${h.min_score}★ a ${h.max_score}★ · sin consenso</span>
+      </div>`;
+  } else if (h.type === 'unanimous') {
+    iconChar = '🤝';
+    const filled = Math.round(h.avg || 0);
+    let starStr = '';
+    for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
+    bodyHtml = `
+      <div class="highlights-title">${escapeHtml(h.wine_name || '')}</div>
+      <div class="highlights-meta">
+        <span class="highlights-stars">${starStr}</span>
+        <span class="highlights-avg">${(h.avg || 0).toFixed(1)}</span>
+        <span class="highlights-extra">· todos de acuerdo</span>
+      </div>`;
+  } else if (h.type === 'comment') {
+    iconChar = '💬';
+    const colorHex = getColorHexFromKey(h.user_color);
+    bodyHtml = `
+      <div class="highlights-quote">${escapeHtml(h.comment || '')}</div>
+      <div class="highlights-attrib">
+        <span class="highlights-attrib-dot" style="background:${colorHex}"></span>
+        <span><strong>${escapeHtml(h.user_name || '—')}</strong> sobre ${escapeHtml(h.wine_name || '')}</span>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="highlights-dots">${dotsHtml}</div>
+    <div class="highlights-eyebrow">
+      <span class="highlights-icon">${iconChar}</span>
+      <span>${escapeHtml(h.label || '')}</span>
+    </div>
+    ${bodyHtml}`;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── Navegación local (móvil): el invitado puede retroceder pero no adelantarse al anfitrión ──
+let serverState = null;
+let localIndex = null;
+let initialized = false;
+const isMobile = () => window.innerWidth <= 900;
+
+function onServerUpdate(payload) {
+  const prevServerIdx = serverState
+    ? (serverState.is_summary ? serverState.total : serverState.index)
+    : null;
+
+  serverState = payload;
+  const serverIdx = payload.is_summary ? payload.total : payload.index;
+
+  if (!initialized) {
+    localIndex = serverIdx;
+    initialized = true;
+  } else if (prevServerIdx !== serverIdx) {
+    // El anfitrión cambió de vino → no enviamos comentarios automáticamente.
+    // Si el usuario estaba escribiendo, el borrador queda guardado localmente.
+    localIndex = serverIdx;
+  } else if (isMobile() && localIndex > serverIdx) {
+    // Por si acaso: no permitir quedar adelantado
+    localIndex = serverIdx;
+  }
+  // Si el server NO cambió, respetar la navegación manual local (móvil)
+
+  renderCurrent();
+
+  // Popups de votos en TV (solo en vista de vino)
+  if (!isMobile() && !payload.is_summary && !payload.is_welcome && payload.current_wine_votes) {
+    detectVoteChanges(payload.index, payload.current_wine_votes, payload.users_public || {});
+  } else {
+    // Reset el cache si no estamos en vista de vino
+    lastVotesByUser = {};
+    lastVotesForWineIdx = null;
+  }
+}
+
+// ─── Sistema de popups de votos (solo TV) ─────────────────────────────
+let lastVotesByUser = {};
+let lastVotesForWineIdx = null;
+const POPUP_DURATION_MS = 5000;
+const POPUP_FADEOUT_MS = 400;
+const MAX_POPUPS = 5;
+
+function detectVoteChanges(wineIdx, currentVotes, usersPublic) {
+  // Si cambió el vino, no mostrar popups: solo cachear el estado actual
+  if (lastVotesForWineIdx !== wineIdx) {
+    lastVotesByUser = JSON.parse(JSON.stringify(currentVotes));
+    lastVotesForWineIdx = wineIdx;
+    return;
+  }
+
+  // Detectar cambios usuario por usuario
+  for (const [uid, vote] of Object.entries(currentVotes)) {
+    const prev = lastVotesByUser[uid] || {};
+    const user = usersPublic[uid] || {};
+    if (!user.name) continue;
+
+    // Score: nuevo o cambiado
+    const prevScore = prev.score;
+    const newScore = vote.score;
+    if (newScore && newScore !== prevScore) {
+      showVotePopup(user, newScore, prevScore != null);
+    } else if (!newScore && prevScore) {
+      showRetractPopup(user);
+    }
+
+    // Comentario: nuevo o cambiado (ignorar vacíos)
+    const prevComment = (prev.comment || '').trim();
+    const newComment = (vote.comment || '').trim();
+    if (newComment && newComment !== prevComment) {
+      showCommentPopup(user, newComment);
+    }
+  }
+
+  lastVotesByUser = JSON.parse(JSON.stringify(currentVotes));
+}
+
+function showVotePopup(user, score, isUpdate) {
+  // Texto contextual según puntuación
+  const actions = {
+    5: isUpdate ? 'ahora dice ¡cinco estrellas!' : 'se ha enamorado',
+    4: isUpdate ? 'lo ha subido a' : 'le ha gustado',
+    3: isUpdate ? 'ahora le da' : 'lo ha votado',
+    2: isUpdate ? 'lo ha bajado a' : 'no le ha convencido',
+    1: isUpdate ? 'ha rebajado a' : 'lo ha sufrido',
+  };
+  const stars = '★'.repeat(score) + '☆'.repeat(5 - score);
+  appendPopup({
+    user: user,
+    action: actions[score] || 'ha votado',
+    extra: `<span class="vote-popup-stars">${stars}</span>`,
+    typeClass: `score-${score}`,
+  });
+}
+
+function showRetractPopup(user) {
+  appendPopup({
+    user: user,
+    action: 'ha retirado su voto',
+    extra: '',
+    typeClass: 'comment',
+  });
+}
+
+function showCommentPopup(user, comment) {
+  const truncated = comment.length > 80 ? comment.slice(0, 80) + '…' : comment;
+  appendPopup({
+    user: user,
+    action: 'ha comentado',
+    extra: `<div class="vote-popup-comment">«${escapeHtml(truncated)}»</div>`,
+    typeClass: 'comment',
+    extended: true,
+  });
+}
+
+function appendPopup({ user, action, extra, typeClass, extended }) {
+  let container = document.getElementById('vote-popup-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'vote-popup-container';
+    document.body.appendChild(container);
+  }
+  // Limitar número de popups simultáneos: eliminar el más antiguo
+  while (container.children.length >= MAX_POPUPS) {
+    container.firstChild.remove();
+  }
+
+  const hex = getColorHex(user.color);
+  const popup = document.createElement('div');
+  popup.className = `vote-popup ${typeClass}`;
+  popup.innerHTML = `
+    <span class="vote-popup-dot" style="background:${hex}"></span>
+    <div class="vote-popup-body">
+      <span class="vote-popup-name">${escapeHtml(user.name)}</span>
+      <span class="vote-popup-action">${action}</span>
+    </div>
+    ${extra}
+  `;
+  container.appendChild(popup);
+
+  // Animar entrada
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => popup.classList.add('show'));
+  });
+
+  // Salida automática
+  setTimeout(() => {
+    popup.classList.remove('show');
+    popup.classList.add('hide');
+    setTimeout(() => popup.remove(), POPUP_FADEOUT_MS);
+  }, POPUP_DURATION_MS);
+}
+// ───────────────────────────────────────────────────────────────────────
+
+function navigateTo(idx) {
+  if (!serverState) return;
+  const serverIdx = serverState.is_summary ? serverState.total : serverState.index;
+  if (idx < 0 || idx > serverIdx) return;  // no se puede ir adelante del server
+  if (idx === localIndex) return;
+  // No enviamos comentarios automáticamente al navegar: solo se guardan como borrador local.
+  localIndex = idx;
+  currentSig = null;  // forzar rerender (sin animación)
+  renderCurrent();
+}
+window.navigateTo = navigateTo;
+
+function renderCurrent() {
+  if (!serverState) return;
+
+  const total = serverState.total;
+  const serverIdx = serverState.is_summary ? total : serverState.index;
+
+  if (!serverState.all_wines || total === 0) {
+    renderEmpty(serverState.session);
+    return;
+  }
+
+  // Vista bienvenida (antes de empezar la cata)
+  if (serverState.is_welcome) {
+    // Fingerprint de usuarios registrados para re-renderizar cuando llega alguien nuevo
+    const usersFingerprint = Object.entries(serverState.users_public || {})
+      .map(([uid, u]) => `${uid}:${u.name}:${u.color}`)
+      .sort()
+      .join('|');
+    const sig = `__welcome__|${serverState.session}|${myUser ? myUser.user_id : 'anon'}|${usersFingerprint}`;
+    if (sig === currentSig) return;
+    currentSig = sig;
+    stopHighlightsRotation();
+    document.body.classList.add('welcome-active');
+    renderWelcome(serverState);
+    return;
+  }
+  document.body.classList.remove('welcome-active');
+
+  // Vista resumen
+  const isSummaryView = serverState.is_summary && localIndex === total;
+  if (isSummaryView) {
+    // Incluir un fingerprint de votos en el sig para forzar re-render cuando cambien
+    const votesFingerprint = JSON.stringify(serverState.votes_summary || {})
+      + '|' + (serverState.highlights ? serverState.highlights.length : 0)
+      + '|' + JSON.stringify(serverState.personal_favorites || {});
+    const sig = `__summary__|${total}|${votesFingerprint}`;
+    if (sig === currentSig) return;
+    currentSig = sig;
+    renderSummary({
+      session: serverState.session,
+      total: total,
+      all_wines: serverState.all_wines,
+      _serverIdx: serverIdx,
+      votes_summary: serverState.votes_summary || {},
+      highlights: serverState.highlights || [],
+      personal_favorites: serverState.personal_favorites || {},
+      users_public: serverState.users_public || {},
+    });
+    return;
+  }
+
+  // Vista vino individual — paramos la rotación de destacados si la había
+  stopHighlightsRotation();
+  const wine = serverState.all_wines[localIndex];
+  if (!wine) return;
+
+  ensureLayout();
+
+  const sig = `${localIndex}|${wine.name}|${wine.winery}|${wine.vintage}`;
+  if (sig === currentSig) return;
+  const wasEmptyOrSummary = currentSig === null
+    || currentSig === '__empty__'
+    || (typeof currentSig === 'string' && currentSig.startsWith('__summary__'));
+  currentSig = sig;
+
+  const localPayload = {
+    session: serverState.session,
+    wine: wine,
+    index: localIndex,
+    total: total,
+    _serverIdx: serverIdx,
+  };
+
+  if (wasEmptyOrSummary) {
+    if (!root.querySelector('.tv-frame')) {
+      root.innerHTML = '';
+      ensureLayout();
+    }
+    applyUpdate(localPayload);
+    return;
+  }
+
+  const bottleArea = document.getElementById('bottle-area');
+  const infoArea   = document.getElementById('info-area');
+  bottleArea.classList.add('fade-out');
+  infoArea.classList.add('fade-out');
+  setTimeout(() => {
+    applyUpdate(localPayload);
+    bottleArea.classList.remove('fade-out');
+    infoArea.classList.remove('fade-out');
+  }, 400);
+}
+
+function connect() {
+  const es = new EventSource('/stream');
+  es.onmessage = (e) => {
+    try {
+      onServerUpdate(JSON.parse(e.data));
+    } catch (err) {
+      console.error('Parse error', err);
+    }
+  };
+  es.onerror = () => {
+    console.warn('SSE error, reconectando en 3s...');
+    es.close();
+    setTimeout(connect, 3000);
+  };
+}
+
+// Primera conexión con un pequeño retardo aleatorio para esparcir el pico
+// cuando muchos invitados abren la página a la vez (evita saturar el servidor).
+setTimeout(connect, Math.random() * 1200);
+
+// ════════════════════════════════════════════════════════════════════════
+// SISTEMA DE VOTACIÓN — identidad, onboarding y voto
+// ════════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEY = 'cata_user';
+
+// Identidad local: { user_id, name, color }
+let myUser = null;
+function loadMyUser() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) myUser = JSON.parse(raw);
+  } catch (e) { myUser = null; }
+}
+function saveMyUser() {
+  try {
+    if (myUser) localStorage.setItem(STORAGE_KEY, JSON.stringify(myUser));
+  } catch (e) {}
+}
+loadMyUser();
+
+// ── Modal de onboarding ──
+const modalEl       = document.getElementById('onboarding');
+const colorGridEl   = document.getElementById('onboard-color-grid');
+const colorHintEl   = document.getElementById('onboard-color-hint');
+const nameInputEl   = document.getElementById('onboard-name');
+const submitBtnEl   = document.getElementById('onboard-submit');
+const cancelBtnEl   = document.getElementById('onboard-cancel');
+const errorEl       = document.getElementById('onboard-error');
+const eyebrowEl     = document.getElementById('onboard-eyebrow');
+const introEl      = document.getElementById('onboard-intro');
+
+let onboardingMode = 'first';   // 'first' o 'edit'
+let onboardingSelectedColor = null;
+let onboardingColors = [];       // [{key, name, hex, taken}]
+let onboardingOnDone = null;     // callback al cerrar
+
+async function fetchColors() {
+  try {
+    const r = await fetchWithRetry('/api/colors', { cache: 'no-store' }, 3);
+    onboardingColors = await r.json();
+  } catch (e) {
+    console.error('No se pueden cargar colores', e);
+    onboardingColors = [];
+  }
+}
+
+// fetch con reintentos + backoff exponencial y jitter.
+// Reintenta ante fallo de red o respuesta 5xx; los 4xx se devuelven tal cual.
+async function fetchWithRetry(url, opts = {}, retries = 3) {
+  let lastErr;
+  for (let i = 0; i < retries; i++) {
+    try {
+      const r = await fetch(url, opts);
+      if (r.status >= 500) throw new Error('server_' + r.status);
+      return r;
+    } catch (e) {
+      lastErr = e;
+      if (i < retries - 1) {
+        const wait = 300 * Math.pow(2, i) + Math.random() * 400;
+        await new Promise(res => setTimeout(res, wait));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+function renderColorGrid() {
+  colorGridEl.innerHTML = '';
+  onboardingColors.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'modal-color';
+    d.style.background = c.hex;
+    d.title = c.name;
+    d.dataset.key = c.key;
+    // En modo edición, el propio color no es "taken"
+    const isMine = (onboardingMode === 'edit' && myUser && myUser.color === c.key);
+    if (c.taken && !isMine) d.classList.add('taken');
+    if (onboardingSelectedColor === c.key) d.classList.add('selected');
+    if (!c.taken || isMine) {
+      d.onclick = () => {
+        onboardingSelectedColor = c.key;
+        renderColorGrid();
+        const found = onboardingColors.find(x => x.key === c.key);
+        colorHintEl.textContent = found ? `Tu copa: ${found.name}` : '';
+        validateSubmit();
+      };
+    }
+    colorGridEl.appendChild(d);
+  });
+  // Recordatorio si no hay seleccionado todavía
+  if (!onboardingSelectedColor) {
+    colorHintEl.textContent = 'Toca un color para empezar';
+  }
+}
+
+function validateSubmit() {
+  submitBtnEl.disabled = !onboardingSelectedColor;
+}
+
+async function showOnboarding(mode, onDone) {
+  onboardingMode = mode;
+  onboardingOnDone = onDone || null;
+  errorEl.classList.add('hidden');
+  errorEl.textContent = '';
+  await fetchColors();
+  if (mode === 'edit' && myUser) {
+    eyebrowEl.textContent = 'Editar mi ficha';
+    introEl.innerHTML = 'Cambia tu <strong>color</strong> o <strong>nombre</strong>.';
+    onboardingSelectedColor = myUser.color;
+    nameInputEl.value = myUser.name || '';
+    submitBtnEl.textContent = 'Guardar';
+    cancelBtnEl.style.display = '';
+  } else {
+    eyebrowEl.textContent = 'Bienvenido a';
+    introEl.innerHTML = 'Identifícate para votar los vinos.<br>Tu <strong>color</strong> es el marcador de tu copa.';
+    // Por defecto un color libre cualquiera ya pre-seleccionado
+    const free = onboardingColors.find(c => !c.taken);
+    onboardingSelectedColor = free ? free.key : null;
+    nameInputEl.value = '';
+    submitBtnEl.textContent = 'Empezar a votar';
+    cancelBtnEl.style.display = 'none';
+  }
+  renderColorGrid();
+  validateSubmit();
+  modalEl.classList.add('visible');
+}
+
+function hideOnboarding() {
+  modalEl.classList.remove('visible');
+  onboardingOnDone = null;
+}
+
+cancelBtnEl.addEventListener('click', () => {
+  hideOnboarding();
+});
+
+document.getElementById('onboard-close').addEventListener('click', () => {
+  // Si estábamos a punto de votar (modo first sin myUser), limpiar las estrellas iluminadas
+  if (onboardingMode === 'first' && !myUser) {
+    myVoteScore = null;
+    applyVoteToStars();
+  }
+  hideOnboarding();
+});
+
+submitBtnEl.addEventListener('click', async () => {
+  if (!onboardingSelectedColor) return;
+  errorEl.classList.add('hidden');
+  const name = nameInputEl.value.trim();
+  submitBtnEl.disabled = true;
+  try {
+    if (onboardingMode === 'edit' && myUser) {
+      const r = await fetchWithRetry('/api/me/' + encodeURIComponent(myUser.user_id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, color: onboardingSelectedColor }),
+      }, 3);
+      if (r.status === 409) {
+        errorEl.textContent = 'Ese color lo cogió otro invitado. Elige otro.';
+        errorEl.classList.remove('hidden');
+        await fetchColors();
+        renderColorGrid();
+        submitBtnEl.disabled = false;
+        return;
+      }
+      if (!r.ok) throw new Error('PATCH failed');
+      const u = await r.json();
+      myUser.name = u.name;
+      myUser.color = u.color;
+      saveMyUser();
+    } else {
+      const r = await fetchWithRetry('/api/me', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, color: onboardingSelectedColor }),
+      }, 3);
+      if (!r.ok) throw new Error('POST failed');
+      const u = await r.json();
+      myUser = { user_id: u.user_id, name: u.name, color: u.color };
+      saveMyUser();
+    }
+    refreshVoteUI();
+    const cb = onboardingOnDone;
+    hideOnboarding();
+    if (cb) cb();
+  } catch (e) {
+    errorEl.textContent = 'No se pudo guardar. Inténtalo de nuevo.';
+    errorEl.classList.remove('hidden');
+  } finally {
+    submitBtnEl.disabled = false;
+  }
+});
+
+// ── Bloque de votación ──
+let myVoteScore = null;       // 0..5 ó null
+let myVoteComment = '';
+let commentPendingText = null; // borrador local no enviado del vino actual
+const COMMENT_DRAFTS_KEY = STORAGE_KEY + '_comment_drafts';
+
+function loadCommentDrafts() {
+  try {
+    return JSON.parse(localStorage.getItem(COMMENT_DRAFTS_KEY) || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveCommentDrafts(drafts) {
+  try {
+    localStorage.setItem(COMMENT_DRAFTS_KEY, JSON.stringify(drafts || {}));
+  } catch (e) {}
+}
+
+function commentDraftKey(idx = localIndex) {
+  if (!myUser || !myUser.user_id) return null;
+  return myUser.user_id + ':' + String(idx);
+}
+
+function getCommentDraft(idx = localIndex) {
+  const key = commentDraftKey(idx);
+  if (!key) return null;
+  const drafts = loadCommentDrafts();
+  return Object.prototype.hasOwnProperty.call(drafts, key) ? drafts[key] : null;
+}
+
+function setCommentDraft(idx, value) {
+  const key = commentDraftKey(idx);
+  if (!key) return;
+  const drafts = loadCommentDrafts();
+  drafts[key] = value || '';
+  saveCommentDrafts(drafts);
+}
+
+function clearCommentDraft(idx = localIndex) {
+  const key = commentDraftKey(idx);
+  if (!key) return;
+  const drafts = loadCommentDrafts();
+  if (Object.prototype.hasOwnProperty.call(drafts, key)) {
+    delete drafts[key];
+    saveCommentDrafts(drafts);
+  }
+}
+
+function getColorHex(key) {
+  if (!serverState || !key) return '#d8c094';
+  // Buscar en COLORS via onboardingColors (cargado al abrir modal) o
+  // pedir directamente al API (cacheado tras primera llamada)
+  const found = onboardingColors.find(c => c.key === key);
+  return found ? found.hex : '#d8c094';
+}
+
+function refreshVoteUI() {
+  // Header del bloque: muestra el color y nombre del usuario (si existe)
+  const dot = document.getElementById('vote-dot');
+  const userName = document.getElementById('vote-user-name');
+  const editBtn = document.getElementById('vote-edit-btn');
+  if (!dot || !userName) return;
+  if (myUser) {
+    dot.style.background = getColorHex(myUser.color);
+    userName.textContent = 'Tu voto · ' + (myUser.name || '—');
+    editBtn.style.display = '';
+  } else {
+    dot.style.background = '#d8c094';
+    userName.textContent = 'Tu voto';
+    editBtn.style.display = 'none';
+  }
+  applyVoteToStars();
+  applyAggregate();
+}
+
+function applyVoteToStars() {
+  document.querySelectorAll('.vote-star').forEach((star, i) => {
+    star.classList.toggle('filled', myVoteScore !== null && i < myVoteScore);
+  });
+}
+
+// Estado anterior del agregado por vino para detectar cambios y animar
+let lastAggByWine = {};
+
+function applyAggregate() {
+  const valEl = document.getElementById('vote-aggregate-value');
+  const pillEl = document.getElementById('tv-vote-pill');
+  const pillStarsEl = document.getElementById('tv-vote-pill-stars');
+  const pillValueEl = document.getElementById('tv-vote-pill-value');
+  const pillCountEl = document.getElementById('tv-vote-pill-count');
+
+  const hasSummary = serverState && serverState.votes_summary;
+  const idx = localIndex;
+  const agg = hasSummary ? serverState.votes_summary[String(idx)] : null;
+  const hasVotes = agg && agg.count > 0;
+
+  // ── Bloque grande (móvil) ──
+  if (valEl) {
+    if (!hasVotes) {
+      valEl.innerHTML = '<span class="vote-agg-empty">Aún sin votos</span>';
+    } else {
+      const filled = Math.round(agg.avg);
+      let starStr = '';
+      for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
+      const plural = agg.count === 1 ? 'voto' : 'votos';
+      valEl.innerHTML =
+        '<span class="vote-agg-stars">' + starStr + '</span>' +
+        '<span class="vote-agg-value">' + agg.avg.toFixed(1) + '</span>' +
+        '<span class="vote-agg-count">· ' + agg.count + ' ' + plural + '</span>';
+    }
+  }
+
+  // ── Pill TV ──
+  if (pillEl && pillStarsEl && pillValueEl && pillCountEl) {
+    if (!hasVotes) {
+      pillEl.classList.add('empty');
+      pillEl.classList.remove('has-votes');
+      pillStarsEl.textContent = '☆☆☆☆☆';
+      pillValueEl.textContent = '';
+      pillCountEl.textContent = 'Aún sin votos';
+    } else {
+      pillEl.classList.remove('empty');
+      pillEl.classList.add('has-votes');
+      const filled = Math.round(agg.avg);
+      let starStr = '';
+      for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
+      const plural = agg.count === 1 ? 'voto' : 'votos';
+      pillStarsEl.textContent = starStr;
+      pillValueEl.textContent = agg.avg.toFixed(1);
+      pillCountEl.textContent = agg.count + ' ' + plural;
+    }
+
+    // ¿Cambió el agregado para este vino? Si sí, animar.
+    const key = String(idx);
+    const last = lastAggByWine[key];
+    const current = hasVotes ? `${agg.avg}|${agg.count}` : 'empty';
+    if (last !== undefined && last !== current) {
+      // Trigger animation: quitar y volver a poner clase para reiniciar
+      pillEl.classList.remove('bump');
+      // Forzar reflow
+      void pillEl.offsetWidth;
+      pillEl.classList.add('bump');
+      setTimeout(() => pillEl.classList.remove('bump'), 1100);
+    }
+    lastAggByWine[key] = current;
+  }
+}
+
+function loadMyVoteForCurrentWine() {
+  myVoteScore = null;
+  myVoteComment = '';
+  commentPendingText = null;
+
+  const commentEl = document.getElementById('vote-comment');
+  if (commentEl) commentEl.value = '';
+
+  if (!myUser || !myUser._votes) {
+    applyVoteToStars();
+    if (typeof updateCommentBtnState === 'function') updateCommentBtnState();
+    return;
+  }
+
+  const key = String(localIndex);
+  const v = myUser._votes[key];
+  if (v) {
+    myVoteScore = v.score || null;
+    myVoteComment = v.comment || '';
+  }
+
+  // Si hay un borrador local sin enviar para este vino, lo mostramos en lugar
+  // del comentario guardado. Así un refresco/SSE no interrumpe lo que se escribe.
+  const draft = getCommentDraft(localIndex);
+  const textToShow = draft !== null ? draft : myVoteComment;
+  if (commentEl) commentEl.value = textToShow;
+  commentPendingText = (draft !== null && draft !== myVoteComment) ? draft : null;
+
+  applyVoteToStars();
+  if (typeof updateCommentBtnState === 'function') updateCommentBtnState();
+}
+
+async function fetchMyVotes() {
+  if (!myUser) return;
+  try {
+    const r = await fetch('/api/me/' + encodeURIComponent(myUser.user_id), { cache: 'no-store' });
+    if (r.status === 404) {
+      // El user_id del localStorage ya no existe en server (reset). Limpiamos.
+      myUser = null;
+      localStorage.removeItem(STORAGE_KEY);
+      refreshVoteUI();
+      return;
+    }
+    if (!r.ok) return;
+    const data = await r.json();
+    myUser.name = data.name;
+    myUser.color = data.color;
+    myUser._votes = data.votes || {};
+    saveMyUser();
+    loadMyVoteForCurrentWine();
+    refreshVoteUI();
+  } catch (e) {
+    console.warn('fetchMyVotes error', e);
+  }
+}
+
+async function sendVote(scoreOrNull, commentOrNull, wineIndexOverride = null) {
+  if (!myUser) return false;
+  const wineIdx = (wineIndexOverride !== null && wineIndexOverride !== undefined)
+    ? wineIndexOverride
+    : localIndex;
+
+  // si scoreOrNull es null y comment es null, no hacemos nada
+  const body = { user_id: myUser.user_id };
+  if (scoreOrNull !== null) body.score = scoreOrNull;
+  if (commentOrNull !== null) body.comment = commentOrNull;
+
+  try {
+    const r = await fetch('/api/vote/' + wineIdx, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!r.ok) return false;
+
+    // Actualizar cache local de mi voto
+    myUser._votes = myUser._votes || {};
+    const key = String(wineIdx);
+    const existing = myUser._votes[key] || {};
+    if (scoreOrNull !== null) existing.score = scoreOrNull;
+    if (commentOrNull !== null) {
+      if (commentOrNull) existing.comment = commentOrNull;
+      else delete existing.comment;
+      clearCommentDraft(wineIdx);
+      if (wineIdx === localIndex) {
+        myVoteComment = commentOrNull;
+        commentPendingText = null;
+      }
+    }
+    myUser._votes[key] = existing;
+    saveMyUser();
+    if (typeof updateCommentBtnState === 'function') updateCommentBtnState();
+    return true;
+  } catch (e) {
+    console.warn('sendVote error', e);
+    return false;
+  }
+}
+
+async function deleteMyVote() {
+  if (!myUser) return;
+  try {
+    await fetch('/api/vote/' + localIndex + '?user_id=' + encodeURIComponent(myUser.user_id), {
+      method: 'DELETE',
+    });
+    if (myUser._votes && String(localIndex) in myUser._votes) {
+      delete myUser._votes[String(localIndex)];
+      saveMyUser();
+    }
+  } catch (e) {
+    console.warn('deleteMyVote error', e);
+  }
+}
+
+// Click en estrella
+document.body.addEventListener('click', (e) => {
+  const star = e.target.closest('.vote-star');
+  if (!star) return;
+  if (window.innerWidth > 1100) return;  // solo móvil
+  const newScore = parseInt(star.dataset.score, 10);
+  if (!myUser) {
+    // Pre-rellenamos visualmente para feedback inmediato
+    myVoteScore = newScore;
+    applyVoteToStars();
+    showOnboarding('first', () => {
+      sendVote(newScore, null);
+    });
+    return;
+  }
+  if (myVoteScore === newScore) {
+    // tap en estrella ya activa = quitar voto
+    myVoteScore = null;
+    applyVoteToStars();
+    deleteMyVote();
+  } else {
+    myVoteScore = newScore;
+    applyVoteToStars();
+    sendVote(newScore, null);
+  }
+});
+
+// Comentario: envío manual con botón. No hay autosave remoto mientras se escribe.
+// Guardamos un borrador local para que un refresco/SSE no corte la escritura.
+async function submitCurrentComment() {
+  const commentEl = document.getElementById('vote-comment');
+  const btnEl = document.getElementById('vote-comment-btn');
+  if (!commentEl) return;
+
+  const text = commentEl.value.slice(0, 140);
+
+  if (!myUser) {
+    // Si aún no se ha identificado, dejamos que termine el onboarding y luego enviamos.
+    showOnboarding('first', () => {
+      submitCurrentComment();
+    });
+    return;
+  }
+
+  const wineIdx = localIndex;
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.classList.remove('saved');
+    btnEl.textContent = 'Enviando…';
+  }
+
+  const ok = await sendVote(null, text, wineIdx);
+  if (ok) {
+    if (btnEl) {
+      btnEl.classList.add('saved');
+      btnEl.textContent = '✓ Guardado';
+      btnEl.disabled = true;
+    }
+  } else if (btnEl) {
+    btnEl.classList.remove('saved');
+    btnEl.textContent = 'Reintentar';
+    btnEl.disabled = false;
+  }
+}
+
+document.body.addEventListener('input', (e) => {
+  if (e.target.id !== 'vote-comment') return;
+  const text = e.target.value.slice(0, 140);
+  e.target.value = text;
+  commentPendingText = text;
+  if (myUser) setCommentDraft(localIndex, text);
+  updateCommentBtnState();
+});
+
+// Enter en el textarea → enviar manualmente (sin nueva línea)
+document.body.addEventListener('keydown', (e) => {
+  if (e.target.id !== 'vote-comment') return;
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submitCurrentComment();
+    e.target.blur();
+  }
+});
+
+// Click en botón "Enviar"
+document.body.addEventListener('click', (e) => {
+  if (e.target.id !== 'vote-comment-btn') return;
+  submitCurrentComment();
+});
+
+// Estado visual del botón: "✓ Guardado", "Enviar" o "Reintentar"
+function updateCommentBtnState() {
+  const btnEl = document.getElementById('vote-comment-btn');
+  const commentEl = document.getElementById('vote-comment');
+  if (!btnEl || !commentEl) return;
+
+  const current = commentEl.value;
+  const savedComment = (myUser && myUser._votes && myUser._votes[String(localIndex)])
+    ? (myUser._votes[String(localIndex)].comment || '')
+    : '';
+
+  if (current === savedComment) {
+    btnEl.classList.add('saved');
+    btnEl.textContent = '✓ Guardado';
+    btnEl.disabled = true;
+  } else {
+    btnEl.classList.remove('saved');
+    btnEl.textContent = myUser ? 'Enviar' : 'Identifícate y envía';
+    btnEl.disabled = false;
+  }
+}
+
+// Nota: no enviamos en blur, navegación, beforeunload ni pagehide.
+// Si el usuario no pulsa "Enviar", el texto queda como borrador local en ese móvil.
+
+// Botón "Editar perfil"
+document.body.addEventListener('click', (e) => {
+  if (e.target.id !== 'vote-edit-btn') return;
+  showOnboarding('edit');
+});
+
+// Cuando cambia el vino visualizado (localIndex), recargar mi voto
+const _origRenderCurrent = renderCurrent;
+window._afterRender = function() {
+  loadMyVoteForCurrentWine();
+  refreshVoteUI();
+};
+// Wrap renderCurrent para llamar al hook después
+renderCurrent = function() {
+  _origRenderCurrent();
+  if (window._afterRender) window._afterRender();
+};
+
+// Cargar voto inicial cuando llegue el primer payload
+const _origOnServerUpdate = onServerUpdate;
+onServerUpdate = function(payload) {
+  _origOnServerUpdate(payload);
+  applyAggregate();
+};
+
+// Al cargar la página, si ya hay user, sincronizar con server (validar y traer votos)
+if (myUser && myUser.user_id) {
+  fetchColors().then(() => {
+    refreshVoteUI();
+    fetchMyVotes();
+  });
+} else {
+  // Pre-cargar colores para que getColorHex funcione
+  fetchColors();
+}
+
+// Botón fullscreen — solo se puede activar con un gesto del usuario
+document.getElementById('fs-btn').addEventListener('click', () => {
+  const el = document.documentElement;
+  const req = el.requestFullscreen
+    || el.webkitRequestFullscreen
+    || el.mozRequestFullScreen
+    || el.msRequestFullscreen;
+  if (req) req.call(el);
+});
+
+// QR con la URL actual (root del sitio)
+try {
+  const qr = qrcode(0, 'M');
+  qr.addData(window.location.origin + '/');
+  qr.make();
+  document.getElementById('qr-img').innerHTML = qr.createSvgTag({ scalable: true, margin: 2 });
+} catch (err) {
+  console.warn('QR fallo:', err);
+  document.getElementById('qr-widget').style.display = 'none';
+}
+
+// ── Overlay de foto ampliada (móvil) ──
+const photoOverlay = document.getElementById('photo-overlay');
+const photoOverlayImg = photoOverlay.querySelector('img');
+const photoOverlayClose = photoOverlay.querySelector('.photo-overlay-close');
+
+function openPhotoOverlay(src) {
+  if (!src) return;
+  photoOverlayImg.src = src;
+  photoOverlay.classList.add('visible');
+}
+function closePhotoOverlay() {
+  photoOverlay.classList.remove('visible');
+  // limpiar src tras animación para no quedarse cacheado
+  setTimeout(() => { photoOverlayImg.src = ''; }, 200);
+}
+photoOverlay.addEventListener('click', (e) => {
+  // Click en el fondo o en la imagen → cerrar
+  if (e.target === photoOverlay || e.target === photoOverlayImg || e.target === photoOverlayClose) {
+    closePhotoOverlay();
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && photoOverlay.classList.contains('visible')) {
+    closePhotoOverlay();
+  }
+});
+
+// Tap en foto de vino actual o foto de tarjeta del resumen → abre overlay (solo en pantallas pequeñas)
+document.body.addEventListener('click', (e) => {
+  if (window.innerWidth > 900) return;
+  // Vista individual
+  const bottleArea = e.target.closest('#bottle-area');
+  if (bottleArea) {
+    const img = bottleArea.querySelector('img#bottle');
+    if (img && img.src && img.style.display !== 'none') {
+      openPhotoOverlay(img.src);
+    }
+    return;
+  }
+  // Resumen
+  const summaryPhoto = e.target.closest('.summary-card-photo');
+  if (summaryPhoto) {
+    const img = summaryPhoto.querySelector('img');
+    if (img && img.src) {
+      openPhotoOverlay(img.src);
+    }
+  }
+});
+</script>
+</body>
+</html>
