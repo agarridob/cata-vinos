@@ -3,7 +3,7 @@
 data/*
 !data/wines.example.json
 
-# ── Backups locales de plantillas ────────────────────────
+# ── Backups locales de plantillas ─────
 templates/*.bak-*
 templates/*.v[0-9]*
 
@@ -12,8 +12,10 @@ templates/*.v[0-9]*
 *.key
 *.crt
 .env
+!.env.example
+.venv/
 
-# ── Sistema / Python ─────────────────────────────────────
+# ── Sistema / Python ────────────
 .DS_Store
 __pycache__/
 *.pyc

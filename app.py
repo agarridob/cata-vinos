@@ -24,11 +24,23 @@ import statistics
 import threading
 import uuid
 from datetime import datetime
+from functools import wraps
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from flask import Flask, Response, jsonify, render_template, request
+from dotenv import load_dotenv
+from flask import Flask, Response, jsonify, render_template, request, session, redirect, url_for
+
+load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+
+if not app.secret_key:
+    raise RuntimeError("Falta SECRET_KEY en variables de entorno")
+
+if not ADMIN_PASSWORD:
+    raise RuntimeError("Falta ADMIN_PASSWORD en variables de entorno")
 
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR    = os.path.join(BASE_DIR, 'data')
@@ -546,6 +558,18 @@ def calculate_highlights(wines):
 
     return highlights
 
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if session.get('is_admin'):
+            return fn(*args, **kwargs)
+
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'unauthorized'}), 401
+
+        return redirect(url_for('login', next=request.path))
+
+    return wrapper
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Rutas
@@ -554,8 +578,29 @@ def calculate_highlights(wines):
 def tv():
     return render_template('tv.html')
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+
+        if password == ADMIN_PASSWORD:
+            session['is_admin'] = True
+            next_url = request.args.get('next') or url_for('control')
+            return redirect(next_url)
+
+        error = 'Contraseña incorrecta'
+
+    return render_template('login.html', error=error)
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route('/control')
+@admin_required
 def control():
     return render_template('control.html')
 
@@ -566,6 +611,7 @@ def api_state():
 
 
 @app.route('/api/next', methods=['POST'])
+@admin_required
 def api_next():
     with state_lock:
         # Permite avanzar desde -1 (bienvenida) hasta len(wines) (resumen)
@@ -577,6 +623,7 @@ def api_next():
 
 
 @app.route('/api/prev', methods=['POST'])
+@admin_required
 def api_prev():
     with state_lock:
         # Permite retroceder hasta -1, que representa la pantalla de bienvenida
@@ -588,6 +635,7 @@ def api_prev():
 
 
 @app.route('/api/goto/<int:idx>', methods=['POST'])
+@admin_required
 def api_goto(idx):
     with state_lock:
         # 0..len-1 son vinos; len es la pantalla de resumen
@@ -599,6 +647,7 @@ def api_goto(idx):
 
 
 @app.route('/api/reload', methods=['POST'])
+@admin_required
 def api_reload():
     """Recarga wines.json sin reiniciar el servicio."""
     session_name, wines, wifi = load_wines()
@@ -701,6 +750,7 @@ def api_me_update(user_id):
     return jsonify({'user_id': user_id, **user})
 
 @app.route('/api/me/<user_id>', methods=['DELETE'])
+@admin_required
 def api_me_delete(user_id):
     """Admin: expulsa a un invitado — borra su usuario y TODOS sus votos.
     Su navegador lo detectará (deja de estar en users_public y el GET da 404)
@@ -795,6 +845,7 @@ def api_votes_summary():
 
 
 @app.route('/api/votes/clear', methods=['POST'])
+@admin_required
 def api_votes_clear():
     """Borra todos los votos pero mantiene los usuarios."""
     with votes_lock:
@@ -822,6 +873,7 @@ def _safe_archive_name(name):
 
 
 @app.route('/api/votes/archive', methods=['POST'])
+@admin_required
 def api_votes_archive():
     """Archiva la sesión actual (wines + users + votes) y resetea todo."""
     data = request.get_json(silent=True) or {}
@@ -883,6 +935,7 @@ def api_votes_archive():
 
 
 @app.route('/api/votes/wipe', methods=['POST'])
+@admin_required
 def api_votes_wipe():
     """Borra TODO (usuarios + votos + state) sin archivar — modo pruebas."""
     with votes_lock:
@@ -897,6 +950,7 @@ def api_votes_wipe():
 
 
 @app.route('/api/welcome', methods=['POST'])
+@admin_required
 def api_welcome():
     """Vuelve a la pantalla de bienvenida (idx = -1) sin tocar nada más."""
     with state_lock:

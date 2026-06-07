@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acceso anfitrión · In Vino Veritas</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 100%);
+      color: #3a2418;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .card {
+      width: min(92vw, 380px);
+      background: rgba(255,255,255,0.55);
+      border: 1px solid #c8a878;
+      border-radius: 10px;
+      padding: 28px 24px;
+      box-shadow: 0 12px 35px rgba(80, 40, 20, 0.14);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      color: #6e0f2a;
+      font-size: 24px;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin: 0 0 22px;
+      color: #8a5a2a;
+      font-size: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #8a5a2a;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #c8a878;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.75);
+      font-size: 16px;
+      color: #3a2418;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px 16px;
+      border: 0;
+      border-radius: 6px;
+      background: #a8771a;
+      color: #f5ecd5;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+    }
+
+    .error {
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border: 1px solid #c0392b;
+      background: rgba(192, 57, 43, 0.12);
+      color: #6b1f15;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <form class="card" method="post">
+    <h1>Acceso anfitrión</h1>
+    <p>Introduce la contraseña para controlar la cata.</p>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" autofocus required>
+
+    <button type="submit">Entrar</button>
+  </form>
+</body>
+</html>
