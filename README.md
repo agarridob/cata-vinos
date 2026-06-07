@@ -534,7 +534,7 @@ Si se expone a Internet, conviene revisar:
 
 Ideas para futuras mejoras:
 
-- Sacar también el JavaScript a `static/js/tv.js`.
+- ~~Sacar también el JavaScript a `static/js/tv.js`.~~
 - Añadir autenticación para el panel de control.
 - Exportar resultados de la cata a CSV o JSON.
 - Añadir modo histórico de sesiones.
