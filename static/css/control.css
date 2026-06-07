@@ -1,0 +1,529 @@
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 100%);
+    color: #3a2418;
+    font-family: 'Montserrat', -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: 20px 16px 32px;
+    user-select: none;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #c8a878;
+  }
+  .header h1 {
+    color: #6e0f2a;
+    font-size: 18px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    font-style: italic;
+    font-weight: 600;
+  }
+  .current-card {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid #c8a878;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .current-label {
+    font-size: 10px;
+    color: #8a5a2a;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .current-name {
+    font-size: 22px;
+    line-height: 1.2;
+    color: #2a1812;
+    margin-bottom: 4px;
+    word-wrap: break-word;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .current-winery {
+    font-size: 12px;
+    color: #6e0f2a;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+  }
+  .current-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .current-meta-system {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #8a5a2a;
+    font-weight: 600;
+  }
+  .current-meta-score {
+    font-size: 20px;
+    font-weight: 700;
+    color: #a8771a;
+    letter-spacing: -0.3px;
+  }
+  .current-counter {
+    font-size: 11px;
+    color: #8a5a2a;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .btn {
+    background: rgba(168, 119, 26, 0.10);
+    border: 1px solid #a8771a;
+    color: #a8771a;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 22px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: inherit;
+    transition: transform 0.1s, background 0.15s;
+  }
+  .btn:active {
+    background: rgba(168, 119, 26, 0.25);
+    transform: scale(0.97);
+  }
+  .btn:disabled {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .list-title {
+    font-size: 11px;
+    color: #8a5a2a;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-left: 4px;
+    font-weight: 600;
+  }
+  .wine-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .wine-item {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid #d8c094;
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.1s;
+  }
+  .wine-item:active { transform: scale(0.98); }
+  .wine-item.active {
+    border-color: #a8771a;
+    background: rgba(168, 119, 26, 0.12);
+  }
+  .wine-item.done { opacity: 0.45; }
+  .wine-num {
+    font-size: 18px;
+    color: #8a5a2a;
+    width: 26px;
+    text-align: center;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .wine-item.active .wine-num { color: #a8771a; }
+  .wine-info { flex: 1; min-width: 0; }
+  .wine-item-name {
+    font-size: 15px;
+    color: #2a1812;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .wine-item-winery {
+    font-size: 11px;
+    color: #8a5a2a;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .wine-item.summary-item {
+    border-color: #a8771a;
+    background: rgba(168, 119, 26, 0.06);
+  }
+  .wine-item.summary-item.active {
+    background: rgba(168, 119, 26, 0.18);
+  }
+  .wine-item.summary-item .wine-num {
+    color: #a8771a;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 12px;
+  }
+  .footer button {
+    background: none;
+    border: none;
+    color: #8a5a2a;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 8px 16px;
+  }
+  .footer button:active { color: #6e0f2a; }
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8a5a2a;
+    font-style: italic;
+  }
+
+  /* ─── Sección de administración ─── */
+  .admin-section {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px dashed #c8a878;
+  }
+  .admin-test-section {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px dashed #b894b0;
+  }
+  .admin-title {
+    font-size: 11px;
+    color: #8a5a2a;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-left: 4px;
+    font-weight: 600;
+  }
+  .admin-test-title {
+    color: #7a3a6e;
+  }
+  .admin-btn-test {
+    border-color: #7a3a6e !important;
+    color: #7a3a6e !important;
+    background: rgba(122, 58, 110, 0.05);
+  }
+  .admin-btn-test:active {
+    background: rgba(122, 58, 110, 0.15);
+  }
+  .admin-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid;
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .admin-btn:active { transform: scale(0.98); }
+  .admin-btn-warn {
+    border-color: #b8841a;
+    color: #8a5a2a;
+  }
+  .admin-btn-warn:active { background: rgba(184, 132, 26, 0.10); }
+  .admin-btn-danger {
+    border-color: #a02818;
+    color: #6e0f2a;
+  }
+  .admin-btn-danger:active { background: rgba(160, 40, 24, 0.10); }
+  .admin-btn-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .admin-btn-sub {
+    font-size: 11px;
+    font-weight: 400;
+    color: #8a5a2a;
+    text-transform: none;
+    letter-spacing: 0.3px;
+  }
+
+  /* ─── Modal de archivado ─── */
+  .archive-modal {
+    position: fixed; inset: 0;
+    background: rgba(20, 12, 8, 0.55);
+    z-index: 4000; display: none;
+    align-items: center; justify-content: center;
+    padding: 24px 14px;
+    backdrop-filter: blur(2px);
+  }
+  .archive-modal.visible { display: flex; }
+  .archive-modal-card {
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 100%);
+    border: 1px solid #c8a878;
+    border-radius: 10px;
+    padding: 20px 18px;
+    width: 100%; max-width: 360px;
+  }
+  .archive-modal-title {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #6e0f2a;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .archive-modal-text {
+    font-size: 13px;
+    color: #5a3a20;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .archive-modal-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #c8a878;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.5);
+    font-family: inherit;
+    font-size: 13px;
+    color: #3a2418;
+    margin-bottom: 14px;
+    box-sizing: border-box;
+  }
+  .archive-modal-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .archive-modal-btn {
+    flex: 1;
+    padding: 11px;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .archive-modal-btn-cancel {
+    background: transparent;
+    border: 1px solid #c8a878;
+    color: #8a5a2a;
+  }
+  .archive-modal-btn-confirm {
+    background: #6e0f2a;
+    color: #f5ecd5;
+  }
+  .archive-modal-btn-confirm:disabled {
+    background: #c8a878;
+    cursor: not-allowed;
+  }
+  .archive-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 16px;
+    right: 16px;
+    background: #2d7a3e;
+    color: #f5ecd5;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 5000;
+    display: none;
+    text-align: center;
+  }
+  .archive-toast.visible { display: block; }
+  .archive-toast.error { background: #a02818; }
+
+  /* Botón "Empezar la cata" — destacado durante la bienvenida */
+  .btn-primary-start {
+    background: #6e0f2a;
+    color: #f5ecd5;
+    border-color: #6e0f2a;
+  }
+  .btn-primary-start:active {
+    background: #5a0c22;
+  }
+
+  /* ─── Panel de invitados (expulsar) ─── */
+  .user-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .user-empty { color: #8a5a2a; font-size: 13px; text-align: center; padding: 10px 0; opacity: 0.8; }
+  .user-row {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(138, 90, 42, 0.25);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .user-dot {
+    width: 20px; height: 20px; border-radius: 50%;
+    flex-shrink: 0; border: 1px solid rgba(0, 0, 0, 0.15);
+  }
+  .user-name { flex: 1; font-size: 15px; font-weight: 500; color: #2a1812; }
+  .user-del {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
+    border: 1px solid #a02818; background: transparent; color: #a02818;
+    font-size: 16px; font-weight: 700; cursor: pointer; line-height: 1;
+  }
+  .user-del:active { background: #a02818; color: #f5ecd5; }
+
+  /* ─── Header + logout ─── */
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .header-title-wrap { text-align: left; min-width: 0; }
+  .header-kicker {
+    font-size: 10px;
+    color: #8a5a2a;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .logout-form { margin: 0; flex-shrink: 0; }
+  .logout-btn {
+    border: 1px solid #6e0f2a;
+    background: rgba(110, 15, 42, 0.08);
+    color: #6e0f2a;
+    border-radius: 999px;
+    padding: 9px 13px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .logout-btn:active { transform: scale(0.97); background: rgba(110, 15, 42, 0.16); }
+
+  /* ─── Editor visual de vinos ─── */
+  .editor-section {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px dashed #c8a878;
+  }
+  .editor-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .editor-actions .admin-btn { margin-bottom: 0; }
+  .editor-actions .wide { grid-column: 1 / -1; }
+  .editor-session {
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(200, 168, 120, 0.8);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .editor-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: #8a5a2a;
+    font-weight: 700;
+  }
+  .editor-input,
+  .editor-textarea {
+    width: 100%;
+    border: 1px solid #c8a878;
+    background: rgba(255, 255, 255, 0.62);
+    color: #3a2418;
+    border-radius: 7px;
+    padding: 10px 11px;
+    font-family: inherit;
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .editor-textarea { min-height: 72px; resize: vertical; }
+  .editor-status {
+    min-height: 18px;
+    margin: 8px 2px 10px;
+    font-size: 12px;
+    color: #6e0f2a;
+    font-weight: 600;
+  }
+  .editor-status.error { color: #a02818; }
+  .wine-editor-list { display: flex; flex-direction: column; gap: 10px; }
+  .wine-editor-card {
+    background: rgba(255, 255, 255, 0.52);
+    border: 1px solid #d8c094;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .wine-editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .wine-editor-title {
+    min-width: 0;
+    color: #2a1812;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .wine-editor-actions {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .mini-btn {
+    border: 1px solid #c8a878;
+    background: rgba(168, 119, 26, 0.08);
+    color: #8a5a2a;
+    border-radius: 7px;
+    padding: 7px 8px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .mini-btn.danger { border-color: #a02818; color: #a02818; background: rgba(160, 40, 24, 0.05); }
+  .wine-editor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  .wine-editor-grid .full { grid-column: 1 / -1; }
+  @media (max-width: 520px) {
+    .header-inner { align-items: flex-start; }
+    .header h1 { font-size: 16px; letter-spacing: 3.5px; }
+    .logout-btn { padding: 8px 10px; font-size: 10px; }
+    .wine-editor-grid { grid-template-columns: 1fr; }
+    .wine-editor-grid .full { grid-column: auto; }
+  }

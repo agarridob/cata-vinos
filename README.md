@@ -1,15 +1,16 @@
 # 🍷 Cata de Vinos — In Vino Veritas
 
-Webapp en **Flask** para organizar una cata de vinos con pantalla principal tipo TV, control desde móvil/portátil y sistema de votación en tiempo real.
+Webapp en **Flask** para organizar una cata de vinos con pantalla principal tipo TV, panel de control para el anfitrión, edición visual de la carta y sistema de votación en tiempo real.
 
 La app está pensada para una dinámica de cata compartida:
 
 - La pantalla grande muestra el vino actual, ficha, foto, mapa de origen y votos agregados.
 - El anfitrión controla la cata desde `/control`.
+- El panel de control está protegido con autenticación.
 - Los invitados entran desde el móvil escaneando un QR.
 - Cada invitado puede identificarse con nombre y color, votar vinos y dejar comentarios.
 - La pantalla se actualiza en directo mediante **Server-Sent Events**.
-- El panel de control está protegido con autenticación de anfitrión.
+- La carta de vinos puede editarse visualmente desde el panel de control.
 
 ---
 
@@ -56,8 +57,49 @@ El panel está protegido por login. Permite al anfitrión:
 - Saltar a un vino concreto.
 - Recargar `wines.json` sin reiniciar la app.
 - Volver a la pantalla de bienvenida.
-- Gestionar usuarios y votos.
-- Archivar o limpiar resultados de la sesión.
+- Gestionar invitados.
+- Limpiar votos.
+- Archivar sesión y reiniciar.
+- Borrar todo en modo pruebas.
+- Editar visualmente la carta de vinos.
+
+---
+
+### Editor visual de vinos
+
+Desde `/control`, el anfitrión puede cargar y editar visualmente el contenido de:
+
+```text
+data/wines.json
+```
+
+El editor permite:
+
+- Cargar la carta actual.
+- Editar nombre de sesión.
+- Editar los campos principales de cada vino.
+- Añadir vinos nuevos.
+- Duplicar vinos existentes.
+- Eliminar vinos.
+- Reordenar vinos.
+- Guardar cambios en `wines.json`.
+- Refrescar automáticamente la pantalla TV tras guardar.
+
+Campos editables por vino:
+
+- Nombre.
+- Bodega.
+- Añada.
+- D.O.
+- Uva.
+- Región.
+- Rating.
+- Foto.
+- Latitud.
+- Longitud.
+- Curiosidad.
+
+Al guardar desde el editor, el backend valida mínimamente los datos, sobrescribe `data/wines.json`, recarga el estado de la app y emite una actualización a las pantallas conectadas.
 
 ---
 
@@ -135,10 +177,10 @@ static/maps/maps_data.json
 
 Actualmente incluye mapas regionales para:
 
-- Iberia
-- Francia
-- Italia
-- Alemania
+- Iberia.
+- Francia.
+- Italia.
+- Alemania.
 
 ---
 
@@ -153,15 +195,19 @@ cata-vinos/
 ├── .env.example
 ├── data/
 │   └── wines.example.json
+├── deploy/
+│   └── cata-vinos.service.example
 ├── templates/
 │   ├── tv.html
 │   ├── control.html
 │   └── login.html
 ├── static/
 │   ├── css/
-│   │   └── tv.css
+│   │   ├── tv.css
+│   │   └── control.css
 │   ├── js/
-│   │   └── tv.js
+│   │   ├── tv.js
+│   │   └── control.js
 │   ├── maps/
 │   │   └── maps_data.json
 │   └── photos/
@@ -176,6 +222,7 @@ Archivos locales no versionados:
 data/wines.json
 data/_state.json
 data/votes.json
+data/wines.backup-*.json
 .venv/
 ```
 
@@ -417,21 +464,28 @@ Cada mapa contiene:
 
 ## 🎨 Frontend estático
 
-La pantalla TV se ha separado en archivos estáticos:
+Las vistas principales usan HTML limpio y recursos estáticos separados:
 
 ```text
 templates/tv.html
 static/css/tv.css
 static/js/tv.js
+
+
+templates/control.html
+static/css/control.css
+static/js/control.js
+
 static/maps/maps_data.json
 ```
 
-Esto mantiene el HTML más limpio y permite al navegador cachear CSS, JS y datos de mapas.
+Esto mantiene las plantillas más legibles y permite al navegador cachear CSS, JS y datos de mapas.
 
 Para evitar caché durante desarrollo, se puede versionar el JS/CSS en la plantilla:
 
 ```html
-<script src="{{ url_for('static', filename='js/tv.js') }}?v=1.0.11"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=1.0.12">
+<script src="{{ url_for('static', filename='js/control.js') }}?v=1.0.12"></script>
 ```
 
 ---
@@ -479,6 +533,17 @@ POST /api/reload
 Recarga `data/wines.json` sin reiniciar el servidor.
 
 Protegido: requiere autenticación de anfitrión.
+
+### Configuración editable de vinos
+
+```http
+GET /api/wines-config
+POST /api/wines-config
+```
+
+Endpoints usados por el editor visual del panel `/control`.
+
+Protegidos: requieren autenticación de anfitrión.
 
 ### Volver a bienvenida
 
@@ -578,7 +643,7 @@ Protegido: requiere autenticación de anfitrión.
 
 ## 🧪 Flujo típico de uso
 
-1. Edita `data/wines.json` con los vinos de la cata.
+1. Edita `data/wines.json` manualmente o desde el editor visual de `/control`.
 2. Añade fotos en `static/photos/`.
 3. Arranca la app.
 4. Abre `/` en la pantalla grande.
@@ -589,6 +654,7 @@ Protegido: requiere autenticación de anfitrión.
 9. El anfitrión avanza la cata.
 10. Los invitados votan y comentan desde el móvil.
 11. Al final, se muestra el resumen.
+12. Opcionalmente, archiva la sesión desde `/control`.
 
 ---
 
@@ -659,7 +725,13 @@ chmod 600 /opt/cata-vinos/.env
 
 ### 2. Configuración systemd
 
-Archivo:
+El repo incluye una plantilla en:
+
+```text
+deploy/cata-vinos.service.example
+```
+
+El servicio real debe vivir en:
 
 ```text
 /etc/systemd/system/cata-vinos.service
@@ -734,6 +806,7 @@ Medidas actuales:
 - Endpoints administrativos protegidos con sesión de anfitrión.
 - Secretos fuera del código mediante `.env`.
 - `.env`, `.venv/`, certificados y estado en vivo ignorados por Git.
+- Servicio systemd real fuera del repo; el repo solo incluye una plantilla de despliegue.
 
 Si se expone a Internet, conviene revisar adicionalmente:
 
@@ -788,7 +861,6 @@ Ideas para futuras mejoras:
 - Añadir rate limiting al login.
 - Exportar resultados de la cata a CSV o JSON.
 - Añadir modo histórico de sesiones.
-- Añadir edición visual de vinos desde `/control`.
 - Mejorar lazy-loading de mapas por región.
 - Añadir soporte para más países.
 - Añadir capturas al README.
@@ -806,4 +878,4 @@ Consulta el archivo [`LICENSE`](LICENSE) para más detalles.
 
 ## Autor
 
-Proyecto personal de [agarridob](https://github.com/agarridob) para organizar catas de vino con pantalla compartida, control móvil y votación en directo.
+Proyecto personal de [agarridob](https://github.com/agarridob) para organizar catas de vino con pantalla compartida, control móvil, edición visual de carta y votación en directo.
