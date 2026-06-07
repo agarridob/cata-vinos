@@ -1788,7 +1788,7 @@
     <path d="M7 21H3v-4"></path>
   </svg>
 </button>
-<div id="version-tag">v1.0.6</div>
+<div id="version-tag">v1.0.7</div>
 
 <svg id="bottle-fallback" style="display:none;" viewBox="0 0 100 280" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -2585,6 +2585,18 @@ function onServerUpdate(payload) {
     : null;
 
   serverState = payload;
+
+  // ── Detección de expulsión en vivo ──
+  // Si el admin me ha borrado desde el control, el servidor deja de incluirme
+  // en users_public. Lo detectamos aquí (llega por el SSE) y forzamos el
+  // re-registro sin que el invitado tenga que recargar el móvil.
+  if (myUser && payload.users_public && !payload.users_public[myUser.user_id]) {
+    myUser = null;
+    localStorage.removeItem(STORAGE_KEY);
+    refreshVoteUI();
+    showOnboarding('first');
+  }
+
   const serverIdx = payload.is_summary ? payload.total : payload.index;
 
   if (!initialized) {

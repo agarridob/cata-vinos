@@ -700,6 +700,21 @@ def api_me_update(user_id):
     broadcast_update()
     return jsonify({'user_id': user_id, **user})
 
+@app.route('/api/me/<user_id>', methods=['DELETE'])
+def api_me_delete(user_id):
+    """Admin: expulsa a un invitado — borra su usuario y TODOS sus votos.
+    Su navegador lo detectará (deja de estar en users_public y el GET da 404)
+    y se le forzará a registrarse de nuevo."""
+    with votes_lock:
+        existed = user_id in votes_state['users']
+        votes_state['users'].pop(user_id, None)
+        votes_state['votes'].pop(user_id, None)   # nos llevamos sus votos también
+        if existed:
+            save_votes()
+    if not existed:
+        return jsonify({'error': 'not_found'}), 404
+    broadcast_update()
+    return jsonify({'status': 'ok', 'deleted': user_id})
 
 @app.route('/api/vote/<int:wine_idx>', methods=['POST'])
 def api_vote(wine_idx):

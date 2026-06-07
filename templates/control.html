@@ -382,6 +382,27 @@
   .btn-primary-start:active {
     background: #5a0c22;
   }
+
+  /* ─── Panel de invitados (expulsar) ─── */
+  .user-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .user-empty { color: #8a5a2a; font-size: 13px; text-align: center; padding: 10px 0; opacity: 0.8; }
+  .user-row {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(138, 90, 42, 0.25);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .user-dot {
+    width: 20px; height: 20px; border-radius: 50%;
+    flex-shrink: 0; border: 1px solid rgba(0, 0, 0, 0.15);
+  }
+  .user-name { flex: 1; font-size: 15px; font-weight: 500; color: #2a1812; }
+  .user-del {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
+    border: 1px solid #a02818; background: transparent; color: #a02818;
+    font-size: 16px; font-weight: 700; cursor: pointer; line-height: 1;
+  }
+  .user-del:active { background: #a02818; color: #f5ecd5; }
 </style>
 </head>
 <body>
@@ -413,6 +434,18 @@
 <script>
 let state = null;
 let busy = false;
+let colorMap = {};   // key -> hex, para pintar las bolitas de color de los invitados
+
+async function fetchColorMap() {
+  try {
+    const r = await fetch('/api/colors', { cache: 'no-store' });
+    const colors = await r.json();
+    colorMap = {};
+    colors.forEach(c => { colorMap[c.key] = c.hex; });
+  } catch (e) {
+    // sin mapa, las bolitas saldrán en gris por defecto
+  }
+}
 
 async function fetchState() {
   try {
@@ -562,6 +595,11 @@ function render() {
       </button>
     </div>
 
+    <div class="admin-section">
+      <div class="admin-title">Invitados (<span id="users-count">0</span>)</div>
+      <div class="user-list" id="user-list"></div>
+    </div>
+
     <div class="admin-section admin-test-section">
       <div class="admin-title admin-test-title">Pruebas</div>
       <button class="admin-btn admin-btn-test" id="btn-wipe">
@@ -610,6 +648,54 @@ function render() {
   `;
   summary.onclick = () => gotoIdx(state.total);
   list.appendChild(summary);
+
+  renderUsers();
+}
+
+// ──────────────────────────────────────────
+// Panel de invitados: listar y expulsar
+// ──────────────────────────────────────────
+function renderUsers() {
+  const wrap = document.getElementById('user-list');
+  const countEl = document.getElementById('users-count');
+  if (!wrap) return;
+  const users = (state && state.users_public) ? state.users_public : {};
+  const entries = Object.entries(users);
+  if (countEl) countEl.textContent = entries.length;
+  wrap.innerHTML = '';
+  if (!entries.length) {
+    wrap.innerHTML = '<div class="user-empty">Aún no hay invitados registrados.</div>';
+    return;
+  }
+  entries.forEach(([uid, u]) => {
+    const hex = colorMap[u.color] || '#95A5A6';
+    const row = document.createElement('div');
+    row.className = 'user-row';
+    row.innerHTML = `
+      <span class="user-dot" style="background:${hex}"></span>
+      <span class="user-name">${escapeHtml(u.name || '—')}</span>
+      <button class="user-del" title="Expulsar">✕</button>`;
+    row.querySelector('.user-del').onclick = () => handleDeleteUser(uid, u.name || '');
+    wrap.appendChild(row);
+  });
+}
+
+async function handleDeleteUser(uid, name) {
+  if (!confirm(`¿Expulsar a "${name || uid}"?\n\nSe borran su registro y todos sus votos. En su móvil se le forzará a registrarse de nuevo.`)) {
+    return;
+  }
+  try {
+    const r = await fetch('/api/me/' + encodeURIComponent(uid), { method: 'DELETE' });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) {
+      showToast(`Invitado expulsado: ${name || uid}`);
+      await fetchState();   // refresca la lista de inmediato
+    } else {
+      showToast(data.error || 'No se pudo expulsar', true);
+    }
+  } catch (e) {
+    showToast('Error de red', true);
+  }
 }
 
 function escapeHtml(s) {
@@ -723,6 +809,7 @@ archiveModal.onclick = (e) => {
   if (e.target === archiveModal) archiveModal.classList.remove('visible');
 };
 
+fetchColorMap();
 fetchState();
 setInterval(fetchState, 3000);
 </script>
