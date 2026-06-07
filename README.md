@@ -547,7 +547,9 @@ Ideas para futuras mejoras:
 
 ## Licencia
 
-Pendiente de definir.
+Este proyecto está licenciado bajo la **GNU General Public License v3.0**.
+
+Consulta el archivo [`LICENSE`](LICENSE) para más detalles.
 
 ---
 
