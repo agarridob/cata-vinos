@@ -1,16 +1,18 @@
 # 🍷 Cata de Vinos — In Vino Veritas
 
-Webapp en **Flask** para organizar una cata de vinos con pantalla principal tipo TV, panel de control para el anfitrión, edición visual de la carta y sistema de votación en tiempo real.
+Webapp en **Flask** para organizar una cata de vinos con pantalla principal tipo TV, panel de control para el anfitrión, edición visual de la carta, gestión de invitados y sistema de votación en tiempo real.
 
 La app está pensada para una dinámica de cata compartida:
 
 - La pantalla grande muestra el vino actual, ficha, foto, mapa de origen y votos agregados.
 - El anfitrión controla la cata desde `/control`.
 - El panel de control está protegido con autenticación.
+- El panel está organizado por pestañas: **Cata**, **Invitados**, **Carta** y **Admin**.
 - Los invitados entran desde el móvil escaneando un QR.
 - Cada invitado puede identificarse con nombre y color, votar vinos y dejar comentarios.
 - La pantalla se actualiza en directo mediante **Server-Sent Events**.
 - La carta de vinos puede editarse visualmente desde el panel de control.
+- La configuración WiFi mostrada en bienvenida puede gestionarse desde la pestaña Admin.
 
 ---
 
@@ -27,6 +29,7 @@ Ruta principal:
 Muestra:
 
 - Nombre de la sesión.
+- Pantalla de bienvenida con QR.
 - Vino actual.
 - Bodega.
 - Añada.
@@ -39,10 +42,11 @@ Muestra:
 - Mapa de origen.
 - Progreso de la cata.
 - Votos agregados en directo.
+- Resumen final con favoritos, medias y comentarios destacados.
 
 ---
 
-### Panel de control del anfitrión
+## 🎛️ Panel de control
 
 Ruta:
 
@@ -50,33 +54,60 @@ Ruta:
 /control
 ```
 
-El panel está protegido por login. Permite al anfitrión:
+El panel está protegido por login y organizado en pestañas.
 
-- Avanzar al siguiente vino.
-- Retroceder.
-- Saltar a un vino concreto.
-- Recargar `wines.json` sin reiniciar la app.
-- Volver a la pantalla de bienvenida.
-- Gestionar invitados.
-- Limpiar votos.
-- Archivar sesión y reiniciar.
-- Borrar todo en modo pruebas.
-- Editar visualmente la carta de vinos.
+```text
+Cata | Invitados | Carta | Admin
+```
 
 ---
 
-### Editor visual de vinos
+### Pestaña Cata
 
-Desde `/control`, el anfitrión puede cargar y editar visualmente el contenido de:
+Uso operativo durante la cata.
+
+Permite:
+
+- Ver el estado actual de la cata.
+- Avanzar al siguiente vino.
+- Retroceder al vino anterior.
+- Ir directamente a un vino de la carta.
+- Ir al resumen final.
+- Recargar `wines.json`.
+- Volver a la pantalla de bienvenida sin tocar votos ni invitados.
+
+Esta pestaña es la que normalmente se usa durante la sesión.
+
+---
+
+### Pestaña Invitados
+
+Gestión de participantes.
+
+Permite:
+
+- Ver invitados registrados.
+- Ver nombre y color de cada invitado.
+- Expulsar un invitado.
+
+Al expulsar un invitado, se elimina su usuario y sus votos. Su móvil detectará que ya no existe y se le forzará a registrarse de nuevo.
+
+---
+
+### Pestaña Carta
+
+Editor visual de vinos.
+
+Permite cargar y editar visualmente el contenido de:
 
 ```text
 data/wines.json
 ```
 
-El editor permite:
+Acciones disponibles:
 
 - Cargar la carta actual.
-- Editar nombre de sesión.
+- Editar el nombre de la sesión.
 - Editar los campos principales de cada vino.
 - Añadir vinos nuevos.
 - Duplicar vinos existentes.
@@ -99,11 +130,44 @@ Campos editables por vino:
 - Longitud.
 - Curiosidad.
 
-Al guardar desde el editor, el backend valida mínimamente los datos, sobrescribe `data/wines.json`, recarga el estado de la app y emite una actualización a las pantallas conectadas.
+El editor vive fuera del bloque que se refresca cada pocos segundos, para que no pierda foco ni restaure campos mientras se escribe.
 
 ---
 
-### Autenticación del panel de control
+### Pestaña Admin
+
+Configuración y acciones sensibles.
+
+Incluye:
+
+- Configuración WiFi de la pantalla de bienvenida.
+- Limpieza de votos.
+- Archivado de sesión.
+- Reinicio completo de pruebas.
+
+#### WiFi de bienvenida
+
+Permite editar el bloque `wifi` de `data/wines.json`:
+
+```json
+"wifi": {
+  "show": true,
+  "ssid": "NombreWifi",
+  "password": "ContraseñaWifi"
+}
+```
+
+Campos disponibles:
+
+- `show`: mostrar u ocultar QR WiFi en bienvenida.
+- `ssid`: nombre de la red.
+- `password`: contraseña de la red.
+
+Al guardar la configuración WiFi, se actualiza `wines.json` y se refresca el estado de la app.
+
+---
+
+## 🔐 Autenticación
 
 La app usa sesión de Flask y variables de entorno para proteger el panel de anfitrión.
 
@@ -126,22 +190,11 @@ Estas variables **no deben subirse a GitHub**. Se configuran en un archivo `.env
 
 ---
 
-### Pantalla de bienvenida
-
-Antes de empezar la cata, la app puede mostrar una pantalla de bienvenida con:
-
-- Nombre de la sesión.
-- QR para entrar desde el móvil.
-- QR opcional para WiFi.
-- Lista de invitados registrados.
-- Estado de conexión de participantes.
-
----
-
-### Votación desde móvil
+## 📱 Votación desde móvil
 
 Los invitados pueden:
 
+- Entrar escaneando el QR de la pantalla.
 - Elegir un color identificativo.
 - Indicar nombre opcional.
 - Votar cada vino de 1 a 5 estrellas.
@@ -151,7 +204,7 @@ Los invitados pueden:
 
 ---
 
-### Resumen final
+## 🧾 Resumen final
 
 Al terminar la cata, la app muestra una pantalla resumen con:
 
@@ -164,7 +217,7 @@ Al terminar la cata, la app muestra una pantalla resumen con:
 
 ---
 
-### Mapas
+## 🗺️ Mapas
 
 La app muestra mapas de origen:
 
@@ -326,7 +379,7 @@ o:
 http://localhost:5001/
 ```
 
-El panel de control está en:
+Panel de control:
 
 ```text
 http://localhost:5000/control
@@ -391,6 +444,8 @@ Ejemplo básico:
 
 | Campo | Descripción |
 |---|---|
+| `session` | Nombre de la sesión |
+| `wifi` | Configuración opcional de QR WiFi en bienvenida |
 | `name` | Nombre del vino |
 | `winery` | Bodega |
 | `vintage` | Añada |
@@ -471,7 +526,6 @@ templates/tv.html
 static/css/tv.css
 static/js/tv.js
 
-
 templates/control.html
 static/css/control.css
 static/js/control.js
@@ -484,8 +538,8 @@ Esto mantiene las plantillas más legibles y permite al navegador cachear CSS, J
 Para evitar caché durante desarrollo, se puede versionar el JS/CSS en la plantilla:
 
 ```html
-<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=1.0.12">
-<script src="{{ url_for('static', filename='js/control.js') }}?v=1.0.12"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=1.0.13">
+<script src="{{ url_for('static', filename='js/control.js') }}?v=1.0.13"></script>
 ```
 
 ---
@@ -541,7 +595,7 @@ GET /api/wines-config
 POST /api/wines-config
 ```
 
-Endpoints usados por el editor visual del panel `/control`.
+Endpoints usados por el editor visual de la pestaña **Carta** y por el bloque WiFi de la pestaña **Admin**.
 
 Protegidos: requieren autenticación de anfitrión.
 
@@ -643,18 +697,19 @@ Protegido: requiere autenticación de anfitrión.
 
 ## 🧪 Flujo típico de uso
 
-1. Edita `data/wines.json` manualmente o desde el editor visual de `/control`.
-2. Añade fotos en `static/photos/`.
-3. Arranca la app.
-4. Abre `/` en la pantalla grande.
-5. Abre `/control` en el dispositivo del anfitrión.
-6. Inicia sesión con la contraseña de anfitrión.
-7. Los invitados escanean el QR de la pantalla.
-8. Cada invitado se identifica con color y nombre.
-9. El anfitrión avanza la cata.
-10. Los invitados votan y comentan desde el móvil.
-11. Al final, se muestra el resumen.
-12. Opcionalmente, archiva la sesión desde `/control`.
+1. Edita `data/wines.json` manualmente o desde la pestaña **Carta** de `/control`.
+2. Configura WiFi desde la pestaña **Admin**, si quieres mostrar QR WiFi en bienvenida.
+3. Añade fotos en `static/photos/`.
+4. Arranca la app.
+5. Abre `/` en la pantalla grande.
+6. Abre `/control` en el dispositivo del anfitrión.
+7. Inicia sesión con la contraseña de anfitrión.
+8. Los invitados escanean el QR de la pantalla.
+9. Cada invitado se identifica con color y nombre.
+10. El anfitrión usa la pestaña **Cata** para avanzar la cata.
+11. Los invitados votan y comentan desde el móvil.
+12. Al final, se muestra el resumen.
+13. Opcionalmente, archiva la sesión desde **Admin**.
 
 ---
 
@@ -669,9 +724,9 @@ data/votes.json
 
 Estos archivos permiten conservar:
 
-- vino actual,
-- usuarios registrados,
-- votos,
+- vino actual.
+- usuarios registrados.
+- votos.
 - comentarios.
 
 No se versionan en Git.
