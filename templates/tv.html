@@ -2860,6 +2860,22 @@ setTimeout(connect, Math.random() * 1200);
 // ════════════════════════════════════════════════════════════════════════
 
 const STORAGE_KEY = 'cata_user';
+const CLIENT_ID_KEY = 'cata_client_id';
+
+// Id estable del dispositivo, generado UNA vez y persistido ANTES del primer
+// POST. Hace idempotente el alta: si la petición se reintenta, el servidor
+// reconoce el mismo id y devuelve el usuario ya creado, sin duplicar.
+function getClientId() {
+  let cid = null;
+  try { cid = localStorage.getItem(CLIENT_ID_KEY); } catch (e) {}
+  if (!cid) {
+    cid = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'cid-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    try { localStorage.setItem(CLIENT_ID_KEY, cid); } catch (e) {}
+  }
+  return cid;
+}
 
 // Identidad local: { user_id, name, color }
 let myUser = null;
@@ -2971,9 +2987,13 @@ async function showOnboarding(mode, onDone) {
   } else {
     eyebrowEl.textContent = 'Bienvenido a';
     introEl.innerHTML = 'Identifícate para votar los vinos.<br>Tu <strong>color</strong> es el marcador de tu copa.';
-    // Por defecto un color libre cualquiera ya pre-seleccionado
-    const free = onboardingColors.find(c => !c.taken);
-    onboardingSelectedColor = free ? free.key : null;
+    // Por defecto, un color libre AL AZAR. Pre-seleccionar el primero libre
+    // hacía que, al empezar todos a la vez, casi todos cayeran en el de arriba
+    // de la lista (rojo) y colisionaran. Repartir el azar reduce los choques.
+    const freeColors = onboardingColors.filter(c => !c.taken);
+    onboardingSelectedColor = freeColors.length
+        ? freeColors[Math.floor(Math.random() * freeColors.length)].key
+        : null;
     nameInputEl.value = '';
     submitBtnEl.textContent = 'Empezar a votar';
     cancelBtnEl.style.display = 'none';
@@ -3030,8 +3050,20 @@ submitBtnEl.addEventListener('click', async () => {
       const r = await fetchWithRetry('/api/me', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, color: onboardingSelectedColor }),
+        body: JSON.stringify({
+          user_id: getClientId(),          // ← idempotencia
+          name: name,
+          color: onboardingSelectedColor,
+        }),
       }, 3);
+      if (r.status === 409) {              // ← coherente con el PATCH
+        errorEl.textContent = 'Ese color lo cogió otro invitado. Elige otro.';
+        errorEl.classList.remove('hidden');
+        await fetchColors();
+        renderColorGrid();
+        submitBtnEl.disabled = false;
+        return;
+      }
       if (!r.ok) throw new Error('POST failed');
       const u = await r.json();
       myUser = { user_id: u.user_id, name: u.name, color: u.color };

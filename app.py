@@ -644,14 +644,22 @@ def api_me_create():
             user = votes_state['users'][incoming_user_id]
             return jsonify({'user_id': incoming_user_id, **user, 'is_new': False})
 
-        # Crear nuevo
-        user_id = str(uuid.uuid4())
+        # Crear nuevo. Si el cliente manda su propio user_id lo respetamos: así
+        # un reintento del mismo POST (red floja) cae en la rama "usuario
+        # existente" de arriba y es idempotente — nunca crea un duplicado.
+        user_id = incoming_user_id or str(uuid.uuid4())
         name = (data.get('name') or '').strip() or _pick_random_grape_name()
+
         requested_color = data.get('color')
-        if requested_color and requested_color not in _taken_colors():
+        if requested_color:
+            # Coherente con el PATCH: si el color lo tiene OTRO, devolvemos 409
+            # en vez de reasignar en silencio. El cliente reintenta con otro.
+            if requested_color in _taken_colors():
+                return jsonify({'error': 'color_taken'}), 409
             color = requested_color
         else:
             color = _pick_random_color()
+
         votes_state['users'][user_id] = {'name': name, 'color': color}
         save_votes()
 
