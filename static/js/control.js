@@ -1,6 +1,7 @@
 let state = null;
 let busy = false;
-let colorMap = {};   // key -> hex, para pintar las bolitas de color de los invitados
+let colorMap = {};
+let currentConfig = null;
 
 async function fetchColorMap() {
   try {
@@ -8,9 +9,7 @@ async function fetchColorMap() {
     const colors = await r.json();
     colorMap = {};
     colors.forEach(c => { colorMap[c.key] = c.hex; });
-  } catch (e) {
-    // sin mapa, las bolitas saldrán en gris por defecto
-  }
+  } catch (e) {}
 }
 
 async function fetchState() {
@@ -18,9 +17,9 @@ async function fetchState() {
     const r = await fetch('/api/state', { cache: 'no-store' });
     state = await r.json();
     render();
-  } catch (e) {
-    console.error(e);
-  }
+    renderUsers();
+    syncAdminButtons();
+  } catch (e) { console.error(e); }
 }
 
 async function go(action) {
@@ -29,12 +28,9 @@ async function go(action) {
   try {
     const r = await fetch(`/api/${action}`, { method: 'POST' });
     state = await r.json();
-    render();
-  } catch (e) {
-    console.error(e);
-  } finally {
-    busy = false;
-  }
+    render(); renderUsers(); syncAdminButtons();
+  } catch (e) { console.error(e); }
+  finally { busy = false; }
 }
 
 async function gotoIdx(i) {
@@ -43,12 +39,9 @@ async function gotoIdx(i) {
   try {
     const r = await fetch(`/api/goto/${i}`, { method: 'POST' });
     state = await r.json();
-    render();
-  } catch (e) {
-    console.error(e);
-  } finally {
-    busy = false;
-  }
+    render(); renderUsers(); syncAdminButtons();
+  } catch (e) { console.error(e); }
+  finally { busy = false; }
 }
 
 async function reload() {
@@ -57,14 +50,13 @@ async function reload() {
   try {
     await fetch('/api/reload', { method: 'POST' });
     await fetchState();
-  } finally {
-    busy = false;
-  }
+  } finally { busy = false; }
 }
 
 function render() {
   const content = document.getElementById('content');
-  if (!state || (state.total === 0)) {
+  if (!content) return;
+  if (!state || state.total === 0) {
     content.innerHTML = `
       <div class="empty">
         Sin vinos cargados.<br><br>
@@ -73,7 +65,6 @@ function render() {
     return;
   }
 
-  // ─── Card superior: vino actual o "Resumen" ───
   let cardHtml;
   if (state.is_welcome) {
     cardHtml = `
@@ -92,16 +83,13 @@ function render() {
         <div class="current-counter">Final de la velada</div>
       </div>`;
   } else {
-    // Meta (solo puntuación, precio queda oculto)
     let metaHtml = '';
     const hasRating = state.wine.rating && String(state.wine.rating).trim();
     if (hasRating) {
       const m = String(state.wine.rating).match(/^(\S+)\s+(.+)$/);
-      if (m) {
-        metaHtml = `<div class="current-meta"><span class="current-meta-system">${escapeHtml(m[1])}</span><span class="current-meta-score">${escapeHtml(m[2])}</span></div>`;
-      } else {
-        metaHtml = `<div class="current-meta"><span class="current-meta-score">${escapeHtml(state.wine.rating)}</span></div>`;
-      }
+      metaHtml = m
+        ? `<div class="current-meta"><span class="current-meta-system">${escapeHtml(m[1])}</span><span class="current-meta-score">${escapeHtml(m[2])}</span></div>`
+        : `<div class="current-meta"><span class="current-meta-score">${escapeHtml(state.wine.rating)}</span></div>`;
     }
     cardHtml = `
       <div class="current-card">
@@ -113,95 +101,39 @@ function render() {
       </div>`;
   }
 
-  // ─── Botones prev/next ───
-  // En welcome: prev oculto, next = "Empezar la cata"
-  // Anterior: deshabilitado si estamos en el primer vino (idx==0), no se muestra en welcome
-  // Siguiente: deshabilitado si ya estamos en el resumen (idx == total)
-  let prevDisabled, nextDisabled, nextLabel, prevLabel;
-  if (state.is_welcome) {
-    prevDisabled = true;
-    nextDisabled = false;
-    prevLabel = '◀ Anterior';
-    nextLabel = '▶ Empezar la cata';
-  } else {
-    prevDisabled = state.index <= 0;
-    nextDisabled = state.index >= state.total;
-    prevLabel = '◀ Anterior';
-    nextLabel = (state.index === state.total - 1) ? 'Ir a resumen ▶' : 'Siguiente ▶';
-  }
+  const prevDisabled = state.is_welcome || state.index <= 0;
+  const nextDisabled = !state.is_welcome && state.index >= state.total;
+  const nextLabel = state.is_welcome ? '▶ Empezar la cata' : (state.index === state.total - 1 ? 'Ir a resumen ▶' : 'Siguiente ▶');
 
   content.innerHTML = `
     ${cardHtml}
-
     <div class="buttons">
-      <button class="btn" id="btn-prev" ${prevDisabled ? 'disabled' : ''}>${prevLabel}</button>
+      <button class="btn" id="btn-prev" ${prevDisabled ? 'disabled' : ''}>◀ Anterior</button>
       <button class="btn ${state.is_welcome ? 'btn-primary-start' : ''}" id="btn-next" ${nextDisabled ? 'disabled' : ''}>${nextLabel}</button>
     </div>
-
     <div class="list-title">Carta de la velada</div>
     <div class="wine-list" id="list"></div>
-
-    <div class="footer">
-      <button onclick="reload()">↻ Recargar wines.json</button>
-    </div>
-
-    <div class="admin-section">
-      <div class="admin-title">Administración</div>
-      <button class="admin-btn admin-btn-warn" id="btn-welcome-back" ${state.is_welcome ? 'disabled style="opacity:0.4"' : ''}>
-        <span class="admin-btn-label">Volver a la pantalla de bienvenida</span>
-        <span class="admin-btn-sub">Sin tocar votos ni invitados</span>
-      </button>
-      <button class="admin-btn admin-btn-warn" id="btn-clear-votes">
-        <span class="admin-btn-label">Limpiar votos</span>
-        <span class="admin-btn-sub">Borra los votos, mantiene los invitados</span>
-      </button>
-      <button class="admin-btn admin-btn-danger" id="btn-archive">
-        <span class="admin-btn-label">Archivar y reiniciar</span>
-        <span class="admin-btn-sub">Guarda copia y vuelve a bienvenida (votos + invitados)</span>
-      </button>
-    </div>
-
-    <div class="admin-section">
-      <div class="admin-title">Invitados (<span id="users-count">0</span>)</div>
-      <div class="user-list" id="user-list"></div>
-    </div>
-
-    <div class="admin-section admin-test-section">
-      <div class="admin-title admin-test-title">Pruebas</div>
-      <button class="admin-btn admin-btn-test" id="btn-wipe">
-        <span class="admin-btn-label">Borrar todo</span>
-        <span class="admin-btn-sub">Sin archivar nada. Como si no hubiera pasado nada.</span>
-      </button>
-    </div>
-  `;
+    <div class="footer"><button onclick="reload()">↻ Recargar wines.json</button></div>`;
 
   document.getElementById('btn-prev').onclick = () => go('prev');
   document.getElementById('btn-next').onclick = () => go('next');
-  document.getElementById('btn-welcome-back').onclick = handleWelcomeBack;
-  document.getElementById('btn-clear-votes').onclick = handleClearVotes;
-  document.getElementById('btn-archive').onclick = openArchiveModal;
-  document.getElementById('btn-wipe').onclick = handleWipe;
 
   const list = document.getElementById('list');
-
-  // Vinos uno por uno
   state.all_titles.forEach((w, i) => {
     const item = document.createElement('div');
     item.className = 'wine-item';
-    if (i === state.index)      item.classList.add('active');
-    else if (i < state.index)   item.classList.add('done');
+    if (!state.is_welcome && !state.is_summary && i === state.index) item.classList.add('active');
+    else if (!state.is_welcome && i < state.index) item.classList.add('done');
     item.innerHTML = `
       <div class="wine-num">${i + 1}</div>
       <div class="wine-info">
         <div class="wine-item-name">${escapeHtml(w.name || '—')}</div>
         <div class="wine-item-winery">${escapeHtml(w.winery || '—')}</div>
-      </div>
-    `;
+      </div>`;
     item.onclick = () => gotoIdx(i);
     list.appendChild(item);
   });
 
-  // Entrada extra "Resumen" al final
   const summary = document.createElement('div');
   summary.className = 'wine-item summary-item';
   if (state.is_summary) summary.classList.add('active');
@@ -210,20 +142,67 @@ function render() {
     <div class="wine-info">
       <div class="wine-item-name">Resumen</div>
       <div class="wine-item-winery">${state.total} vinos · final</div>
-    </div>
-  `;
+    </div>`;
   summary.onclick = () => gotoIdx(state.total);
   list.appendChild(summary);
-
-  renderUsers();
 }
 
+function syncAdminButtons() {
+  const welcomeBtn = document.getElementById('btn-welcome-back');
+  if (welcomeBtn && state) {
+    welcomeBtn.disabled = !!state.is_welcome;
+    welcomeBtn.style.opacity = state.is_welcome ? '0.4' : '';
+  }
+}
+
+// ──────────────────────────────────────────
+// Tabs
+// ──────────────────────────────────────────
+function setActiveTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
+  try { localStorage.setItem('control_active_tab', tab); } catch (e) {}
+  if (tab === 'admin' && !currentConfig) loadWifiConfig(false);
+}
+
+function bindTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => setActiveTab(btn.dataset.tab);
+  });
+  let saved = 'cata';
+  try { saved = localStorage.getItem('control_active_tab') || 'cata'; } catch (e) {}
+  setActiveTab(saved);
+}
+
+// ──────────────────────────────────────────
+// Wines config shared helper
+// ──────────────────────────────────────────
+async function fetchWinesConfig() {
+  const r = await fetch('/api/wines-config', { cache: 'no-store' });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  currentConfig = data;
+  return data;
+}
+
+async function saveWinesConfig(config) {
+  const r = await fetch('/api/wines-config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  currentConfig = config;
+  return data;
+}
 
 // ──────────────────────────────────────────
 // Editor visual de vinos
 // ──────────────────────────────────────────
 let winesEditorLoaded = false;
 let winesEditorData = { session: '', wifi: null, wines: [] };
+let wineEditorControlsBound = false;
 
 function setWinesEditorStatus(msg, isError = false) {
   const el = document.getElementById('wines-editor-status');
@@ -233,10 +212,7 @@ function setWinesEditorStatus(msg, isError = false) {
 }
 
 function emptyWine() {
-  return {
-    name: '', winery: '', vintage: '', do: '', grape: '', region: '',
-    rating: '', curiosity: '', photo: '', coords: ['', '']
-  };
+  return { name: '', winery: '', vintage: '', do: '', grape: '', region: '', rating: '', curiosity: '', photo: '', coords: ['', ''] };
 }
 
 function normalizeWineForEditor(w) {
@@ -245,10 +221,7 @@ function normalizeWineForEditor(w) {
     out[k] = w && w[k] != null ? String(w[k]) : '';
   });
   if (w && Array.isArray(w.coords) && w.coords.length === 2) {
-    out.coords = [
-      w.coords[0] != null ? String(w.coords[0]) : '',
-      w.coords[1] != null ? String(w.coords[1]) : '',
-    ];
+    out.coords = [w.coords[0] != null ? String(w.coords[0]) : '', w.coords[1] != null ? String(w.coords[1]) : ''];
   }
   return out;
 }
@@ -256,9 +229,7 @@ function normalizeWineForEditor(w) {
 async function loadWinesEditor() {
   setWinesEditorStatus('Cargando carta…');
   try {
-    const r = await fetch('/api/wines-config', { cache: 'no-store' });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    const data = await fetchWinesConfig();
     winesEditorData = {
       session: data.session || '',
       wifi: data.wifi || null,
@@ -292,12 +263,9 @@ function collectWinesEditorData() {
 function renderWinesEditor() {
   const sessionInput = document.getElementById('editor-session-name');
   const list = document.getElementById('wines-editor-list');
-  if (!sessionInput || !list) return;
-  if (!winesEditorLoaded) return;
-
+  if (!sessionInput || !list || !winesEditorLoaded) return;
   sessionInput.value = winesEditorData.session || '';
   list.innerHTML = '';
-
   winesEditorData.wines.forEach((w, idx) => {
     const card = document.createElement('div');
     card.className = 'wine-editor-card';
@@ -333,13 +301,7 @@ function renderWinesEditor() {
 }
 
 function editorField(label, field, value) {
-  return `<label class="editor-label">${label}
-    <input class="editor-input" data-field="${field}" value="${escapeAttr(value || '')}">
-  </label>`;
-}
-
-function escapeAttr(s) {
-  return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return `<label class="editor-label">${label}<input class="editor-input" data-field="${field}" value="${escapeAttr(value || '')}"></label>`;
 }
 
 function buildWinesEditorPayload() {
@@ -348,11 +310,7 @@ function buildWinesEditorPayload() {
     session: winesEditorData.session,
     wifi: winesEditorData.wifi,
     wines: winesEditorData.wines.map(w => {
-      const out = {
-        name: w.name || '', winery: w.winery || '', vintage: w.vintage || '',
-        do: w.do || '', grape: w.grape || '', region: w.region || '',
-        rating: w.rating || '', curiosity: w.curiosity || '', photo: w.photo || '',
-      };
+      const out = { name: w.name || '', winery: w.winery || '', vintage: w.vintage || '', do: w.do || '', grape: w.grape || '', region: w.region || '', rating: w.rating || '', curiosity: w.curiosity || '', photo: w.photo || '' };
       const lat = String(w.coords?.[0] || '').trim();
       const lon = String(w.coords?.[1] || '').trim();
       if (lat !== '' && lon !== '') out.coords = [Number(lat), Number(lon)];
@@ -362,20 +320,12 @@ function buildWinesEditorPayload() {
 }
 
 async function saveWinesEditor() {
-  if (!winesEditorLoaded) {
-    showToast('Primero carga el editor.', true);
-    return;
-  }
+  if (!winesEditorLoaded) return showToast('Primero carga el editor.', true);
   if (!confirm('¿Guardar los cambios en wines.json y refrescar la TV?')) return;
   setWinesEditorStatus('Guardando carta…');
   try {
-    const r = await fetch('/api/wines-config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildWinesEditorPayload()),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    const payload = buildWinesEditorPayload();
+    const data = await saveWinesConfig(payload);
     showToast(`Carta guardada (${data.count} vinos).`);
     setWinesEditorStatus(`Guardado OK · ${data.count} vinos.`);
     await fetchState();
@@ -416,31 +366,74 @@ function handleEditorAction(e) {
   setWinesEditorStatus('Cambios pendientes de guardar.');
 }
 
-let wineEditorControlsBound = false;
-
 function bindWineEditorControls() {
   if (wineEditorControlsBound) return;
   wineEditorControlsBound = true;
-
-  const loadBtn = document.getElementById('btn-load-editor');
-  const addBtn = document.getElementById('btn-add-editor-wine');
-  const saveBtn = document.getElementById('btn-save-editor');
-  const list = document.getElementById('wines-editor-list');
-
-  if (loadBtn) loadBtn.onclick = loadWinesEditor;
-  if (addBtn) addBtn.onclick = addEditorWine;
-  if (saveBtn) saveBtn.onclick = saveWinesEditor;
-  if (list) list.onclick = handleEditorAction;
+  document.getElementById('btn-load-editor').onclick = loadWinesEditor;
+  document.getElementById('btn-add-editor-wine').onclick = addEditorWine;
+  document.getElementById('btn-save-editor').onclick = saveWinesEditor;
+  document.getElementById('wines-editor-list').onclick = handleEditorAction;
 }
 
 // ──────────────────────────────────────────
-// Panel de invitados: listar y expulsar
+// WiFi admin
+// ──────────────────────────────────────────
+function setWifiStatus(msg, isError = false) {
+  const el = document.getElementById('wifi-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('error', !!isError);
+}
+
+function fillWifiForm(wifi) {
+  document.getElementById('wifi-show').checked = !!(wifi && wifi.show);
+  document.getElementById('wifi-ssid').value = wifi && wifi.ssid ? wifi.ssid : '';
+  document.getElementById('wifi-password').value = wifi && wifi.password ? wifi.password : '';
+}
+
+async function loadWifiConfig(showMsg = true) {
+  try {
+    const data = await fetchWinesConfig();
+    fillWifiForm(data.wifi || { show: false, ssid: '', password: '' });
+    if (showMsg) setWifiStatus('Configuración WiFi cargada.');
+  } catch (e) {
+    console.error(e);
+    setWifiStatus('No se pudo cargar WiFi.', true);
+  }
+}
+
+async function saveWifiConfig() {
+  try {
+    const config = currentConfig || await fetchWinesConfig();
+    config.wifi = {
+      show: document.getElementById('wifi-show').checked,
+      ssid: document.getElementById('wifi-ssid').value.trim(),
+      password: document.getElementById('wifi-password').value,
+    };
+    const data = await saveWinesConfig(config);
+    setWifiStatus('WiFi guardado. Si estás en bienvenida, la TV se actualizará.');
+    showToast('Configuración WiFi guardada.');
+    await fetchState();
+  } catch (e) {
+    console.error(e);
+    setWifiStatus(`No se pudo guardar WiFi: ${e.message}`, true);
+    showToast('No se pudo guardar WiFi', true);
+  }
+}
+
+function bindWifiControls() {
+  document.getElementById('btn-load-wifi').onclick = () => loadWifiConfig(true);
+  document.getElementById('btn-save-wifi').onclick = saveWifiConfig;
+}
+
+// ──────────────────────────────────────────
+// Invitados
 // ──────────────────────────────────────────
 function renderUsers() {
   const wrap = document.getElementById('user-list');
   const countEl = document.getElementById('users-count');
   if (!wrap) return;
-  const users = (state && state.users_public) ? state.users_public : {};
+  const users = state && state.users_public ? state.users_public : {};
   const entries = Object.entries(users);
   if (countEl) countEl.textContent = entries.length;
   wrap.innerHTML = '';
@@ -452,41 +445,26 @@ function renderUsers() {
     const hex = colorMap[u.color] || '#95A5A6';
     const row = document.createElement('div');
     row.className = 'user-row';
-    row.innerHTML = `
-      <span class="user-dot" style="background:${hex}"></span>
-      <span class="user-name">${escapeHtml(u.name || '—')}</span>
-      <button class="user-del" title="Expulsar">✕</button>`;
+    row.innerHTML = `<span class="user-dot" style="background:${hex}"></span><span class="user-name">${escapeHtml(u.name || '—')}</span><button class="user-del" title="Expulsar">✕</button>`;
     row.querySelector('.user-del').onclick = () => handleDeleteUser(uid, u.name || '');
     wrap.appendChild(row);
   });
 }
 
 async function handleDeleteUser(uid, name) {
-  if (!confirm(`¿Expulsar a "${name || uid}"?\n\nSe borran su registro y todos sus votos. En su móvil se le forzará a registrarse de nuevo.`)) {
-    return;
-  }
+  if (!confirm(`¿Expulsar a "${name || uid}"?\n\nSe borran su registro y todos sus votos. En su móvil se le forzará a registrarse de nuevo.`)) return;
   try {
     const r = await fetch('/api/me/' + encodeURIComponent(uid), { method: 'DELETE' });
     const data = await r.json().catch(() => ({}));
     if (r.ok) {
       showToast(`Invitado expulsado: ${name || uid}`);
-      await fetchState();   // refresca la lista de inmediato
-    } else {
-      showToast(data.error || 'No se pudo expulsar', true);
-    }
-  } catch (e) {
-    showToast('Error de red', true);
-  }
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      await fetchState();
+    } else showToast(data.error || 'No se pudo expulsar', true);
+  } catch (e) { showToast('Error de red', true); }
 }
 
 // ──────────────────────────────────────────
-// Administración: clear votes + archive
+// Administración
 // ──────────────────────────────────────────
 function showToast(msg, isError) {
   const t = document.getElementById('archive-toast');
@@ -497,57 +475,35 @@ function showToast(msg, isError) {
 }
 
 async function handleWipe() {
-  if (!confirm('⚠️ MODO PRUEBAS ⚠️\n\n¿Borrar TODO sin guardar copia?\n\n• Todos los invitados\n• Todos los votos y comentarios\n• Vuelve a la pantalla de bienvenida\n\nNo se podrá recuperar nada.')) {
-    return;
-  }
-  if (!confirm('Última oportunidad.\n\n¿De verdad borrar todo sin archivar?')) {
-    return;
-  }
+  if (!confirm('⚠️ MODO PRUEBAS ⚠️\n\n¿Borrar TODO sin guardar copia?\n\n• Todos los invitados\n• Todos los votos y comentarios\n• Vuelve a la pantalla de bienvenida\n\nNo se podrá recuperar nada.')) return;
+  if (!confirm('Última oportunidad.\n\n¿De verdad borrar todo sin archivar?')) return;
   try {
     const r = await fetch('/api/votes/wipe', { method: 'POST' });
     const data = await r.json();
-    if (data.status === 'ok') {
-      showToast('Todo borrado. Listo para empezar de cero.');
-    } else {
-      showToast('Error', true);
-    }
-  } catch (e) {
-    showToast('Error de red', true);
-  }
+    showToast(data.status === 'ok' ? 'Todo borrado. Listo para empezar de cero.' : 'Error', data.status !== 'ok');
+    await fetchState();
+  } catch (e) { showToast('Error de red', true); }
 }
 
 async function handleWelcomeBack() {
-  if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen. La pantalla TV mostrará el QR otra vez.')) {
-    return;
-  }
+  if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen. La pantalla TV mostrará el QR otra vez.')) return;
   try {
     const r = await fetch('/api/welcome', { method: 'POST' });
     const data = await r.json();
-    if (data.status === 'ok') {
-      showToast('Pantalla de bienvenida activada');
-    } else {
-      showToast('Error', true);
-    }
-  } catch (e) {
-    showToast('Error de red', true);
-  }
+    showToast(data.status === 'ok' ? 'Pantalla de bienvenida activada' : 'Error', data.status !== 'ok');
+    await fetchState();
+  } catch (e) { showToast('Error de red', true); }
 }
 
 async function handleClearVotes() {
-  if (!confirm('¿Borrar TODOS los votos?\n\nLos invitados (nombres y colores) se mantendrán y podrán seguir votando desde cero.')) {
-    return;
-  }
+  if (!confirm('¿Borrar TODOS los votos?\n\nLos invitados (nombres y colores) se mantendrán y podrán seguir votando desde cero.')) return;
   try {
     const r = await fetch('/api/votes/clear', { method: 'POST' });
     const data = await r.json();
-    if (data.status === 'ok') {
-      showToast(`Votos borrados (${data.votes_cleared}). Invitados mantenidos (${data.users_kept}).`);
-    } else {
-      showToast('Error al limpiar votos', true);
-    }
-  } catch (e) {
-    showToast('Error de red', true);
-  }
+    if (data.status === 'ok') showToast(`Votos borrados (${data.votes_cleared}). Invitados mantenidos (${data.users_kept}).`);
+    else showToast('Error al limpiar votos', true);
+    await fetchState();
+  } catch (e) { showToast('Error de red', true); }
 }
 
 const archiveModal = document.getElementById('archive-modal');
@@ -562,35 +518,38 @@ function openArchiveModal() {
 }
 
 archiveCancelBtn.onclick = () => archiveModal.classList.remove('visible');
-
 archiveConfirmBtn.onclick = async () => {
   const name = archiveNameInput.value.trim();
   archiveConfirmBtn.disabled = true;
   try {
-    const r = await fetch('/api/votes/archive', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name }),
-    });
+    const r = await fetch('/api/votes/archive', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
     const data = await r.json();
     if (data.status === 'ok') {
       archiveModal.classList.remove('visible');
       showToast(`Archivado en ${data.archived_to} (${data.users_archived} invitados, ${data.votes_archived} votos). Todo reseteado.`);
-    } else {
-      showToast(data.error || 'Error al archivar', true);
-    }
-  } catch (e) {
-    showToast('Error de red', true);
-  } finally {
-    archiveConfirmBtn.disabled = false;
-  }
+      await fetchState();
+    } else showToast(data.error || 'Error al archivar', true);
+  } catch (e) { showToast('Error de red', true); }
+  finally { archiveConfirmBtn.disabled = false; }
 };
+archiveModal.onclick = (e) => { if (e.target === archiveModal) archiveModal.classList.remove('visible'); };
 
-archiveModal.onclick = (e) => {
-  if (e.target === archiveModal) archiveModal.classList.remove('visible');
-};
+function bindAdminControls() {
+  document.getElementById('btn-welcome-back').onclick = handleWelcomeBack;
+  document.getElementById('btn-clear-votes').onclick = handleClearVotes;
+  document.getElementById('btn-archive').onclick = openArchiveModal;
+  document.getElementById('btn-wipe').onclick = handleWipe;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
 fetchColorMap();
+bindTabs();
 bindWineEditorControls();
+bindWifiControls();
+bindAdminControls();
 fetchState();
 setInterval(fetchState, 3000);

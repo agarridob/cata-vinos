@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍷</text></svg>">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=1.0.12">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=1.0.13">
 </head>
 <body>
   <div class="header">
@@ -24,43 +24,109 @@
       </form>
     </div>
   </div>
-  <div id="content">
-    <div class="empty">Cargando…</div>
-  </div>
 
-  <div class="editor-section" id="wine-editor-section">
-  <div class="admin-title">Editor visual de vinos</div>
+  <nav class="tabs" aria-label="Secciones del panel de control">
+    <button class="tab-btn active" data-tab="cata">Cata</button>
+    <button class="tab-btn" data-tab="invitados">Invitados</button>
+    <button class="tab-btn" data-tab="carta">Carta</button>
+    <button class="tab-btn" data-tab="admin">Admin</button>
+  </nav>
 
-  <div class="editor-actions">
-    <button class="admin-btn admin-btn-warn" id="btn-load-editor">
-      <span class="admin-btn-label">Cargar editor</span>
-      <span class="admin-btn-sub">Lee data/wines.json</span>
-    </button>
+  <main>
+    <section class="tab-panel active" id="tab-cata">
+      <div id="content">
+        <div class="empty">Cargando…</div>
+      </div>
+      <div class="admin-section cata-quick-actions">
+        <div class="admin-title">Acciones de cata</div>
+        <button class="admin-btn admin-btn-warn" id="btn-welcome-back">
+          <span class="admin-btn-label">Volver a la pantalla de bienvenida</span>
+          <span class="admin-btn-sub">Sin tocar votos ni invitados</span>
+        </button>
+      </div>
+    </section>
 
-    <button class="admin-btn admin-btn-warn" id="btn-add-editor-wine">
-      <span class="admin-btn-label">Añadir vino</span>
-      <span class="admin-btn-sub">Crea una ficha vacía</span>
-    </button>
+    <section class="tab-panel" id="tab-invitados">
+      <div class="admin-section first-section">
+        <div class="admin-title">Invitados (<span id="users-count">0</span>)</div>
+        <div class="user-list" id="user-list"></div>
+      </div>
+    </section>
 
-    <button class="admin-btn admin-btn-danger wide" id="btn-save-editor">
-      <span class="admin-btn-label">Guardar carta de vinos</span>
-      <span class="admin-btn-sub">Actualiza wines.json y refresca la TV</span>
-    </button>
-  </div>
+    <section class="tab-panel" id="tab-carta">
+      <div class="editor-section" id="wine-editor-section">
+        <div class="admin-title">Editor visual de vinos</div>
+        <div class="editor-actions">
+          <button class="admin-btn admin-btn-warn" id="btn-load-editor">
+            <span class="admin-btn-label">Cargar editor</span>
+            <span class="admin-btn-sub">Lee data/wines.json</span>
+          </button>
+          <button class="admin-btn admin-btn-warn" id="btn-add-editor-wine">
+            <span class="admin-btn-label">Añadir vino</span>
+            <span class="admin-btn-sub">Crea una ficha vacía</span>
+          </button>
+          <button class="admin-btn admin-btn-danger wide" id="btn-save-editor">
+            <span class="admin-btn-label">Guardar carta de vinos</span>
+            <span class="admin-btn-sub">Actualiza wines.json y refresca la TV</span>
+          </button>
+        </div>
+        <div class="editor-session">
+          <label class="editor-label">Nombre de la sesión
+            <input class="editor-input" id="editor-session-name" type="text" placeholder="Cata · Nombre">
+          </label>
+        </div>
+        <div class="editor-status" id="wines-editor-status">Carga el editor para modificar la carta.</div>
+        <div class="wine-editor-list" id="wines-editor-list"></div>
+      </div>
+    </section>
 
-  <div class="editor-session">
-    <label class="editor-label">Nombre de la sesión
-      <input class="editor-input" id="editor-session-name" type="text" placeholder="Cata · Nombre">
-    </label>
-  </div>
+    <section class="tab-panel" id="tab-admin">
+      <div class="admin-section first-section">
+        <div class="admin-title">WiFi bienvenida</div>
+        <div class="wifi-card">
+          <label class="wifi-toggle">
+            <input id="wifi-show" type="checkbox">
+            <span>Mostrar QR WiFi en bienvenida</span>
+          </label>
+          <label class="editor-label">SSID
+            <input class="editor-input" id="wifi-ssid" type="text" placeholder="Nombre de la red">
+          </label>
+          <label class="editor-label">Password
+            <input class="editor-input" id="wifi-password" type="text" placeholder="Contraseña WiFi">
+          </label>
+          <button class="admin-btn admin-btn-warn" id="btn-load-wifi">
+            <span class="admin-btn-label">Cargar WiFi</span>
+            <span class="admin-btn-sub">Lee la configuración actual</span>
+          </button>
+          <button class="admin-btn admin-btn-danger" id="btn-save-wifi">
+            <span class="admin-btn-label">Guardar WiFi</span>
+            <span class="admin-btn-sub">Actualiza wines.json y refresca la bienvenida</span>
+          </button>
+          <div class="editor-status" id="wifi-status">Carga la configuración WiFi para editarla.</div>
+        </div>
+      </div>
 
-  <div class="editor-status" id="wines-editor-status">
-    Carga el editor para modificar la carta.
-  </div>
+      <div class="admin-section">
+        <div class="admin-title">Administración</div>
+        <button class="admin-btn admin-btn-warn" id="btn-clear-votes">
+          <span class="admin-btn-label">Limpiar votos</span>
+          <span class="admin-btn-sub">Borra los votos, mantiene los invitados</span>
+        </button>
+        <button class="admin-btn admin-btn-danger" id="btn-archive">
+          <span class="admin-btn-label">Archivar y reiniciar</span>
+          <span class="admin-btn-sub">Guarda copia y vuelve a bienvenida</span>
+        </button>
+      </div>
 
-  <div class="wine-editor-list" id="wines-editor-list"></div>
-</div>
-
+      <div class="admin-section admin-test-section">
+        <div class="admin-title admin-test-title">Pruebas</div>
+        <button class="admin-btn admin-btn-test" id="btn-wipe">
+          <span class="admin-btn-label">Borrar todo</span>
+          <span class="admin-btn-sub">Sin archivar nada. Como si no hubiera pasado nada.</span>
+        </button>
+      </div>
+    </section>
+  </main>
 
   <div id="archive-modal" class="archive-modal">
     <div class="archive-modal-card">
@@ -68,17 +134,15 @@
       <div class="archive-modal-text">
         Se guardará una copia de la sesión completa (vinos, invitados y votos) y luego se reseteará todo. Los <strong>vinos del menú</strong> se mantienen.
       </div>
-      <input id="archive-name" type="text" class="archive-modal-input"
-             placeholder="Nombre (opcional, ej. Distrito Fam)" maxlength="60">
+      <input id="archive-name" type="text" class="archive-modal-input" placeholder="Nombre (opcional, ej. Distrito Fam)" maxlength="60">
       <div class="archive-modal-actions">
         <button class="archive-modal-btn archive-modal-btn-cancel" id="archive-cancel">Cancelar</button>
         <button class="archive-modal-btn archive-modal-btn-confirm" id="archive-confirm">Archivar</button>
       </div>
     </div>
   </div>
-
   <div id="archive-toast" class="archive-toast"></div>
 
-<script src="{{ url_for('static', filename='js/control.js') }}?v=1.0.12"></script>
+<script src="{{ url_for('static', filename='js/control.js') }}?v=1.0.13"></script>
 </body>
 </html>
