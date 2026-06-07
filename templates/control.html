@@ -559,6 +559,40 @@
     <div class="empty">Cargando…</div>
   </div>
 
+  <div class="editor-section" id="wine-editor-section">
+    <div class="admin-title">Editor visual de vinos</div>
+
+    <div class="editor-actions">
+      <button class="admin-btn admin-btn-warn" id="btn-load-editor">
+        <span class="admin-btn-label">Cargar editor</span>
+        <span class="admin-btn-sub">Lee data/wines.json</span>
+      </button>
+
+      <button class="admin-btn admin-btn-warn" id="btn-add-editor-wine">
+        <span class="admin-btn-label">Añadir vino</span>
+        <span class="admin-btn-sub">Crea una ficha vacía</span>
+      </button>
+
+      <button class="admin-btn admin-btn-danger wide" id="btn-save-editor">
+        <span class="admin-btn-label">Guardar carta de vinos</span>
+        <span class="admin-btn-sub">Actualiza wines.json y refresca la TV</span>
+      </button>
+    </div>
+
+    <div class="editor-session">
+      <label class="editor-label">Nombre de la sesión
+        <input class="editor-input" id="editor-session-name" type="text" placeholder="Cata · Nombre">
+      </label>
+    </div>
+
+    <div class="editor-status" id="wines-editor-status">
+      Carga el editor para modificar la carta.
+    </div>
+
+    <div class="wine-editor-list" id="wines-editor-list"></div>
+</div>
+
+
   <div id="archive-modal" class="archive-modal">
     <div class="archive-modal-card">
       <div class="archive-modal-title">Archivar y reiniciar</div>
@@ -724,31 +758,6 @@ function render() {
       <button onclick="reload()">↻ Recargar wines.json</button>
     </div>
 
-    <div class="editor-section" id="wine-editor-section">
-      <div class="admin-title">Editor visual de vinos</div>
-      <div class="editor-actions">
-        <button class="admin-btn admin-btn-warn" id="btn-load-editor">
-          <span class="admin-btn-label">Cargar editor</span>
-          <span class="admin-btn-sub">Lee data/wines.json</span>
-        </button>
-        <button class="admin-btn admin-btn-warn" id="btn-add-editor-wine">
-          <span class="admin-btn-label">Añadir vino</span>
-          <span class="admin-btn-sub">Crea una ficha vacía</span>
-        </button>
-        <button class="admin-btn admin-btn-danger wide" id="btn-save-editor">
-          <span class="admin-btn-label">Guardar carta de vinos</span>
-          <span class="admin-btn-sub">Actualiza wines.json y refresca la TV</span>
-        </button>
-      </div>
-      <div class="editor-session">
-        <label class="editor-label">Nombre de la sesión
-          <input class="editor-input" id="editor-session-name" type="text" placeholder="Cata · Nombre">
-        </label>
-      </div>
-      <div class="editor-status" id="wines-editor-status">Carga el editor para modificar la carta.</div>
-      <div class="wine-editor-list" id="wines-editor-list"></div>
-    </div>
-
     <div class="admin-section">
       <div class="admin-title">Administración</div>
       <button class="admin-btn admin-btn-warn" id="btn-welcome-back" ${state.is_welcome ? 'disabled style="opacity:0.4"' : ''}>
@@ -820,8 +829,6 @@ function render() {
   list.appendChild(summary);
 
   renderUsers();
-  bindWineEditorControls();
-  renderWinesEditor();
 }
 
 
@@ -1022,11 +1029,17 @@ function handleEditorAction(e) {
   setWinesEditorStatus('Cambios pendientes de guardar.');
 }
 
+let wineEditorControlsBound = false;
+
 function bindWineEditorControls() {
+  if (wineEditorControlsBound) return;
+  wineEditorControlsBound = true;
+
   const loadBtn = document.getElementById('btn-load-editor');
   const addBtn = document.getElementById('btn-add-editor-wine');
   const saveBtn = document.getElementById('btn-save-editor');
   const list = document.getElementById('wines-editor-list');
+
   if (loadBtn) loadBtn.onclick = loadWinesEditor;
   if (addBtn) addBtn.onclick = addEditorWine;
   if (saveBtn) saveBtn.onclick = saveWinesEditor;
@@ -1191,6 +1204,7 @@ archiveModal.onclick = (e) => {
 };
 
 fetchColorMap();
+bindWineEditorControls();
 fetchState();
 setInterval(fetchState, 3000);
 </script>
