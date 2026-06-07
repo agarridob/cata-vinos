@@ -1,14 +1,15 @@
 # 🍷 Cata de Vinos — In Vino Veritas
 
-Webapp en Flask para organizar una cata de vinos con pantalla principal tipo TV, control desde el móvil y sistema de votación en tiempo real.
+Webapp en **Flask** para organizar una cata de vinos con pantalla principal tipo TV, control desde móvil/portátil y sistema de votación en tiempo real.
 
-La idea es sencilla:
+La app está pensada para una dinámica de cata compartida:
 
-- La pantalla grande muestra el vino actual, su ficha, foto, mapa de origen y votos agregados.
+- La pantalla grande muestra el vino actual, ficha, foto, mapa de origen y votos agregados.
 - El anfitrión controla la cata desde `/control`.
-- Los invitados se conectan desde el móvil escaneando un QR.
-- Cada invitado puede identificarse con nombre y color, votar los vinos y dejar comentarios.
-- La pantalla se actualiza en tiempo real usando Server-Sent Events.
+- Los invitados entran desde el móvil escaneando un QR.
+- Cada invitado puede identificarse con nombre y color, votar vinos y dejar comentarios.
+- La pantalla se actualiza en directo mediante **Server-Sent Events**.
+- El panel de control está protegido con autenticación de anfitrión.
 
 ---
 
@@ -40,7 +41,7 @@ Muestra:
 
 ---
 
-### Mando de control
+### Panel de control del anfitrión
 
 Ruta:
 
@@ -48,14 +49,38 @@ Ruta:
 /control
 ```
 
-Permite al anfitrión:
+El panel está protegido por login. Permite al anfitrión:
 
 - Avanzar al siguiente vino.
 - Retroceder.
 - Saltar a un vino concreto.
 - Recargar `wines.json` sin reiniciar la app.
 - Volver a la pantalla de bienvenida.
-- Gestionar votos y usuarios.
+- Gestionar usuarios y votos.
+- Archivar o limpiar resultados de la sesión.
+
+---
+
+### Autenticación del panel de control
+
+La app usa sesión de Flask y variables de entorno para proteger el panel de anfitrión.
+
+Rutas relacionadas:
+
+```text
+/login
+/logout
+/control
+```
+
+Variables necesarias:
+
+```env
+SECRET_KEY=...
+ADMIN_PASSWORD=...
+```
+
+Estas variables **no deben subirse a GitHub**. Se configuran en un archivo `.env` local/servidor o mediante variables de entorno del sistema.
 
 ---
 
@@ -67,7 +92,7 @@ Antes de empezar la cata, la app puede mostrar una pantalla de bienvenida con:
 - QR para entrar desde el móvil.
 - QR opcional para WiFi.
 - Lista de invitados registrados.
-- Estado de conexión de los participantes.
+- Estado de conexión de participantes.
 
 ---
 
@@ -125,16 +150,18 @@ Estructura orientativa:
 cata-vinos/
 ├── app.py
 ├── requirements.txt
+├── .env.example
 ├── data/
-│   ├── wines.json
-│   ├── _state.json
-│   └── votes.json
+│   └── wines.example.json
 ├── templates/
 │   ├── tv.html
-│   └── control.html
+│   ├── control.html
+│   └── login.html
 ├── static/
 │   ├── css/
 │   │   └── tv.css
+│   ├── js/
+│   │   └── tv.js
 │   ├── maps/
 │   │   └── maps_data.json
 │   └── photos/
@@ -142,9 +169,19 @@ cata-vinos/
 └── README.md
 ```
 
+Archivos locales no versionados:
+
+```text
+.env
+data/wines.json
+data/_state.json
+data/votes.json
+.venv/
+```
+
 ---
 
-## 🚀 Instalación
+## 🚀 Instalación local
 
 ### 1. Clonar el repositorio
 
@@ -170,23 +207,64 @@ python -m venv .venv
 ### 3. Instalar dependencias
 
 ```bash
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
+
+---
+
+## 🔐 Configuración de secretos
+
+La app necesita dos variables:
+
+```env
+SECRET_KEY=...
+ADMIN_PASSWORD=...
+```
+
+### Generar `SECRET_KEY`
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+### Crear `.env`
+
+En la raíz del proyecto:
+
+```bash
+cp .env.example .env
+```
+
+Edita `.env`:
+
+```env
+SECRET_KEY=pega_aqui_la_secret_key_generada
+ADMIN_PASSWORD=elige_una_password_para_el_panel
+```
+
+> Importante: `.env` está ignorado por Git y no debe subirse nunca al repositorio.
 
 ---
 
 ## ▶️ Ejecución local
 
-Puedes arrancar la app con:
+Con el entorno virtual activo:
 
 ```bash
 python app.py
 ```
 
-O, si prefieres usar Flask directamente:
+O usando Flask directamente:
 
 ```bash
 flask --app app run --host 0.0.0.0 --port 5000
+```
+
+Si el puerto 5000 está ocupado:
+
+```bash
+flask --app app run --host 0.0.0.0 --port 5001
 ```
 
 Después abre:
@@ -195,16 +273,22 @@ Después abre:
 http://localhost:5000/
 ```
 
-Para acceder desde otro dispositivo de la misma red, usa la IP local del equipo:
+o:
 
 ```text
-http://TU_IP_LOCAL:5000/
+http://localhost:5001/
 ```
 
-El mando del anfitrión está en:
+El panel de control está en:
 
 ```text
-http://TU_IP_LOCAL:5000/control
+http://localhost:5000/control
+```
+
+La primera vez redirigirá a:
+
+```text
+/login?next=/control
 ```
 
 ---
@@ -215,6 +299,18 @@ Los vinos se configuran en:
 
 ```text
 data/wines.json
+```
+
+El repositorio incluye una plantilla versionada:
+
+```text
+data/wines.example.json
+```
+
+Para empezar:
+
+```bash
+cp data/wines.example.json data/wines.json
 ```
 
 Ejemplo básico:
@@ -319,15 +415,24 @@ Cada mapa contiene:
 
 ---
 
-## 🎨 CSS
+## 🎨 Frontend estático
 
-Los estilos de la pantalla TV están separados en:
+La pantalla TV se ha separado en archivos estáticos:
 
 ```text
+templates/tv.html
 static/css/tv.css
+static/js/tv.js
+static/maps/maps_data.json
 ```
 
-Esto mantiene `tv.html` más limpio y permite cachear los estilos.
+Esto mantiene el HTML más limpio y permite al navegador cachear CSS, JS y datos de mapas.
+
+Para evitar caché durante desarrollo, se puede versionar el JS/CSS en la plantilla:
+
+```html
+<script src="{{ url_for('static', filename='js/tv.js') }}?v=1.0.11"></script>
+```
 
 ---
 
@@ -347,17 +452,23 @@ Devuelve el estado actual de la cata.
 POST /api/next
 ```
 
+Protegido: requiere autenticación de anfitrión.
+
 ### Retroceder vino
 
 ```http
 POST /api/prev
 ```
 
+Protegido: requiere autenticación de anfitrión.
+
 ### Ir a un vino concreto
 
 ```http
 POST /api/goto/<idx>
 ```
+
+Protegido: requiere autenticación de anfitrión.
 
 ### Recargar vinos
 
@@ -367,11 +478,15 @@ POST /api/reload
 
 Recarga `data/wines.json` sin reiniciar el servidor.
 
+Protegido: requiere autenticación de anfitrión.
+
 ### Volver a bienvenida
 
 ```http
 POST /api/welcome
 ```
+
+Protegido: requiere autenticación de anfitrión.
 
 ### Stream en tiempo real
 
@@ -415,13 +530,15 @@ PATCH /api/me/<user_id>
 DELETE /api/me/<user_id>
 ```
 
+Protegido: requiere autenticación de anfitrión.
+
 ### Votar vino
 
 ```http
 POST /api/vote/<wine_idx>
 ```
 
-### Borrar voto
+### Borrar voto propio
 
 ```http
 DELETE /api/vote/<wine_idx>?user_id=<user_id>
@@ -439,11 +556,15 @@ GET /api/votes
 POST /api/votes/clear
 ```
 
+Protegido: requiere autenticación de anfitrión.
+
 ### Archivar sesión
 
 ```http
 POST /api/votes/archive
 ```
+
+Protegido: requiere autenticación de anfitrión.
 
 ### Reset completo de pruebas
 
@@ -451,48 +572,23 @@ POST /api/votes/archive
 POST /api/votes/wipe
 ```
 
+Protegido: requiere autenticación de anfitrión.
+
 ---
 
 ## 🧪 Flujo típico de uso
 
 1. Edita `data/wines.json` con los vinos de la cata.
-2. Añade las fotos en `static/photos/`.
+2. Añade fotos en `static/photos/`.
 3. Arranca la app.
 4. Abre `/` en la pantalla grande.
-5. Abre `/control` en el móvil o portátil del anfitrión.
-6. Los invitados escanean el QR de la pantalla.
-7. Cada invitado se identifica con color y nombre.
-8. El anfitrión avanza la cata.
-9. Los invitados votan y comentan desde el móvil.
-10. Al final, se muestra el resumen.
-
----
-
-## 📱 Recomendaciones de uso
-
-- Usar una pantalla grande o TV para `/`.
-- Usar móviles para votar.
-- Mantener todos los dispositivos en la misma red WiFi.
-- Probar la cata completa antes del evento.
-- Usar fotos optimizadas para evitar cargas pesadas.
-- Reiniciar votos antes de una nueva sesión o archivar la anterior.
-
----
-
-## 🛠️ Desarrollo
-
-Durante desarrollo, puede ser útil forzar recarga de estáticos cambiando la versión en los enlaces CSS/JS:
-
-```html
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tv.css') }}?v=1.0.8">
-```
-
-También puedes abrir directamente los ficheros estáticos para comprobar que Flask los sirve correctamente:
-
-```text
-http://localhost:5000/static/css/tv.css
-http://localhost:5000/static/maps/maps_data.json
-```
+5. Abre `/control` en el dispositivo del anfitrión.
+6. Inicia sesión con la contraseña de anfitrión.
+7. Los invitados escanean el QR de la pantalla.
+8. Cada invitado se identifica con color y nombre.
+9. El anfitrión avanza la cata.
+10. Los invitados votan y comentan desde el móvil.
+11. Al final, se muestra el resumen.
 
 ---
 
@@ -512,21 +608,175 @@ Estos archivos permiten conservar:
 - votos,
 - comentarios.
 
-Para pruebas, se pueden limpiar desde los endpoints de administración o borrando los ficheros correspondientes.
+No se versionan en Git.
 
 ---
 
-## 🔐 Notas de seguridad
+## 🚢 Deploy en servidor
 
-Esta app está pensada para uso local o en una red controlada durante una cata.
+El servidor usa un entorno virtual en:
 
-Si se expone a Internet, conviene revisar:
+```text
+/opt/cata-vinos/.venv
+```
 
-- autenticación del panel `/control`,
-- endpoints administrativos,
-- HTTPS,
-- límites de escritura,
-- limpieza de datos personales de invitados.
+Y el servicio systemd:
+
+```text
+cata-vinos.service
+```
+
+### 1. Primer despliegue en servidor
+
+```bash
+cd /opt/cata-vinos
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Crea el `.env` del servidor:
+
+```bash
+nano /opt/cata-vinos/.env
+```
+
+Contenido:
+
+```env
+SECRET_KEY=secret_key_generada
+ADMIN_PASSWORD=password_del_panel
+```
+
+Permisos recomendados:
+
+```bash
+chmod 600 /opt/cata-vinos/.env
+```
+
+---
+
+### 2. Configuración systemd
+
+Archivo:
+
+```text
+/etc/systemd/system/cata-vinos.service
+```
+
+Ejemplo:
+
+```ini
+[Unit]
+Description=Cata de Vinos — servicio web para TV y control móvil
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/cata-vinos
+EnvironmentFile=/opt/cata-vinos/.env
+ExecStart=/opt/cata-vinos/.venv/bin/python /opt/cata-vinos/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Después de editar:
+
+```bash
+systemctl daemon-reload
+systemctl restart cata-vinos.service
+```
+
+Comprobar estado:
+
+```bash
+systemctl status cata-vinos.service
+```
+
+Ver logs:
+
+```bash
+journalctl -u cata-vinos.service -f
+```
+
+---
+
+### 3. Flujo habitual de deploy
+
+Cada vez que se despliegue una nueva versión:
+
+```bash
+cd /opt/cata-vinos
+git pull
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+systemctl restart cata-vinos.service
+```
+
+Si no han cambiado dependencias, el paso de `pip install` puede omitirse, aunque ejecutarlo no suele causar problema.
+
+---
+
+## 🔐 Seguridad
+
+Esta app está pensada para uso local, LAN o despliegue controlado durante una cata.
+
+Medidas actuales:
+
+- Panel `/control` protegido por login.
+- Endpoints administrativos protegidos con sesión de anfitrión.
+- Secretos fuera del código mediante `.env`.
+- `.env`, `.venv/`, certificados y estado en vivo ignorados por Git.
+
+Si se expone a Internet, conviene revisar adicionalmente:
+
+- HTTPS y certificados.
+- Contraseña robusta para `ADMIN_PASSWORD`.
+- Usuario de sistema no-root para el servicio.
+- Rate limiting en `/login`.
+- Backups y limpieza de datos personales.
+
+---
+
+## 🛠️ Desarrollo
+
+### Actualizar dependencias
+
+En local:
+
+```bash
+source .venv/bin/activate
+python -m pip install <paquete>
+python -m pip freeze > requirements.txt
+```
+
+Después:
+
+```bash
+git add requirements.txt
+git commit -m "Update dependencies"
+git push
+```
+
+### Comprobar que no se suben secretos
+
+```bash
+git status
+git ls-files | grep -E '^\.env|^\.venv|^data/'
+```
+
+Lo normal es que solo aparezca:
+
+```text
+data/wines.example.json
+```
 
 ---
 
@@ -534,14 +784,15 @@ Si se expone a Internet, conviene revisar:
 
 Ideas para futuras mejoras:
 
-- ~~Sacar también el JavaScript a `static/js/tv.js`.~~
-- Añadir autenticación para el panel de control.
+- Añadir usuario de sistema dedicado para el servicio en vez de `root`.
+- Añadir rate limiting al login.
 - Exportar resultados de la cata a CSV o JSON.
 - Añadir modo histórico de sesiones.
 - Añadir edición visual de vinos desde `/control`.
 - Mejorar lazy-loading de mapas por región.
 - Añadir soporte para más países.
-- Añadir tema oscuro o variantes visuales.
+- Añadir capturas al README.
+- Añadir tests básicos de endpoints.
 
 ---
 
@@ -555,4 +806,4 @@ Consulta el archivo [`LICENSE`](LICENSE) para más detalles.
 
 ## Autor
 
-Proyecto personal de https://github.com/agarridob para organizar catas de vino con pantalla compartida, control móvil y votación en directo.
+Proyecto personal de [agarridob](https://github.com/agarridob) para organizar catas de vino con pantalla compartida, control móvil y votación en directo.
