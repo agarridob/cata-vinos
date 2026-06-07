@@ -1,235 +1,556 @@
-# 🍷 Cata de Vinos
+# 🍷 Cata de Vinos — In Vino Veritas
 
-Servicio web ligero para catas en casa: muestra el vino actual en la TV (con foto, ficha completa y mapa de la D.O.) y se controla desde el móvil. Incluye sistema de votación en tiempo real para todos los invitados.
+Webapp en Flask para organizar una cata de vinos con pantalla principal tipo TV, control desde el móvil y sistema de votación en tiempo real.
 
-## Características
+La idea es sencilla:
 
-- **Vista TV** fullscreen con foto de la botella, datos del vino y mapa interactivo de la D.O.
-- **Mando para móvil** — avanza/retrocede vinos y salta a cualquiera de la lista
-- **Sistema de votación** — cada invitado puntúa (1-5 ★) y comenta cada vino desde su móvil
-- **Pantalla de bienvenida** con lista de vinos y código QR/wifi para que se unan los invitados
-- **Pantalla resumen final** con el favorito de la mesa, el más polarizante, el unánime y los comentarios destacados
-- **Actualizaciones en tiempo real** vía Server-Sent Events (SSE) — la TV se actualiza sola
-- **Estado persistido** — si el servicio se reinicia, vuelve al vino donde estabas
-- **Archivado de sesiones** — guarda la cata completa (vinos, usuarios, votos) en JSON histórico
-- **HTTPS** con redirección automática HTTP → HTTPS
-- **Resolución automática de coordenadas** por D.O. (más de 80 denominaciones españolas e internacionales)
+- La pantalla grande muestra el vino actual, su ficha, foto, mapa de origen y votos agregados.
+- El anfitrión controla la cata desde `/control`.
+- Los invitados se conectan desde el móvil escaneando un QR.
+- Cada invitado puede identificarse con nombre y color, votar los vinos y dejar comentarios.
+- La pantalla se actualiza en tiempo real usando Server-Sent Events.
 
+---
 
-## Vistas
+## ✨ Funcionalidades
 
-| URL | Descripción |
-|-----|-------------|
-| `https://<host>/` | Pantalla TV — fullscreen, se actualiza sola |
-| `https://<host>/control` | Mando para el anfitrión — navega entre vinos |
+### Pantalla TV
 
+Ruta principal:
 
-## Estructura
-
+```text
+/
 ```
-/opt/cata-vinos/
-├── app.py                    # backend Flask (SSE, votación, archivado, HTTPS)
-├── templates/
-│   ├── tv.html               # vista TV
-│   └── control.html          # mando del anfitrión + vista de invitados
-├── static/
-│   └── photos/               # fotos de las botellas (jpg/png/webp)
-├── data/
-│   ├── wines.json            # lista de vinos y configuración de la sesión
-│   ├── votes.json            # usuarios y votos (generado)
-│   ├── _state.json           # índice persistido (generado)
-│   └── archive/              # sesiones archivadas (generado)
+
+Muestra:
+
+- Nombre de la sesión.
+- Vino actual.
+- Bodega.
+- Añada.
+- D.O.
+- Uva.
+- Región.
+- Puntuación externa, si existe.
+- Curiosidad o nota del vino.
+- Foto de botella.
+- Mapa de origen.
+- Progreso de la cata.
+- Votos agregados en directo.
+
+---
+
+### Mando de control
+
+Ruta:
+
+```text
+/control
+```
+
+Permite al anfitrión:
+
+- Avanzar al siguiente vino.
+- Retroceder.
+- Saltar a un vino concreto.
+- Recargar `wines.json` sin reiniciar la app.
+- Volver a la pantalla de bienvenida.
+- Gestionar votos y usuarios.
+
+---
+
+### Pantalla de bienvenida
+
+Antes de empezar la cata, la app puede mostrar una pantalla de bienvenida con:
+
+- Nombre de la sesión.
+- QR para entrar desde el móvil.
+- QR opcional para WiFi.
+- Lista de invitados registrados.
+- Estado de conexión de los participantes.
+
+---
+
+### Votación desde móvil
+
+Los invitados pueden:
+
+- Elegir un color identificativo.
+- Indicar nombre opcional.
+- Votar cada vino de 1 a 5 estrellas.
+- Escribir comentarios.
+- Editar su perfil.
+- Revisar vinos anteriores sin adelantarse al anfitrión.
+
+---
+
+### Resumen final
+
+Al terminar la cata, la app muestra una pantalla resumen con:
+
+- Todos los vinos catados.
+- Votos medios.
+- Número de votos.
+- Favorito de la mesa.
+- Favoritos personales.
+- Comentarios destacados.
+
+---
+
+### Mapas
+
+La app muestra mapas de origen:
+
+- En móvil usa Leaflet/OpenStreetMap.
+- En TV/desktop usa mapas SVG regionales cargados desde:
+
+```text
+static/maps/maps_data.json
+```
+
+Actualmente incluye mapas regionales para:
+
+- Iberia
+- Francia
+- Italia
+- Alemania
+
+---
+
+## 🧱 Estructura del proyecto
+
+Estructura orientativa:
+
+```text
+cata-vinos/
+├── app.py
 ├── requirements.txt
-└── cata-vinos.service
+├── data/
+│   ├── wines.json
+│   ├── _state.json
+│   └── votes.json
+├── templates/
+│   ├── tv.html
+│   └── control.html
+├── static/
+│   ├── css/
+│   │   └── tv.css
+│   ├── maps/
+│   │   └── maps_data.json
+│   └── photos/
+│       └── ...
+└── README.md
 ```
 
+---
 
-## Instalación en un LXC nuevo
+## 🚀 Instalación
 
-### 1. Crear LXC en Proxmox
+### 1. Clonar el repositorio
 
 ```bash
-pct create 103 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
-  --hostname cata-vinos \
-  --cores 1 --memory 512 --swap 256 \
-  --rootfs local-lvm:4 \
-  --net0 name=eth0,bridge=vmbr0,ip=192.168.0.81/24,gw=192.168.0.1 \
-  --nameserver 192.168.0.184 \
-  --unprivileged 1 \
-  --features nesting=1 \
-  --start 1
+git clone https://github.com/agarridob/cata-vinos.git
+cd cata-vinos
 ```
 
-### 2. Setup dentro del LXC
+### 2. Crear entorno virtual
 
 ```bash
-pct enter 103
-
-apt update && apt install -y python3 python3-pip python3-flask
-mkdir -p /opt/cata-vinos
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-Copia los archivos del proyecto a `/opt/cata-vinos/` (vía `scp` o como hagas habitualmente).
+En Windows:
 
-### 3. (Opcional) Certificado SSL
-
-Si quieres HTTPS, coloca el certificado en:
-
-```
-/etc/ssl/cata-vinos/fullchain.pem
-/etc/ssl/cata-vinos/privkey.pem
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
-Si los ficheros no existen, la app arranca igualmente en modo HTTP en el puerto 8080.
-
-### 4. Instalar servicio systemd
+### 3. Instalar dependencias
 
 ```bash
-cp /opt/cata-vinos/cata-vinos.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now cata-vinos
-systemctl status cata-vinos
+pip install -r requirements.txt
 ```
 
-### 5. Probar
+---
 
-- `https://<host>/` → pantalla TV con el primer vino
-- `https://<host>/control` → mando del anfitrión
+## ▶️ Ejecución local
 
+Puedes arrancar la app con:
 
-## Configurar la sesión (`wines.json`)
+```bash
+python app.py
+```
+
+O, si prefieres usar Flask directamente:
+
+```bash
+flask --app app run --host 0.0.0.0 --port 5000
+```
+
+Después abre:
+
+```text
+http://localhost:5000/
+```
+
+Para acceder desde otro dispositivo de la misma red, usa la IP local del equipo:
+
+```text
+http://TU_IP_LOCAL:5000/
+```
+
+El mando del anfitrión está en:
+
+```text
+http://TU_IP_LOCAL:5000/control
+```
+
+---
+
+## 🍾 Configuración de vinos
+
+Los vinos se configuran en:
+
+```text
+data/wines.json
+```
+
+Ejemplo básico:
 
 ```json
 {
-  "session": "Cata Hinojal · Junio 2025",
+  "session": "Cata · Hinojal",
   "wifi": {
-    "show": "true/false",
-    "ssid": "MiRed",
-    "password": "contraseña"
+    "show": true,
+    "ssid": "NombreWifi",
+    "password": "ContraseñaWifi"
   },
   "wines": [
     {
-      "name": "Único 2018",
-      "winery": "Vega Sicilia",
-      "vintage": 2018,
-      "do": "Ribera del Duero",
-      "grape": "Tempranillo, Cabernet Sauvignon",
-      "region": "Valbuena de Duero, Valladolid",
-      "photo": "unico2018.jpg",
-      "curiosity": "Texto opcional. Si se omite, el bloque desaparece."
+      "name": "Viña Ejemplo Reserva",
+      "winery": "Bodega Ejemplo",
+      "vintage": "2019",
+      "do": "Rioja",
+      "grape": "Tempranillo",
+      "region": "La Rioja",
+      "rating": "Peñín 92",
+      "curiosity": "Un vino perfecto para explicar la crianza en barrica.",
+      "photo": "vina-ejemplo.png",
+      "coords": [42.46, -2.45]
     }
   ]
 }
 ```
 
-### Campos de cada vino
+### Campos soportados
 
-| Campo | ¿Obligatorio? | Descripción |
-|-------|:---:|-------------|
-| `name` | ✅ | Nombre del vino |
-| `winery` | ✅ | Bodega |
-| `vintage` | ✅ | Añada |
-| `do` | ✅ | Denominación de Origen |
-| `grape` | ✅ | Variedad/es de uva |
-| `region` | ❌ | Si falta, se usa la D.O. |
-| `photo` | ❌ | Nombre del fichero en `static/photos/`. Si falta, se muestra un placeholder |
-| `curiosity` | ❌ | Texto libre. Si está vacío, el bloque desaparece y el mapa ocupa el espacio |
-| `coords` | ❌ | `[lat, lon]`. Si no se indica, se resuelve automáticamente por D.O. |
+| Campo | Descripción |
+|---|---|
+| `name` | Nombre del vino |
+| `winery` | Bodega |
+| `vintage` | Añada |
+| `do` | Denominación de origen |
+| `grape` | Uva o coupage |
+| `region` | Región visible en la ficha |
+| `rating` | Puntuación externa opcional |
+| `curiosity` | Nota o curiosidad mostrada en pantalla |
+| `photo` | Nombre de archivo en `static/photos/` |
+| `coords` | Coordenadas `[lat, lon]` |
 
-Tras editar el JSON, pulsa "↻ Recargar wines.json" en el mando, o:
+Si un vino no trae `coords`, la app intenta resolverlas automáticamente a partir de la D.O. cuando está definida en la tabla interna de coordenadas.
 
-```bash
-systemctl restart cata-vinos
+---
+
+## 🖼️ Fotos de botellas
+
+Las fotos deben colocarse en:
+
+```text
+static/photos/
 ```
 
+Y referenciarse desde `wines.json`:
 
-## Sistema de votación
-
-Cada invitado accede desde su móvil, elige un **nombre** (o uno de uva aleatorio) y un **color de marcador de copa**. Desde ahí puede:
-
-- Puntuar cada vino de 1 a 5 estrellas
-- Añadir un comentario libre (hasta 140 caracteres)
-- Ver la media de votos de la mesa en tiempo real
-
-Al llegar a la pantalla resumen, la TV muestra automáticamente:
-
-- 🏆 **El favorito de la mesa** — mejor media con mínimo 2 votos
-- 🎭 **Sin consenso** — mayor desviación típica (mín. 3 votos)
-- 🤝 **Todos coincidieron** — buena media con baja dispersión
-- 💬 **Comentarios destacados** — uno por uno, con nombre y color del autor
-
-### Gestión de sesiones
-
-El anfitrión puede desde el mando:
-
-- **Archivar sesión** — guarda todo en `data/archive/YYYY-MM-DD_nombre.json` y resetea para la siguiente cata
-- **Borrar votos** — limpia votos manteniendo usuarios (útil para repetir)
-- **Wipe completo** — borra todo sin archivar (modo pruebas)
-- **Expulsar invitado** — elimina usuario y sus votos
-
-
-## Fotos de botellas
-
-Copia las imágenes a `/opt/cata-vinos/static/photos/`. Recomendaciones:
-
-- Formato vertical (botella)
-- Fondo transparente (PNG/WebP) queda más elegante; sobre fondo blanco también funciona
-- No hace falta alta resolución — 600 px de alto es suficiente
-
-
-## API
-
-```
-GET  /api/state              → estado completo (vino actual, votos, usuarios)
-POST /api/next               → avanza al siguiente vino
-POST /api/prev               → retrocede
-POST /api/goto/<idx>         → salta a vino concreto (0-indexed)
-POST /api/reload             → recarga wines.json sin reiniciar
-POST /api/welcome            → vuelve a la pantalla de bienvenida
-
-GET  /api/colors             → lista de 30 colores con flag 'taken'
-POST /api/me                 → crea o recupera usuario  { user_id?, name?, color? }
-GET  /api/me/<user_id>       → datos del usuario y sus votos
-PATCH /api/me/<user_id>      → actualiza nombre y/o color
-DELETE /api/me/<user_id>     → expulsa al invitado
-
-POST /api/vote/<wine_idx>    → vota/actualiza  { user_id, score?: 1-5, comment?: str }
-DELETE /api/vote/<wine_idx>  → elimina el voto  ?user_id=<id>
-GET  /api/votes              → resumen por vino + destacados
-
-POST /api/votes/archive      → archiva la sesión  { name?: str }
-POST /api/votes/clear        → borra votos, mantiene usuarios
-POST /api/votes/wipe         → borra TODO sin archivar
-
-GET  /stream                 → Server-Sent Events (la TV se suscribe aquí)
+```json
+{
+  "photo": "mi-vino.png"
+}
 ```
 
-Ejemplo:
+Formatos recomendados:
 
-```bash
-curl -X POST https://192.168.0.81/api/next
-curl -X POST https://192.168.0.81/api/vote/0 \
-  -H "Content-Type: application/json" \
-  -d '{"user_id":"abc123","score":4,"comment":"Muy frutal"}'
+- `.png`
+- `.jpg`
+- `.webp`
+
+Para mejores resultados en TV, usa imágenes con fondo transparente o fondo limpio.
+
+---
+
+## 🗺️ Datos de mapas
+
+Los mapas SVG regionales están separados del HTML en:
+
+```text
+static/maps/maps_data.json
 ```
 
+Esto evita que `tv.html` tenga un bloque enorme de datos embebidos y permite que el navegador cachee el JSON.
 
-## Integración con Home Assistant
+Estructura:
 
-Puedes controlar la cata desde automaciones o dashboards de HA:
-
-```yaml
-# Avanzar al siguiente vino desde un botón de HA
-service: rest_command.cata_next
+```json
+{
+  "iberia": {
+    "bbox": [-10, 4, 35.5, 44],
+    "size": [560, 340],
+    "path": "M..."
+  }
+}
 ```
 
-```yaml
-# En configuration.yaml
-rest_command:
-  cata_next:
-    url: "https://<host>/api/next"
-    method: POST
-  cata_prev:
-    url: "https://<host>/api/prev"
-    method: POST
+Cada mapa contiene:
+
+- `bbox`: límites geográficos.
+- `size`: tamaño del SVG.
+- `path`: geometría SVG del mapa.
+
+---
+
+## 🎨 CSS
+
+Los estilos de la pantalla TV están separados en:
+
+```text
+static/css/tv.css
 ```
+
+Esto mantiene `tv.html` más limpio y permite cachear los estilos.
+
+---
+
+## 🔌 API principal
+
+### Estado actual
+
+```http
+GET /api/state
+```
+
+Devuelve el estado actual de la cata.
+
+### Avanzar vino
+
+```http
+POST /api/next
+```
+
+### Retroceder vino
+
+```http
+POST /api/prev
+```
+
+### Ir a un vino concreto
+
+```http
+POST /api/goto/<idx>
+```
+
+### Recargar vinos
+
+```http
+POST /api/reload
+```
+
+Recarga `data/wines.json` sin reiniciar el servidor.
+
+### Volver a bienvenida
+
+```http
+POST /api/welcome
+```
+
+### Stream en tiempo real
+
+```http
+GET /stream
+```
+
+Usa Server-Sent Events para actualizar la pantalla TV y móviles en tiempo real.
+
+---
+
+## 🗳️ API de votación
+
+### Colores disponibles
+
+```http
+GET /api/colors
+```
+
+### Crear usuario
+
+```http
+POST /api/me
+```
+
+### Obtener usuario
+
+```http
+GET /api/me/<user_id>
+```
+
+### Editar usuario
+
+```http
+PATCH /api/me/<user_id>
+```
+
+### Eliminar usuario
+
+```http
+DELETE /api/me/<user_id>
+```
+
+### Votar vino
+
+```http
+POST /api/vote/<wine_idx>
+```
+
+### Borrar voto
+
+```http
+DELETE /api/vote/<wine_idx>?user_id=<user_id>
+```
+
+### Resumen de votos
+
+```http
+GET /api/votes
+```
+
+### Borrar votos
+
+```http
+POST /api/votes/clear
+```
+
+### Archivar sesión
+
+```http
+POST /api/votes/archive
+```
+
+### Reset completo de pruebas
+
+```http
+POST /api/votes/wipe
+```
+
+---
+
+## 🧪 Flujo típico de uso
+
+1. Edita `data/wines.json` con los vinos de la cata.
+2. Añade las fotos en `static/photos/`.
+3. Arranca la app.
+4. Abre `/` en la pantalla grande.
+5. Abre `/control` en el móvil o portátil del anfitrión.
+6. Los invitados escanean el QR de la pantalla.
+7. Cada invitado se identifica con color y nombre.
+8. El anfitrión avanza la cata.
+9. Los invitados votan y comentan desde el móvil.
+10. Al final, se muestra el resumen.
+
+---
+
+## 📱 Recomendaciones de uso
+
+- Usar una pantalla grande o TV para `/`.
+- Usar móviles para votar.
+- Mantener todos los dispositivos en la misma red WiFi.
+- Probar la cata completa antes del evento.
+- Usar fotos optimizadas para evitar cargas pesadas.
+- Reiniciar votos antes de una nueva sesión o archivar la anterior.
+
+---
+
+## 🛠️ Desarrollo
+
+Durante desarrollo, puede ser útil forzar recarga de estáticos cambiando la versión en los enlaces CSS/JS:
+
+```html
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tv.css') }}?v=1.0.8">
+```
+
+También puedes abrir directamente los ficheros estáticos para comprobar que Flask los sirve correctamente:
+
+```text
+http://localhost:5000/static/css/tv.css
+http://localhost:5000/static/maps/maps_data.json
+```
+
+---
+
+## 📦 Estado persistente
+
+La app usa ficheros en `data/` para mantener estado:
+
+```text
+data/_state.json
+data/votes.json
+```
+
+Estos archivos permiten conservar:
+
+- vino actual,
+- usuarios registrados,
+- votos,
+- comentarios.
+
+Para pruebas, se pueden limpiar desde los endpoints de administración o borrando los ficheros correspondientes.
+
+---
+
+## 🔐 Notas de seguridad
+
+Esta app está pensada para uso local o en una red controlada durante una cata.
+
+Si se expone a Internet, conviene revisar:
+
+- autenticación del panel `/control`,
+- endpoints administrativos,
+- HTTPS,
+- límites de escritura,
+- limpieza de datos personales de invitados.
+
+---
+
+## 🗺️ Roadmap posible
+
+Ideas para futuras mejoras:
+
+- Sacar también el JavaScript a `static/js/tv.js`.
+- Añadir autenticación para el panel de control.
+- Exportar resultados de la cata a CSV o JSON.
+- Añadir modo histórico de sesiones.
+- Añadir edición visual de vinos desde `/control`.
+- Mejorar lazy-loading de mapas por región.
+- Añadir soporte para más países.
+- Añadir tema oscuro o variantes visuales.
+
+---
+
+## Licencia
+
+Pendiente de definir.
+
+---
+
+## Autor
+
+Proyecto personal de https://github.com/agarridob para organizar catas de vino con pantalla compartida, control móvil y votación en directo.
