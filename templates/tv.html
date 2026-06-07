@@ -1832,8 +1832,6 @@ async function loadMapsData() {
 }
 
 function pickMap(lat, lon) {
-
-function pickMap(lat, lon) {
   // Iberia primero: cualquier cosa al oeste de lon 4 y al sur de lat 44 (incluye Rioja y norte español)
   if (lon >= -10 && lon <= 4 && lat >= 35 && lat <= 44) return 'iberia';
   if (lon >= 6.5 && lon <= 19 && lat >= 36 && lat <= 47) return 'italy';
