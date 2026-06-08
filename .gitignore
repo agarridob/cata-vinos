@@ -27,3 +27,6 @@ cata-vinos.service
 
 .cache/
 journey_europe_entry.json
+
+# ── Config local de Claude Code (rutas específicas de máquina) ──
+.claude/
