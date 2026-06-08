@@ -499,7 +499,7 @@ async function deleteMyVote() {
 document.body.addEventListener('click', (e) => {
   const star = e.target.closest('.vote-star');
   if (!star) return;
-  if (window.innerWidth > 1100) return;  // solo móvil
+  if (!isMobile()) return;  // solo móvil
   const newScore = parseInt(star.dataset.score, 10);
   if (!myUser) {
     // Pre-rellenamos visualmente para feedback inmediato
@@ -696,7 +696,7 @@ document.addEventListener('keydown', (e) => {
 
 // Tap en foto de vino actual o foto de tarjeta del resumen → abre overlay (solo en pantallas pequeñas)
 document.body.addEventListener('click', (e) => {
-  if (window.innerWidth > 900) return;
+  if (!isMobile()) return;
   // Vista individual
   const bottleArea = e.target.closest('#bottle-area');
   if (bottleArea) {

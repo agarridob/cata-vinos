@@ -171,12 +171,6 @@ function renderCurrent() {
     }
 
     return;
-
-    stopSummaryViewTimer();
-
-    // Vista vino individual — paramos la rotación de destacados si la había
-    stopHighlightsRotation();
-
   }
 
   // Vista vino individual — paramos la rotación de destacados si la había
