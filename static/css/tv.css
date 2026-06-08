@@ -2055,4 +2055,95 @@
 
   .journey-map-main .journey-map-svg {
     background: #ede0bc;
-  }  
+  }
+
+/* ─── Animación del viaje de la cata ─── */
+
+.journey-segment.animated {
+  fill: none;
+  stroke: #6e0f2a;
+  stroke-width: 2.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: journey-segment-draw 1.5s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes journey-segment-draw {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+
+  12% {
+    opacity: 0.62;
+  }
+
+  100% {
+    opacity: 0.62;
+    stroke-dashoffset: 0;
+  }
+}
+
+.journey-point-inner.animated {
+  opacity: 0;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: journey-point-pop 0.38s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes journey-point-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.journey-itinerary-item.animated {
+  opacity: 0;
+  transform: translateX(0.8vh);
+  animation: journey-itinerary-appear 0.4s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes journey-itinerary-appear {
+  0% {
+    opacity: 0;
+    transform: translateX(0.8vh);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Accesibilidad: si el sistema pide menos movimiento, mostramos todo sin animar */
+@media (prefers-reduced-motion: reduce) {
+  .journey-segment.animated {
+    opacity: 0.62;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .journey-point-inner.animated,
+  .journey-itinerary-item.animated {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}

@@ -9,7 +9,7 @@ let leafletMarker = null;
 // Ahora se cargan desde /static/maps/maps_data.json para no meter el JSON gigante en el HTML.
 let MAPS_DATA = null;
 
-const SUMMARY_ROTATE_MS = 15000;
+const SUMMARY_ROTATE_MS = 30000;
 
 let summaryViewTimer = null;
 let summaryLocalView = 'cards'; // 'cards' | 'journey'
@@ -692,21 +692,58 @@ function renderSummaryJourney(payload) {
     .filter(Boolean)
     .sort((a, b) => a.idx - b.idx);
 
-  const linePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+  // Secuencia de animación:
+  // punto 1 → tramo 1-2 → punto 2 → tramo 2-3 → punto 3...
+  const JOURNEY_POINT_DELAY = 0.3;
+  const JOURNEY_SEGMENT_DELAY = 0.9;
+  const JOURNEY_STEP = 2;
 
-  const pointsHtml = points.map(p => `
-    <g class="journey-point" transform="translate(${p.x} ${p.y})">
-      <circle class="journey-point-halo" r="13"></circle>
-      <circle class="journey-point-dot" r="5.8"></circle>
-      <text class="journey-point-num" x="0" y="0">${p.idx + 1}</text>
-    </g>
-  `).join('');
+  const pointDelayByWineIdx = new Map();
+  points.forEach((p, pointOrderIdx) => {
+    const delay = pointOrderIdx === 0
+      ? JOURNEY_POINT_DELAY
+      : JOURNEY_SEGMENT_DELAY + (pointOrderIdx - 1) * JOURNEY_STEP + 1.45;
+
+    pointDelayByWineIdx.set(p.idx, delay);
+  });
+
+  const segmentsHtml = points.slice(1).map((p, i) => {
+    const prev = points[i];
+    const delay = JOURNEY_SEGMENT_DELAY + i * JOURNEY_STEP;
+
+    return `
+      <line
+        class="journey-segment animated"
+        x1="${prev.x}"
+        y1="${prev.y}"
+        x2="${p.x}"
+        y2="${p.y}"
+        pathLength="1"
+        style="--delay: ${delay}s"
+      ></line>
+    `;
+  }).join('');
+
+  const pointsHtml = points.map((p) => {
+    const delay = pointDelayByWineIdx.get(p.idx) ?? JOURNEY_POINT_DELAY;
+
+    return `
+      <g class="journey-point" transform="translate(${p.x} ${p.y})">
+        <g class="journey-point-inner animated" style="--delay: ${delay}s">
+          <circle class="journey-point-halo" r="13"></circle>
+          <circle class="journey-point-dot" r="5.8"></circle>
+          <text class="journey-point-num" x="0" y="0">${p.idx + 1}</text>
+        </g>
+      </g>
+    `;
+  }).join('');
 
   const itineraryHtml = wines.map((wine, idx) => {
     const place = wine.region || wine.do || '—';
+    const delay = pointDelayByWineIdx.get(idx) ?? 0.2;
 
     return `
-      <div class="journey-itinerary-item">
+      <div class="journey-itinerary-item animated" style="--delay: ${delay}s">
         <span class="journey-itinerary-num">${idx + 1}</span>
         <span class="journey-itinerary-name">${escapeHtml(wine.name || '—')}</span>
         <span class="journey-itinerary-place">${escapeHtml(place)}</span>
@@ -738,14 +775,10 @@ function renderSummaryJourney(payload) {
               preserveAspectRatio="xMidYMid slice"
               aria-hidden="true"
             >
-
               <rect class="sea" x="0" y="0" width="${mapW}" height="${mapH}"></rect>
               <path class="country" d="${m.path}"></path>
 
-              ${points.length > 1 ? `
-                <polyline class="journey-line journey-line-main" points="${linePoints}"></polyline>
-              ` : ''}
-
+              ${segmentsHtml}
               ${pointsHtml}
             </svg>
           </section>
