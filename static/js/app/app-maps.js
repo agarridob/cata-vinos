@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════
 // MAPAS — datos regionales, SVG (TV) y Leaflet (móvil)
-// Carga: 2º (tras tv-core). Comparte scope global con el resto de tv-*.js
+// Carga: 2º (tras app-core). Comparte scope global con el resto de app-*.js
 // ════════════════════════════════════════════════════════════════════════
 
 // Instancia Leaflet (mapa móvil). Leaflet no permite re-inicializar el mismo div,

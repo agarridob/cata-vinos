@@ -615,8 +615,8 @@ def admin_required(fn):
 # Rutas
 # ─────────────────────────────────────────────────────────────────────────────
 @app.route('/')
-def tv():
-    return render_template('tv.html')
+def index():
+    return render_template('app.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

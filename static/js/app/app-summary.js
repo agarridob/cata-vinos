@@ -173,7 +173,7 @@ function renderSummaryJourney(payload) {
   const JOURNEY_SEGMENT_DELAY = 0.9;
   const JOURNEY_STEP = 2;
 
-  // Mantener sincronizado con tv.css:
+  // Mantener sincronizado con app.css:
   // .journey-segment.animated {
   //   animation: journey-segment-draw 1.5s ease-out forwards;
   // }
