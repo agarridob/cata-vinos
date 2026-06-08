@@ -9,6 +9,11 @@ let leafletMarker = null;
 // Ahora se cargan desde /static/maps/maps_data.json para no meter el JSON gigante en el HTML.
 let MAPS_DATA = null;
 
+const SUMMARY_ROTATE_MS = 15000;
+
+let summaryViewTimer = null;
+let summaryLocalView = 'cards'; // 'cards' | 'journey'
+
 async function loadMapsData() {
   try {
     const res = await fetch('/static/maps/maps_data.json');
@@ -519,6 +524,212 @@ function applyUpdate(payload) {
     if (mobile) d.onclick = () => navigateTo(payload.total);
     dots.appendChild(d);
   }
+}
+
+function stopSummaryViewTimer() {
+  if (summaryViewTimer) {
+    clearInterval(summaryViewTimer);
+    summaryViewTimer = null;
+  }
+}
+
+function shouldAutoRotateSummary() {
+  // Por defecto automático.
+  // Cuando el backend exista, podrá mandar summary_auto=false.
+  return !serverState || serverState.summary_auto !== false;
+}
+
+function getForcedSummaryView() {
+  if (!serverState) return null;
+
+  if (serverState.summary_auto === false) {
+    return serverState.summary_view === 'journey' ? 'journey' : 'cards';
+  }
+
+  return null;
+}
+
+function ensureSummaryViewTimer() {
+  if (isMobile()) {
+    stopSummaryViewTimer();
+    return;
+  }
+
+  if (!shouldAutoRotateSummary()) {
+    stopSummaryViewTimer();
+    return;
+  }
+
+  if (summaryViewTimer) return;
+
+  summaryViewTimer = setInterval(() => {
+    summaryLocalView = summaryLocalView === 'cards' ? 'journey' : 'cards';
+    currentSig = null; // forzar re-render de la vista resumen
+    renderCurrent();
+  }, SUMMARY_ROTATE_MS);
+}
+
+function getCurrentSummaryView() {
+  if (isMobile()) return 'cards';
+
+  const forced = getForcedSummaryView();
+  if (forced) return forced;
+
+  return summaryLocalView;
+}
+
+function getWineMapPoints(wines) {
+  const groups = {};
+
+  (wines || []).forEach((wine, idx) => {
+    if (!wine || !Array.isArray(wine.coords) || wine.coords.length !== 2) return;
+
+    const [lat, lon] = wine.coords;
+    const key = pickMap(lat, lon);
+
+    if (!key || !MAPS_DATA || !MAPS_DATA[key]) return;
+
+    const m = MAPS_DATA[key];
+    const [lonMin, lonMax, latMin, latMax] = m.bbox;
+    const [w, h] = m.size;
+
+    const x = (lon - lonMin) / (lonMax - lonMin) * w;
+    const y = (latMax - lat) / (latMax - latMin) * h;
+
+    if (!groups[key]) {
+      groups[key] = {
+        key,
+        map: m,
+        items: [],
+      };
+    }
+
+    groups[key].items.push({
+      idx,
+      wine,
+      x,
+      y,
+    });
+  });
+
+  return groups;
+}
+
+function renderJourneyMapCard(group) {
+  const m = group.map;
+  const [w, h] = m.size;
+  const label = m.label || group.key;
+
+  const sortedItems = [...group.items].sort((a, b) => a.idx - b.idx);
+  const linePoints = sortedItems.map(item => `${item.x},${item.y}`).join(' ');
+
+  const pointsHtml = sortedItems.map(item => `
+    <g class="journey-point" transform="translate(${item.x} ${item.y})">
+      <circle class="journey-point-halo" r="12"></circle>
+      <circle class="journey-point-dot" r="5.5"></circle>
+      <text class="journey-point-num" x="0" y="0">${item.idx + 1}</text>
+    </g>
+  `).join('');
+
+  return `
+    <section class="journey-map-card">
+      <div class="journey-map-title">${escapeHtml(label)}</div>
+
+      <svg
+        class="journey-map-svg"
+        viewBox="0 0 ${w} ${h}"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+      >
+        <rect class="sea" x="0" y="0" width="${w}" height="${h}"></rect>
+        <path class="country" d="${m.path}"></path>
+
+        ${sortedItems.length > 1 ? `
+          <polyline class="journey-line" points="${linePoints}"></polyline>
+        ` : ''}
+
+        ${pointsHtml}
+      </svg>
+    </section>
+  `;
+}
+
+function renderSummaryJourney(payload) {
+  stopHighlightsRotation();
+
+  const wines = payload.all_wines || [];
+  const groups = getWineMapPoints(wines);
+
+  const groupEntries = Object.values(groups)
+    .sort((a, b) => {
+      // Orden por primer vino de cada grupo para que siga narrativa de cata.
+      const firstA = Math.min(...a.items.map(item => item.idx));
+      const firstB = Math.min(...b.items.map(item => item.idx));
+      return firstA - firstB;
+    });
+
+  const mapsHtml = groupEntries.map(renderJourneyMapCard).join('');
+
+  const itineraryHtml = wines.map((wine, idx) => {
+    const place = wine.region || wine.do || '—';
+
+    return `
+      <div class="journey-itinerary-item">
+        <span class="journey-itinerary-num">${idx + 1}</span>
+        <span class="journey-itinerary-name">${escapeHtml(wine.name || '—')}</span>
+        <span class="journey-itinerary-place">${escapeHtml(place)}</span>
+      </div>
+    `;
+  }).join('');
+
+  const serverIdx = (typeof payload._serverIdx === 'number') ? payload._serverIdx : payload.total;
+
+  const dotsHtml = [];
+  for (let i = 0; i < payload.total; i++) {
+    const cls = ['dot', 'done'];
+    if (isMobile() && i <= serverIdx) cls.push('clickable');
+    dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}"></div>`);
+  }
+  dotsHtml.push('<div class="dot summary active"></div>');
+
+  root.innerHTML = `
+    <div class="summary-frame journey-frame">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <header class="summary-header">
+        <div class="session-title">${escapeHtml(payload.session || 'Cata')}</div>
+        <div class="summary-title-big">Viaje de la cata</div>
+        <div class="counter">${payload.total} vinos</div>
+      </header>
+
+      <main class="journey-body">
+        <section class="journey-maps-grid">
+          ${mapsHtml || `
+            <div class="journey-empty">
+              No hay suficientes coordenadas para pintar el viaje.
+            </div>
+          `}
+        </section>
+
+        <aside class="journey-itinerary">
+          <div class="journey-itinerary-title">Orden de cata</div>
+          ${itineraryHtml}
+        </aside>
+      </main>
+
+      <footer class="tv-footer">
+        ${dotsHtml.join('')}
+      </footer>
+    </div>
+  `;
+
+  root.querySelectorAll('.tv-footer .dot.clickable').forEach(el => {
+    const idx = parseInt(el.dataset.idx, 10);
+    if (!isNaN(idx)) el.onclick = () => navigateTo(idx);
+  });
 }
 
 function renderSummary(payload) {
@@ -1044,15 +1255,26 @@ function renderCurrent() {
 
   // Vista resumen
   const isSummaryView = serverState.is_summary && localIndex === total;
+
   if (isSummaryView) {
-    // Incluir un fingerprint de votos en el sig para forzar re-render cuando cambien
-    const votesFingerprint = JSON.stringify(serverState.votes_summary || {})
-      + '|' + (serverState.highlights ? serverState.highlights.length : 0)
-      + '|' + JSON.stringify(serverState.personal_favorites || {});
-    const sig = `__summary__|${total}|${votesFingerprint}`;
+    ensureSummaryViewTimer();
+
+    const summaryView = getCurrentSummaryView();
+
+    // Incluir fingerprint de votos y vista actual.
+    const votesFingerprint =
+      JSON.stringify(serverState.votes_summary || {}) +
+      '|' +
+      (serverState.highlights ? serverState.highlights.length : 0) +
+      '|' +
+      JSON.stringify(serverState.personal_favorites || {});
+
+    const sig = `__summary__|${summaryView}|${total}|${votesFingerprint}|${serverState.summary_auto}|${serverState.summary_view}`;
+
     if (sig === currentSig) return;
     currentSig = sig;
-    renderSummary({
+
+    const summaryPayload = {
       session: serverState.session,
       total: total,
       all_wines: serverState.all_wines,
@@ -1061,8 +1283,21 @@ function renderCurrent() {
       highlights: serverState.highlights || [],
       personal_favorites: serverState.personal_favorites || {},
       users_public: serverState.users_public || {},
-    });
+    };
+
+    if (summaryView === 'journey') {
+      renderSummaryJourney(summaryPayload);
+    } else {
+      renderSummary(summaryPayload);
+    }
+
     return;
+
+    stopSummaryViewTimer();
+
+    // Vista vino individual — paramos la rotación de destacados si la había
+    stopHighlightsRotation();
+
   }
 
   // Vista vino individual — paramos la rotación de destacados si la había

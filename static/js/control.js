@@ -19,6 +19,7 @@ async function fetchState() {
     render();
     renderUsers();
     syncAdminButtons();
+    renderSummaryControl();
   } catch (e) { console.error(e); }
 }
 
@@ -28,7 +29,10 @@ async function go(action) {
   try {
     const r = await fetch(`/api/${action}`, { method: 'POST' });
     state = await r.json();
-    render(); renderUsers(); syncAdminButtons();
+    render();
+    renderUsers();
+    syncAdminButtons();
+    renderSummaryControl();
   } catch (e) { console.error(e); }
   finally { busy = false; }
 }
@@ -39,7 +43,10 @@ async function gotoIdx(i) {
   try {
     const r = await fetch(`/api/goto/${i}`, { method: 'POST' });
     state = await r.json();
-    render(); renderUsers(); syncAdminButtons();
+    render();
+    renderUsers();
+    syncAdminButtons();
+    renderSummaryControl();
   } catch (e) { console.error(e); }
   finally { busy = false; }
 }
@@ -152,6 +159,118 @@ function syncAdminButtons() {
   if (welcomeBtn && state) {
     welcomeBtn.disabled = !!state.is_welcome;
     welcomeBtn.style.opacity = state.is_welcome ? '0.4' : '';
+  }
+}
+
+// ──────────────────────────────────────────
+// Presentación del resumen: tarjetas / viaje
+// ──────────────────────────────────────────
+
+async function setSummaryAuto(auto) {
+  if (busy) return;
+  busy = true;
+
+  try {
+    const r = await fetch('/api/summary-auto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ auto }),
+    });
+
+    const data = await r.json().catch(() => ({}));
+
+    if (!r.ok) {
+      showToast(data.error || 'No se pudo cambiar el modo automático', true);
+      return;
+    }
+
+    await fetchState();
+    showToast(auto ? 'Resumen automático activado' : 'Resumen automático detenido');
+  } catch (e) {
+    console.error(e);
+    showToast('Error de red al cambiar el modo automático', true);
+  } finally {
+    busy = false;
+  }
+}
+
+async function setSummaryView(view) {
+  if (busy) return;
+  busy = true;
+
+  try {
+    const r = await fetch('/api/summary-view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ view }),
+    });
+
+    const data = await r.json().catch(() => ({}));
+
+    if (!r.ok) {
+      showToast(data.error || 'No se pudo fijar la vista del resumen', true);
+      return;
+    }
+
+    await fetchState();
+
+    if (view === 'journey') {
+      showToast('Viaje de la cata fijado en TV');
+    } else {
+      showToast('Resumen original fijado en TV');
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('Error de red al fijar la vista', true);
+  } finally {
+    busy = false;
+  }
+}
+
+function renderSummaryControl() {
+  const box = document.getElementById('summary-control');
+  const status = document.getElementById('summary-control-status');
+
+  const btnAuto = document.getElementById('btn-summary-auto');
+  const btnCards = document.getElementById('btn-summary-cards');
+  const btnJourney = document.getElementById('btn-summary-journey');
+
+  if (!box || !status) return;
+
+  const isSummary = !!(state && state.is_summary);
+  const auto = !state || state.summary_auto !== false;
+  const view = state && state.summary_view ? state.summary_view : 'cards';
+
+  box.classList.toggle('is-muted', !isSummary);
+
+  if (auto) {
+    status.textContent = 'Automático activo · alterna resumen y viaje cada 15s';
+  } else if (view === 'journey') {
+    status.textContent = 'Manual · viaje de la cata fijo en TV';
+  } else {
+    status.textContent = 'Manual · resumen original fijo en TV';
+  }
+
+  if (btnAuto) btnAuto.classList.toggle('active', auto);
+  if (btnCards) btnCards.classList.toggle('active', !auto && view === 'cards');
+  if (btnJourney) btnJourney.classList.toggle('active', !auto && view === 'journey');
+}
+
+function bindSummaryControls() {
+  const btnAuto = document.getElementById('btn-summary-auto');
+  const btnCards = document.getElementById('btn-summary-cards');
+  const btnJourney = document.getElementById('btn-summary-journey');
+
+  if (btnAuto) {
+    btnAuto.onclick = () => setSummaryAuto(true);
+  }
+
+  if (btnCards) {
+    btnCards.onclick = () => setSummaryView('cards');
+  }
+
+  if (btnJourney) {
+    btnJourney.onclick = () => setSummaryView('journey');
   }
 }
 
@@ -551,5 +670,6 @@ bindTabs();
 bindWineEditorControls();
 bindWifiControls();
 bindAdminControls();
+bindSummaryControls();
 fetchState();
 setInterval(fetchState, 3000);

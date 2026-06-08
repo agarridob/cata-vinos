@@ -139,6 +139,11 @@ state = {
     'current_index': 0,
     'wines': [],
     'wifi': None,
+    # Presentación del resumen en TV
+    # summary_auto=True: la TV alterna localmente cada 15s entre tarjetas y viaje.
+    # summary_auto=False: la TV fija summary_view ('cards' o 'journey').
+    'summary_auto': True,
+    'summary_view': 'cards',
 }
 
 # Lista de queues, una por cada cliente SSE conectado
@@ -163,8 +168,13 @@ def load_wines():
 def save_persisted_state():
     try:
         os.makedirs(DATA_DIR, exist_ok=True)
+        payload = {
+            'current_index': state['current_index'],
+            'summary_auto': state.get('summary_auto', True),
+            'summary_view': state.get('summary_view', 'cards'),
+        }
         with open(STATE_FILE, 'w') as f:
-            json.dump({'current_index': state['current_index']}, f)
+            json.dump(payload, f)
     except Exception as e:
         print(f"[save_state] Error: {e}")
 
@@ -172,9 +182,27 @@ def save_persisted_state():
 def load_persisted_state():
     try:
         with open(STATE_FILE, 'r') as f:
-            return int(json.load(f).get('current_index', 0))
+            data = json.load(f)
+
+        # Compatibilidad con estados antiguos guardados como entero.
+        if isinstance(data, int):
+            return {
+                'current_index': data,
+                'summary_auto': True,
+                'summary_view': 'cards',
+            }
+
+        return {
+            'current_index': int(data.get('current_index', 0)),
+            'summary_auto': bool(data.get('summary_auto', True)),
+            'summary_view': data.get('summary_view') if data.get('summary_view') in ('cards', 'journey') else 'cards',
+        }
     except Exception:
-        return 0
+        return {
+            'current_index': 0,
+            'summary_auto': True,
+            'summary_view': 'cards',
+        }
 
 
 def enrich_wine(wine):
@@ -195,6 +223,10 @@ def current_payload():
         wines = list(state['wines'])
         session_name = state['session_name']
         wifi_cfg = state.get('wifi')
+        summary_auto = state.get('summary_auto', True)
+        summary_view = state.get('summary_view', 'cards')
+        if summary_view not in ('cards', 'journey'):
+            summary_view = 'cards'
     # Info pública de usuarios (para mostrar nombres+colores en destacados/comentarios)
     with votes_lock:
         users_public = {
@@ -215,6 +247,8 @@ def current_payload():
             'all_wines': [],
             'votes_summary': v_summary,
             'users_public': users_public,
+            'summary_auto': summary_auto,
+            'summary_view': summary_view,
         }
 
     # Índice -1: pantalla de bienvenida (antes de empezar la cata)
@@ -233,6 +267,8 @@ def current_payload():
             'all_wines': [enrich_wine(w) for w in wines],
             'votes_summary': v_summary,
             'users_public': users_public,
+            'summary_auto': summary_auto,
+            'summary_view': summary_view,
             'wifi_config': wifi_cfg,
         }
     # Índice especial: idx == len(wines) significa "pantalla resumen"
@@ -252,6 +288,8 @@ def current_payload():
             'all_wines': [enrich_wine(w) for w in wines],
             'votes_summary': v_summary,
             'users_public': users_public,
+            'summary_auto': summary_auto,
+            'summary_view': summary_view,
             'highlights': calculate_highlights(wines),
             'personal_favorites': calculate_personal_favorites(),
         }
@@ -281,6 +319,8 @@ def current_payload():
         'all_wines': [enrich_wine(w) for w in wines],
         'votes_summary': v_summary,
         'users_public': users_public,
+        'summary_auto': summary_auto,
+        'summary_view': summary_view,
         'current_wine_votes': current_wine_votes,
     }
 
@@ -1077,6 +1117,50 @@ def api_votes_wipe():
     return jsonify({'status': 'ok'})
 
 
+@app.route('/api/summary-auto', methods=['POST'])
+@admin_required
+def api_summary_auto():
+    """Activa o desactiva la rotación automática del resumen en TV."""
+    data = request.get_json(silent=True) or {}
+    auto = bool(data.get('auto', True))
+
+    with state_lock:
+        state['summary_auto'] = auto
+        if state.get('summary_view') not in ('cards', 'journey'):
+            state['summary_view'] = 'cards'
+        save_persisted_state()
+
+    broadcast_update()
+    return jsonify({
+        'status': 'ok',
+        'summary_auto': state.get('summary_auto', True),
+        'summary_view': state.get('summary_view', 'cards'),
+    })
+
+
+@app.route('/api/summary-view', methods=['POST'])
+@admin_required
+def api_summary_view():
+    """Fija una vista del resumen: tarjetas originales o viaje visual."""
+    data = request.get_json(silent=True) or {}
+    view = data.get('view')
+
+    if view not in ('cards', 'journey'):
+        return jsonify({'error': 'invalid_view'}), 400
+
+    with state_lock:
+        state['summary_auto'] = False
+        state['summary_view'] = view
+        save_persisted_state()
+
+    broadcast_update()
+    return jsonify({
+        'status': 'ok',
+        'summary_auto': state.get('summary_auto', False),
+        'summary_view': state.get('summary_view', view),
+    })
+
+
 @app.route('/api/welcome', methods=['POST'])
 @admin_required
 def api_welcome():
@@ -1131,7 +1215,12 @@ def init():
         state['session_name'] = session_name
         state['wines'] = wines
         state['wifi'] = wifi
-        state['current_index'] = load_persisted_state()
+        persisted_state = load_persisted_state()
+        state['current_index'] = persisted_state.get('current_index', 0)
+        state['summary_auto'] = persisted_state.get('summary_auto', True)
+        state['summary_view'] = persisted_state.get('summary_view', 'cards')
+        if state['summary_view'] not in ('cards', 'journey'):
+            state['summary_view'] = 'cards'
         if state['current_index'] > len(wines):
             state['current_index'] = 0
     load_votes()

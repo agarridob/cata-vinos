@@ -1789,8 +1789,9 @@
     stroke-width: 2;
   }
   #map-pin .map-region-glow {
-  fill: rgba(168, 119, 26, 0.20);
-  stroke: rgba(168, 119, 26, 0.40
+    fill: rgba(168, 119, 26, 0.20);
+    stroke: rgba(168, 119, 26, 0.40);
+    stroke-width: 1;
   }
   #map-svg {
     width: 100%;
@@ -1828,5 +1829,181 @@
     100% {
       transform: scale(1);
       opacity: 1;
+    }
+  }
+
+  /* ─── Vista alternativa: Viaje de la cata ─── */
+
+  .journey-frame {
+    gap: 1.6vh;
+  }
+
+  .journey-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 34vh;
+    gap: 1.8vh;
+  }
+
+  .journey-maps-grid {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    gap: 1.5vh;
+  }
+
+  .journey-map-card {
+    background: rgba(255, 255, 255, 0.36);
+    border: 1px solid #c8a878;
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .journey-map-title {
+    position: absolute;
+    top: 1vh;
+    left: 1vh;
+    z-index: 2;
+    background: rgba(245, 236, 213, 0.88);
+    color: #6e0f2a;
+    font-size: 1.25vh;
+    letter-spacing: 0.28vh;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 0.45vh 0.9vh;
+    border-radius: 2px;
+  }
+
+  .journey-map-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .journey-map-svg .sea {
+    fill: #ede0bc;
+  }
+
+  .journey-map-svg .country {
+    fill: #d4c08a;
+    stroke: #a8771a;
+    stroke-width: 0.8;
+    opacity: 0.74;
+  }
+
+  .journey-line {
+    fill: none;
+    stroke: #6e0f2a;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 5 7;
+    opacity: 0.58;
+  }
+
+  .journey-point {
+    pointer-events: none;
+  }
+
+  .journey-point-halo {
+    fill: rgba(110, 15, 42, 0.20);
+  }
+
+  .journey-point-dot {
+    fill: #6e0f2a;
+    stroke: #f5ecd5;
+    stroke-width: 2;
+  }
+
+  .journey-point-num {
+    fill: #f5ecd5;
+    font-size: 7px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  .journey-itinerary {
+    background: rgba(255, 255, 255, 0.36);
+    border: 1px solid #c8a878;
+    border-radius: 5px;
+    padding: 1.4vh 1.4vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8vh;
+  }
+
+  .journey-itinerary-title {
+    color: #6e0f2a;
+    font-size: 1.35vh;
+    letter-spacing: 0.35vh;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding-bottom: 0.8vh;
+    border-bottom: 1px solid #c8a878;
+    margin-bottom: 0.4vh;
+  }
+
+  .journey-itinerary-item {
+    display: grid;
+    grid-template-columns: 2.5vh 1fr;
+    gap: 0.8vh;
+    align-items: baseline;
+    min-width: 0;
+  }
+
+  .journey-itinerary-num {
+    width: 2.2vh;
+    height: 2.2vh;
+    border-radius: 50%;
+    background: #6e0f2a;
+    color: #f5ecd5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15vh;
+    font-weight: 700;
+  }
+
+  .journey-itinerary-name {
+    color: #2a1812;
+    font-size: 1.45vh;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .journey-itinerary-place {
+    grid-column: 2 / 3;
+    color: #8a5a2a;
+    font-size: 1.2vh;
+    margin-top: -0.5vh;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .journey-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8a5a2a;
+    font-size: 2vh;
+    font-style: italic;
+    border: 1px dashed #c8a878;
+    border-radius: 5px;
+  }
+
+  @media (max-width: 1100px) {
+    .journey-frame {
+      display: none;
     }
   }

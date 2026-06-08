@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍷</text></svg>">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=1.0.13">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=1.0.17">
 </head>
 <body>
   <div class="header">
@@ -44,6 +44,31 @@
           <span class="admin-btn-sub">Sin tocar votos ni invitados</span>
         </button>
       </div>
+      <div class="admin-section summary-control" id="summary-control">
+        <div class="admin-title">Presentación del resumen</div>
+
+        <div class="summary-control-status" id="summary-control-status">
+          Automático activo · alterna resumen y viaje
+        </div>
+
+        <div class="summary-control-grid">
+          <button class="admin-btn summary-mode-btn" id="btn-summary-auto">
+            <span class="admin-btn-label">Automático cada 15s</span>
+            <span class="admin-btn-sub">Alterna resumen original y viaje visual</span>
+          </button>
+
+          <button class="admin-btn summary-mode-btn" id="btn-summary-cards">
+            <span class="admin-btn-label">Fijar resumen</span>
+            <span class="admin-btn-sub">Vista original con tarjetas</span>
+          </button>
+
+          <button class="admin-btn summary-mode-btn" id="btn-summary-journey">
+            <span class="admin-btn-label">Fijar viaje de la cata</span>
+            <span class="admin-btn-sub">Mapa visual de la sesión</span>
+          </button>
+        </div>
+      </div>
+
     </section>
 
     <section class="tab-panel" id="tab-invitados">
@@ -143,6 +168,6 @@
   </div>
   <div id="archive-toast" class="archive-toast"></div>
 
-<script src="{{ url_for('static', filename='js/control.js') }}?v=1.0.13"></script>
+<script src="{{ url_for('static', filename='js/control.js') }}?v=1.0.17"></script>
 </body>
 </html>
