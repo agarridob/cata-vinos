@@ -578,45 +578,6 @@ function getCurrentSummaryView() {
   return summaryLocalView;
 }
 
-function renderJourneyMapCard(group) {
-  const m = group.map;
-  const [w, h] = m.size;
-  const label = m.label || group.key;
-
-  const sortedItems = [...group.items].sort((a, b) => a.idx - b.idx);
-  const linePoints = sortedItems.map(item => `${item.x},${item.y}`).join(' ');
-
-  const pointsHtml = sortedItems.map(item => `
-    <g class="journey-point" transform="translate(${item.x} ${item.y})">
-      <circle class="journey-point-halo" r="12"></circle>
-      <circle class="journey-point-dot" r="5.5"></circle>
-      <text class="journey-point-num" x="0" y="0">${item.idx + 1}</text>
-    </g>
-  `).join('');
-
-  return `
-    <section class="journey-map-card">
-      <div class="journey-map-title">${escapeHtml(label)}</div>
-
-      <svg
-        class="journey-map-svg"
-        viewBox="0 0 ${w} ${h}"
-        preserveAspectRatio="xMidYMid meet"
-        aria-hidden="true"
-      >
-        <rect class="sea" x="0" y="0" width="${w}" height="${h}"></rect>
-        <path class="country" d="${m.path}"></path>
-
-        ${sortedItems.length > 1 ? `
-          <polyline class="journey-line" points="${linePoints}"></polyline>
-        ` : ''}
-
-        ${pointsHtml}
-      </svg>
-    </section>
-  `;
-}
-
 function renderSummaryJourney(payload) {
   stopHighlightsRotation();
 
