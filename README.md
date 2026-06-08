@@ -78,7 +78,7 @@ Uso principal durante la sesión:
   - fijar resumen original;
   - fijar viaje visual de la cata.
 
-La rotación entre resumen original y viaje visual está controlada en `static/js/tv.js`:
+La rotación entre resumen original y viaje visual está controlada en `static/js/tv/tv-summary.js`:
 
 ```js
 const SUMMARY_ROTATE_MS = 30000;
@@ -254,7 +254,7 @@ Y en CSS:
 }
 ```
 
-> Importante: si se cambia la duración de `journey-segment-draw` en CSS, hay que mantener sincronizado `JOURNEY_SEGMENT_DURATION` en `tv.js`.
+> Importante: si se cambia la duración de `journey-segment-draw` en CSS, hay que mantener sincronizado `JOURNEY_SEGMENT_DURATION` en `tv/tv-summary.js`.
 
 ---
 
@@ -311,7 +311,7 @@ Características:
 - Zoom móvil ajustado por región.
 - Fallback CSS robusto para asegurar que los tiles de Leaflet se posicionan y se muestran correctamente.
 
-Zoom móvil por mapa:
+Zoom móvil por mapa (en `static/js/tv/tv-maps.js`):
 
 ```js
 const mobileZoomByMap = {
@@ -530,7 +530,14 @@ cata-vinos/
 │   │   ├── tv.css
 │   │   └── control.css
 │   ├── js/
-│   │   ├── tv.js
+│   │   ├── tv/
+│   │   │   ├── tv-core.js       # estado global, isMobile, SSE, renderCurrent
+│   │   │   ├── tv-maps.js       # MAPS_DATA, renderMap (SVG TV / Leaflet móvil)
+│   │   │   ├── tv-wine-view.js  # ensureLayout, applyUpdate
+│   │   │   ├── tv-summary.js    # resumen cards/journey, destacados, rotación
+│   │   │   ├── tv-welcome.js    # renderWelcome (QRs TV + registro móvil)
+│   │   │   ├── tv-popups.js     # popups de votos (solo TV)
+│   │   │   └── tv-voting.js     # identidad, onboarding, voto + bootstrap
 │   │   └── control.js
 │   ├── maps/
 │   │   └── maps_data.json
@@ -543,6 +550,37 @@ cata-vinos/
     ├── build_canaries_map.py
     └── build_journey_europe_map.py
 ```
+
+---
+
+## 🧩 Arquitectura del frontend TV
+
+La pantalla `/` (TV y móvil del invitado comparten la misma página) está dividida
+en **módulos por dominio** dentro de `static/js/tv/`, en lugar de un único fichero
+monolítico. Se cargan como `<script>` clásicos **en orden**, compartiendo el mismo
+scope global (no usa ES modules ni build):
+
+```text
+tv-core.js      Estado global, isMobile(), conexión SSE, renderCurrent, navegación.
+                Declara el estado que el resto de módulos comparten. Se carga 1º.
+tv-maps.js      MAPS_DATA y renderMap: SVG regional en TV, Leaflet en móvil.
+tv-wine-view.js ensureLayout y applyUpdate de la ficha del vino actual.
+tv-summary.js   Resumen (tarjetas + viaje), destacados y rotación automática.
+tv-welcome.js   Pantalla de bienvenida (QRs en TV, bloque de registro en móvil).
+tv-popups.js    Popups de votos/comentarios (solo TV).
+tv-voting.js    Identidad, onboarding, voto, borradores + arranque (initApp). Último.
+```
+
+Puntos clave de esta arquitectura:
+
+- **Una sola página adaptativa**, no dos apps: TV y móvil se diferencian en runtime
+  con `isMobile()` (`window.innerWidth <= 900`), definido en `tv-core.js`.
+- **El orden de carga importa**: `tv-core.js` declara el estado compartido y
+  `tv-voting.js` se carga el último porque contiene el arranque y el *wrapping* de
+  `renderCurrent`/`onServerUpdate`.
+- **Diferencias TV vs móvil** localizadas: mapa SVG vs Leaflet (`tv-maps.js`),
+  popups solo en TV (`tv-popups.js`), votación/onboarding solo en móvil
+  (`tv-voting.js`).
 
 ---
 
@@ -752,7 +790,7 @@ Antes de desplegar:
 
 ```bash
 python -m py_compile app.py
-node --check static/js/tv.js
+for f in static/js/tv/tv-*.js; do node --check "$f"; done
 node --check static/js/control.js
 ```
 
