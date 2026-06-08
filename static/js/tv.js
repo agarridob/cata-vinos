@@ -113,6 +113,9 @@ function renderMap(lat, lon) {
     cont.innerHTML = '';
     return null;
   }
+  
+  const regionRadius = key === 'canaries' ? 34 : 42;
+
   const m = MAPS_DATA[key];
   const [lonMin, lonMax, latMin, latMax] = m.bbox;
   const [w, h] = m.size;
@@ -139,6 +142,7 @@ function renderMap(lat, lon) {
       <path class="country" d="${m.path}"></path>
 
       <g id="map-pin" class="visible" transform="translate(${x} ${y})">
+        <circle class="map-region-glow" cx="0" cy="0" r="${regionRadius}"></circle>
         <circle class="map-focus-ring" cx="0" cy="0" r="28"></circle>
         <circle class="pulse" cx="0" cy="0" r="7"></circle>
         <circle class="dot" cx="0" cy="0" r="4.8"></circle>

@@ -1788,7 +1788,20 @@
     stroke: #fff;
     stroke-width: 2;
   }
+  #map-pin .map-region-glow {
+  fill: rgba(168, 119, 26, 0.20);
+  stroke: rgba(168, 119, 26, 0.40
+  }
+  #map-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: hidden;
+  }
 
+  .map-svg-zoomed {
+    filter: none;
+  }
   @keyframes pin-pulse {
     0% {
       transform: scale(0.8);
@@ -1816,14 +1829,4 @@
       transform: scale(1);
       opacity: 1;
     }
-  }
-  #map-svg {
-    width: 100%;
-    height: 100%;
-    display: block;
-    overflow: hidden;
-  }
-
-  .map-svg-zoomed {
-    filter: none;
   }
