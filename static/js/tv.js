@@ -698,14 +698,29 @@ function renderSummaryJourney(payload) {
   const JOURNEY_SEGMENT_DELAY = 0.9;
   const JOURNEY_STEP = 2;
 
+  // Mantener sincronizado con tv.css:
+  // .journey-segment.animated {
+  //   animation: journey-segment-draw 1.5s ease-out forwards;
+  // }
+  const JOURNEY_SEGMENT_DURATION = 1.5;
+
+  // -0.05 hace que el punto aparezca un pelín antes de que termine la línea.
+  // Si quieres que aparezca justo al final, pon 0.
+  // Si quieres que aparezca un poco después, pon 0.05 o 0.1.
+  const JOURNEY_POINT_AFTER_SEGMENT = -0.05;
+
   const pointDelayByWineIdx = new Map();
   points.forEach((p, pointOrderIdx) => {
     const delay = pointOrderIdx === 0
       ? JOURNEY_POINT_DELAY
-      : JOURNEY_SEGMENT_DELAY + (pointOrderIdx - 1) * JOURNEY_STEP + 1.45;
+      : JOURNEY_SEGMENT_DELAY
+          + (pointOrderIdx - 1) * JOURNEY_STEP
+          + JOURNEY_SEGMENT_DURATION
+          + JOURNEY_POINT_AFTER_SEGMENT;
 
     pointDelayByWineIdx.set(p.idx, delay);
   });
+
 
   const segmentsHtml = points.slice(1).map((p, i) => {
     const prev = points[i];
