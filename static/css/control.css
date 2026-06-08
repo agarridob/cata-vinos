@@ -247,3 +247,49 @@ input, textarea { user-select: text; }
 .cata-quick-actions {
   margin-top: 18px;
 }
+/* ──────────────────────────────────────────
+   Presentación del resumen
+────────────────────────────────────────── */
+
+.summary-control {
+  transition: opacity 0.2s ease;
+}
+
+.summary-control.is-muted {
+  opacity: 0.72;
+}
+
+.summary-control-status {
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(200, 168, 120, 0.8);
+  border-radius: 10px;
+  padding: 11px 13px;
+  color: #6e0f2a;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  margin-bottom: 12px;
+}
+
+.summary-control-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-mode-btn {
+  border-color: #c8a878;
+  color: #8a5a2a;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.summary-mode-btn.active {
+  border-color: #6e0f2a;
+  color: #6e0f2a;
+  background: rgba(110, 15, 42, 0.09);
+  box-shadow: 0 0 0 1px rgba(110, 15, 42, 0.08) inset;
+}
+
+.summary-mode-btn.active .admin-btn-sub {
+  color: #6e0f2a;
+}
