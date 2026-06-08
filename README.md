@@ -1,10 +1,10 @@
 # 🍷 Cata de Vinos — In Vino Veritas
 
-Webapp en **Flask** para organizar una cata de vinos con pantalla principal tipo TV, panel de control para el anfitrión, edición visual de la carta, gestión de invitados y sistema de votación en tiempo real.
+Webapp en **Flask** para organizar una cata de vinos con pantalla principal tipo TV, panel de control para el anfitrión, edición visual de la carta, gestión de invitados, votación en tiempo real y visualización geográfica de los vinos.
 
 La app está pensada para una dinámica de cata compartida:
 
-- La pantalla grande muestra la bienvenida, el vino actual, ficha, foto, mapa de origen, votos agregados y resumen final.
+- La pantalla grande muestra bienvenida, vino actual, ficha, foto, mapa de origen, votos agregados y resumen final.
 - El anfitrión controla la cata desde `/control`.
 - El panel está protegido con autenticación.
 - El panel está organizado en pestañas: **Cata**, **Invitados**, **Carta** y **Admin**.
@@ -13,7 +13,8 @@ La app está pensada para una dinámica de cata compartida:
 - La pantalla se actualiza en directo mediante **Server-Sent Events**.
 - La carta de vinos puede editarse visualmente desde el panel de control.
 - La configuración WiFi puede gestionarse desde la pestaña **Admin**.
-- La pantalla TV usa mapas SVG regionales, con zoom dinámico y soporte para viaje visual de la cata.
+- La pantalla TV usa mapas SVG regionales, zoom dinámico y una vista animada del viaje de la cata.
+- La versión móvil usa Leaflet con OpenStreetMap y fallback CSS robusto para asegurar el render del mapa.
 
 ---
 
@@ -23,7 +24,11 @@ La app está pensada para una dinámica de cata compartida:
 make
 ```
 
-Por defecto lanza la app en modo desarrollo.
+O explícitamente:
+
+```bash
+make dev
+```
 
 ---
 
@@ -45,6 +50,7 @@ Muestra:
 - Popups de votos y comentarios en TV.
 - Resumen final con tarjetas de vinos.
 - Vista alternativa **Viaje de la cata**.
+- Animación progresiva del recorrido del viaje.
 
 ---
 
@@ -68,9 +74,17 @@ Uso principal durante la sesión:
 - Volver a bienvenida sin perder invitados ni votos.
 - Recargar `wines.json`.
 - Controlar la presentación del resumen:
-  - automático cada 15 segundos;
+  - automático;
   - fijar resumen original;
   - fijar viaje visual de la cata.
+
+La rotación entre resumen original y viaje visual está controlada en `static/js/tv.js`:
+
+```js
+const SUMMARY_ROTATE_MS = 30000;
+```
+
+Actualmente se deja en **30 segundos** para que la animación del viaje tenga tiempo de completarse y el mapa final quede unos segundos visible.
 
 ---
 
@@ -137,20 +151,35 @@ Ejemplo de configuración WiFi en `wines.json`:
 
 La app usa dos estrategias diferentes según dispositivo:
 
-### TV / escritorio
+```text
+TV / escritorio → SVG local
+Móvil           → Leaflet + OpenStreetMap
+```
 
-En pantallas grandes se usan **mapas SVG locales**, porque Leaflet no renderizaba correctamente en televisión.
+Esta separación evita problemas de rendimiento/render en TV y mantiene una buena experiencia móvil.
+
+---
+
+## 🖥️ Mapas en TV / escritorio
+
+En pantallas grandes se usan **mapas SVG locales** cargados desde:
+
+```text
+static/maps/maps_data.json
+```
 
 Características:
 
-- SVG regionales precargados desde `static/maps/maps_data.json`.
+- SVG regionales precargados.
+- No depende de red externa para pintar mapas en TV.
 - Selección automática de mapa según coordenadas.
 - Pin animado con halo.
 - Highlight simulado alrededor del origen del vino.
 - Zoom dinámico por `viewBox`.
 - `label` configurable por mapa.
 - `zoom` configurable por mapa.
-- Soporte específico para **Islas Canarias** con geometría generada desde GeoJSON real.
+- Soporte específico para **Islas Canarias**.
+- Vista global `journey_europe` para el viaje de la cata.
 
 Mapas soportados:
 
@@ -160,6 +189,7 @@ france
 italy
 germany
 canaries
+journey_europe
 ```
 
 Ejemplo de entrada en `maps_data.json`:
@@ -176,16 +206,6 @@ Ejemplo de entrada en `maps_data.json`:
 
 ---
 
-### Móvil
-
-En móviles se usa **Leaflet** con OpenStreetMap:
-
-- Vista compacta.
-- Pin animado.
-- Mapa no interactivo para evitar scroll/zoom accidental durante la cata.
-
----
-
 ## 🌍 Viaje de la cata
 
 La pantalla de resumen tiene dos vistas:
@@ -195,15 +215,52 @@ Resumen original
 Viaje de la cata
 ```
 
-Por defecto, la TV alterna automáticamente cada 15 segundos entre ambas vistas.
+La vista **Viaje de la cata** usa un mapa único:
 
-Desde `/control`, el anfitrión puede:
+```text
+journey_europe
+```
 
-- reactivar automático;
-- fijar el resumen original;
-- fijar el viaje visual.
+Este mapa cubre:
 
-El estado se controla con:
+- Canarias.
+- Península Ibérica.
+- Francia.
+- Alemania occidental.
+- Norte de Italia.
+- Europa occidental en general.
+
+La ruta se anima progresivamente:
+
+```text
+punto 1 → línea al 2 → punto 2 → línea al 3 → punto 3 → ...
+```
+
+La animación está coordinada entre JS y CSS:
+
+```js
+const JOURNEY_POINT_DELAY = 0.3;
+const JOURNEY_SEGMENT_DELAY = 0.9;
+const JOURNEY_STEP = 2;
+const JOURNEY_SEGMENT_DURATION = 1.5;
+const JOURNEY_POINT_AFTER_SEGMENT = -0.05;
+```
+
+Y en CSS:
+
+```css
+.journey-segment.animated {
+  animation: journey-segment-draw 1.5s ease-out forwards;
+}
+```
+
+> Importante: si se cambia la duración de `journey-segment-draw` en CSS, hay que mantener sincronizado `JOURNEY_SEGMENT_DURATION` en `tv.js`.
+
+---
+
+## 🎛️ Control del resumen/viaje
+
+El backend guarda el modo de presentación del resumen:
 
 ```json
 {
@@ -219,7 +276,13 @@ summary_auto = true | false
 summary_view = "cards" | "journey"
 ```
 
-Endpoints asociados:
+Comportamiento:
+
+- `summary_auto: true` → la TV alterna automáticamente entre resumen original y viaje visual.
+- `summary_auto: false`, `summary_view: "cards"` → fija el resumen original.
+- `summary_auto: false`, `summary_view: "journey"` → fija el viaje visual.
+
+Endpoints:
 
 ```http
 POST /api/summary-auto
@@ -233,6 +296,117 @@ curl -X POST http://localhost:5001/api/summary-view \
   -H "Content-Type: application/json" \
   -d '{"view":"journey"}'
 ```
+
+---
+
+## 📱 Mapas en móvil
+
+En móvil se usa **Leaflet** con OpenStreetMap.
+
+Características:
+
+- Mapa compacto dentro de la ficha del vino.
+- No interactivo para evitar scroll/zoom accidental durante la cata.
+- Pin animado con `map-pin-pulse`.
+- Zoom móvil ajustado por región.
+- Fallback CSS robusto para asegurar que los tiles de Leaflet se posicionan y se muestran correctamente.
+
+Zoom móvil por mapa:
+
+```js
+const mobileZoomByMap = {
+  canaries: 7,
+  iberia: 6,
+  france: 6,
+  germany: 6,
+  italy: 6,
+};
+```
+
+Fallback genérico:
+
+```js
+const zoom = mobileZoomByMap[key] || 5;
+```
+
+---
+
+## 🧯 Fallback CSS de Leaflet móvil
+
+Se incluye un fallback en `tv.css` para reforzar las reglas necesarias de Leaflet:
+
+```css
+#map-leaflet {
+  width: 100%;
+  height: 100%;
+  min-height: 170px;
+  position: relative;
+  overflow: hidden;
+  background: #ede0bc;
+}
+
+#map-leaflet .leaflet-pane,
+#map-leaflet .leaflet-map-pane,
+#map-leaflet .leaflet-tile-pane,
+#map-leaflet .leaflet-overlay-pane,
+#map-leaflet .leaflet-shadow-pane,
+#map-leaflet .leaflet-marker-pane,
+#map-leaflet .leaflet-tooltip-pane,
+#map-leaflet .leaflet-popup-pane {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+#map-leaflet .leaflet-tile,
+#map-leaflet .leaflet-marker-icon,
+#map-leaflet .leaflet-marker-shadow {
+  position: absolute;
+}
+```
+
+Motivo: en algunas pruebas móviles/emuladas, los tiles de OpenStreetMap se descargaban correctamente (`naturalWidth: 256`, `naturalHeight: 256`) pero no se pintaban por falta/colisión de estilos de posicionamiento de Leaflet.
+
+---
+
+## 🧪 Debug rápido de mapa móvil
+
+Si el mapa móvil aparece en blanco:
+
+### 1. Verificar que Leaflet existe
+
+```js
+document.getElementById('map-leaflet')
+```
+
+Debe devolver un `div` con clase `leaflet-container`.
+
+### 2. Verificar tiles
+
+```js
+document.querySelectorAll('#map-leaflet .leaflet-tile').length
+```
+
+Si devuelve `0`, Leaflet no está generando tiles.
+
+### 3. Verificar si los tiles cargan
+
+```js
+[...document.querySelectorAll('#map-leaflet .leaflet-tile')]
+  .slice(0, 5)
+  .map(img => ({
+    src: img.src,
+    complete: img.complete,
+    naturalWidth: img.naturalWidth,
+    naturalHeight: img.naturalHeight,
+    opacity: getComputedStyle(img).opacity,
+    display: getComputedStyle(img).display,
+    visibility: getComputedStyle(img).visibility,
+    position: getComputedStyle(img).position
+  }))
+```
+
+Si `naturalWidth` y `naturalHeight` son `256`, los tiles están cargando y el problema es visual/CSS.
 
 ---
 
@@ -270,6 +444,42 @@ python tools/build_canaries_map.py \
 
 ---
 
+## 🛠️ Regenerar mapa `journey_europe`
+
+El proyecto incluye un script para generar el mapa global del viaje:
+
+```text
+tools/build_journey_europe_map.py
+```
+
+Uso recomendado:
+
+```bash
+python tools/build_journey_europe_map.py \
+  --maps static/maps/maps_data.json \
+  --target-length 12000
+```
+
+Más ligero:
+
+```bash
+python tools/build_journey_europe_map.py \
+  --maps static/maps/maps_data.json \
+  --target-length 9000
+```
+
+Más detallado:
+
+```bash
+python tools/build_journey_europe_map.py \
+  --maps static/maps/maps_data.json \
+  --target-length 15000
+```
+
+La generación del mapa es una tarea de desarrollo. La app Flask no necesita `geopandas` ni `shapely` en runtime si el `maps_data.json` ya está generado.
+
+---
+
 ## 🔐 Autenticación
 
 Variables necesarias:
@@ -298,7 +508,8 @@ Nunca subir `.env` al repositorio.
 11. La TV muestra votos agregados y popups.
 12. Se llega al resumen.
 13. El resumen alterna entre tarjetas y viaje visual.
-14. Opcionalmente se archiva la sesión.
+14. El viaje visual se construye animadamente sobre el mapa.
+15. Opcionalmente se archiva la sesión.
 
 ---
 
@@ -329,7 +540,8 @@ cata-vinos/
 │   ├── control.html
 │   └── login.html
 └── tools/
-    └── build_canaries_map.py
+    ├── build_canaries_map.py
+    └── build_journey_europe_map.py
 ```
 
 ---
@@ -364,22 +576,23 @@ make dev
 
 ---
 
-### Comandos disponibles
-
-```bash
-make dev      # modo desarrollo
-make run      # modo simple
-make install  # instalar dependencias
-make freeze   # actualizar requirements.txt
-```
-
----
-
 ### Manual
 
 ```bash
 source .venv/bin/activate
 flask --app app run --host 0.0.0.0 --port 5001
+```
+
+Para probar desde un móvil en la misma WiFi:
+
+```bash
+ipconfig getifaddr en0
+```
+
+Luego abrir en el móvil:
+
+```text
+http://<IP_DEL_MAC>:5001/
 ```
 
 ---
@@ -533,17 +746,6 @@ Estos archivos no deberían versionarse salvo que sea intencionado.
 
 ---
 
-## 🔐 Seguridad
-
-- Panel `/control` protegido con contraseña.
-- Secretos fuera del repo.
-- `.env` no versionado.
-- Servicio recomendado con usuario no-root.
-- Datos locales separados en `data/`.
-- Acciones destructivas protegidas con confirmación en frontend.
-
----
-
 ## 🧪 Checks recomendados
 
 Antes de desplegar:
@@ -560,7 +762,22 @@ Si modificas mapas:
 python tools/build_canaries_map.py \
   --maps static/maps/maps_data.json \
   --tolerance 0.6
+
+python tools/build_journey_europe_map.py \
+  --maps static/maps/maps_data.json \
+  --target-length 12000
 ```
+
+---
+
+## 🔐 Seguridad
+
+- Panel `/control` protegido con contraseña.
+- Secretos fuera del repo.
+- `.env` no versionado.
+- Servicio recomendado con usuario no-root.
+- Datos locales separados en `data/`.
+- Acciones destructivas protegidas con confirmación en frontend.
 
 ---
 
@@ -569,7 +786,8 @@ python tools/build_canaries_map.py \
 - Exportar resultados en CSV/JSON.
 - Histórico visual de sesiones archivadas.
 - Más mapas regionales.
-- Mapa global para viaje de cata multi-país.
+- Fallback visual para vinos sin coordenadas.
+- Mapa mundial opcional para catas no europeas.
 - Mejoras de accesibilidad.
 - Tests básicos de rutas y API.
 - Capturas/GIFs en README.
@@ -598,6 +816,8 @@ Proyecto funcional para catas reales con:
 - votación en tiempo real;
 - editor visual de carta;
 - mapas SVG en TV;
-- Leaflet móvil;
-- viaje visual de la cata;
+- Leaflet móvil con fallback CSS robusto;
+- Canarias en alta resolución;
+- mapa único de Europa para el viaje;
+- viaje visual animado de la cata;
 - presentación de resumen controlable desde `/control`.

@@ -2147,3 +2147,61 @@
     animation: none;
   }
 }
+
+/* ─── Fallback robusto Leaflet móvil ─── */
+
+#map-leaflet {
+  width: 100%;
+  height: 100%;
+  min-height: 170px;
+  position: relative;
+  overflow: hidden;
+  background: #ede0bc;
+}
+
+#map-leaflet.leaflet-container {
+  background: #ede0bc;
+}
+
+#map-leaflet .leaflet-pane,
+#map-leaflet .leaflet-map-pane,
+#map-leaflet .leaflet-tile-pane,
+#map-leaflet .leaflet-overlay-pane,
+#map-leaflet .leaflet-shadow-pane,
+#map-leaflet .leaflet-marker-pane,
+#map-leaflet .leaflet-tooltip-pane,
+#map-leaflet .leaflet-popup-pane {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+#map-leaflet .leaflet-map-pane {
+  z-index: 400;
+}
+
+#map-leaflet .leaflet-tile-pane {
+  z-index: 200;
+}
+
+#map-leaflet .leaflet-marker-pane {
+  z-index: 600;
+}
+
+#map-leaflet .leaflet-tile,
+#map-leaflet .leaflet-marker-icon,
+#map-leaflet .leaflet-marker-shadow {
+  position: absolute;
+}
+
+#map-leaflet .leaflet-tile {
+  width: 256px;
+  height: 256px;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+#map-leaflet .leaflet-tile {
+  filter: none !important;
+}

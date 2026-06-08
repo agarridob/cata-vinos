@@ -67,12 +67,22 @@ function renderMap(lat, lon) {
   // para que combine con la paleta crema/dorado/burdeos de la web.
   if (isMobile()) {
     // Si el contenedor fue recreado (cambio de vista), la instancia vieja ya no sirve.
-    let host = document.getElementById('map-leaflet');
-    if (!host || !cont.contains(host)) {
+    let host = cont.querySelector('#map-leaflet');
+
+    if (!host) {
       cont.innerHTML = '<div id="map-leaflet"></div>';
-      host = document.getElementById('map-leaflet');
-      leafletMap = null; leafletMarker = null;
+      host = cont.querySelector('#map-leaflet');
+      leafletMap = null;
+      leafletMarker = null;
     }
+
+    if (!host) {
+      return null;
+    }
+
+    // Fallback defensivo por si el CSS no ha aplicado todavía.
+    host.style.width = '100%';
+    host.style.height = '100%';
 
     const pinIcon = L.divIcon({
       className: '',
@@ -80,6 +90,17 @@ function renderMap(lat, lon) {
       iconSize: [14, 14],
       iconAnchor: [7, 7],
     });
+
+    const mobileZoomByMap = {
+      canaries: 7,
+      iberia: 6,
+      france: 6,
+      germany: 6,
+      italy: 6,
+    };
+
+    const key = pickMap(lat, lon);
+    const zoom = mobileZoomByMap[key] || 5;
 
     if (!leafletMap) {
       leafletMap = L.map(host, {
@@ -91,24 +112,42 @@ function renderMap(lat, lon) {
         scrollWheelZoom: false,
         boxZoom: false,
         keyboard: false,
-      }).setView([lat, lon], 5);
+      });
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap',
       }).addTo(leafletMap);
+
       leafletMarker = L.marker([lat, lon], { icon: pinIcon }).addTo(leafletMap);
-      // El contenedor puede no tener tamaño aún al crearse; recalcular tras el layout.
-      setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 60);
     } else {
-      leafletMap.setView([lat, lon], 5, { animate: true });
       if (leafletMarker) {
         leafletMarker.setLatLng([lat, lon]);
       } else {
         leafletMarker = L.marker([lat, lon], { icon: pinIcon }).addTo(leafletMap);
       }
-      setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 60);
     }
-    return 'leaflet';  // truthy: Leaflet cubre todo el mundo, nunca "internacional" en móvil
+
+    leafletMap.setView([lat, lon], zoom, { animate: true });
+
+    // Leaflet en móvil a veces necesita varios invalidateSize
+    // porque el contenedor acaba de entrar en layout.
+    requestAnimationFrame(() => {
+      if (leafletMap) {
+        leafletMap.invalidateSize();
+        leafletMap.setView([lat, lon], zoom, { animate: false });
+      }
+    });
+
+    setTimeout(() => {
+      if (leafletMap) leafletMap.invalidateSize();
+    }, 150);
+
+    setTimeout(() => {
+      if (leafletMap) leafletMap.invalidateSize();
+    }, 400);
+
+    return 'leaflet';
   }
 
   // TV/desktop: SVG regional con pin (Iberia, Francia, Italia, Alemania)
@@ -1095,6 +1134,26 @@ let serverState = null;
 let localIndex = null;
 let initialized = false;
 const isMobile = () => window.innerWidth <= 900;
+
+let lastIsMobile = isMobile();
+
+window.addEventListener('resize', () => {
+  const nowIsMobile = isMobile();
+
+  if (nowIsMobile !== lastIsMobile) {
+    lastIsMobile = nowIsMobile;
+
+    // Forzar reconstrucción porque cambia la estrategia de mapa:
+    // desktop = SVG, móvil = Leaflet.
+    currentSig = null;
+
+    if (leafletMap) {
+      setTimeout(() => leafletMap.invalidateSize(), 100);
+    }
+
+    renderCurrent();
+  }
+});
 
 function onServerUpdate(payload) {
   const prevServerIdx = serverState
