@@ -2007,3 +2007,52 @@
       display: none;
     }
   }
+  /* ─── Journey: mapa único Europa + Canarias ─── */
+
+  .journey-maps-grid.journey-map-single {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  .journey-map-card.journey-map-main {
+    min-height: 0;
+  }
+
+  .journey-map-main .journey-map-title {
+    font-size: 1.35vh;
+    letter-spacing: 0.32vh;
+  }
+
+  .journey-map-main .journey-map-svg .country {
+    fill: #d4c08a;
+    stroke: #a8771a;
+    stroke-width: 0.75;
+    opacity: 0.76;
+  }
+
+  .journey-line-main {
+    stroke-width: 2.6;
+    stroke-dasharray: 6 7;
+    opacity: 0.62;
+  }
+
+  .journey-map-main .journey-point-halo {
+    fill: rgba(110, 15, 42, 0.22);
+  }
+
+  .journey-map-main .journey-point-dot {
+    fill: #6e0f2a;
+    stroke: #f5ecd5;
+    stroke-width: 2.2;
+  }
+
+  .journey-map-main .journey-point-num {
+    font-size: 7.2px;
+  }
+  .journey-map-main {
+    background: #ede0bc;
+  }
+
+  .journey-map-main .journey-map-svg {
+    background: #ede0bc;
+  }  

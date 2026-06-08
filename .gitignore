@@ -25,3 +25,5 @@ __pycache__/
 cata-vinos.service
 *.service.local
 
+.cache/
+journey_europe_entry.json

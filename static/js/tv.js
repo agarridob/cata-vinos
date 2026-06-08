@@ -578,43 +578,6 @@ function getCurrentSummaryView() {
   return summaryLocalView;
 }
 
-function getWineMapPoints(wines) {
-  const groups = {};
-
-  (wines || []).forEach((wine, idx) => {
-    if (!wine || !Array.isArray(wine.coords) || wine.coords.length !== 2) return;
-
-    const [lat, lon] = wine.coords;
-    const key = pickMap(lat, lon);
-
-    if (!key || !MAPS_DATA || !MAPS_DATA[key]) return;
-
-    const m = MAPS_DATA[key];
-    const [lonMin, lonMax, latMin, latMax] = m.bbox;
-    const [w, h] = m.size;
-
-    const x = (lon - lonMin) / (lonMax - lonMin) * w;
-    const y = (latMax - lat) / (latMax - latMin) * h;
-
-    if (!groups[key]) {
-      groups[key] = {
-        key,
-        map: m,
-        items: [],
-      };
-    }
-
-    groups[key].items.push({
-      idx,
-      wine,
-      x,
-      y,
-    });
-  });
-
-  return groups;
-}
-
 function renderJourneyMapCard(group) {
   const m = group.map;
   const [w, h] = m.size;
@@ -658,17 +621,86 @@ function renderSummaryJourney(payload) {
   stopHighlightsRotation();
 
   const wines = payload.all_wines || [];
-  const groups = getWineMapPoints(wines);
+  const m = MAPS_DATA && MAPS_DATA.journey_europe;
 
-  const groupEntries = Object.values(groups)
-    .sort((a, b) => {
-      // Orden por primer vino de cada grupo para que siga narrativa de cata.
-      const firstA = Math.min(...a.items.map(item => item.idx));
-      const firstB = Math.min(...b.items.map(item => item.idx));
-      return firstA - firstB;
-    });
+  const serverIdx = (typeof payload._serverIdx === 'number') ? payload._serverIdx : payload.total;
 
-  const mapsHtml = groupEntries.map(renderJourneyMapCard).join('');
+  const dotsHtml = [];
+  for (let i = 0; i < payload.total; i++) {
+    const cls = ['dot', 'done'];
+    if (isMobile() && i <= serverIdx) cls.push('clickable');
+    dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}"></div>`);
+  }
+  dotsHtml.push('<div class="dot summary active"></div>');
+
+  if (!m) {
+    root.innerHTML = `
+      <div class="summary-frame journey-frame">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+
+        <header class="summary-header">
+          <div class="session-title">${escapeHtml(payload.session || 'Cata')}</div>
+          <div class="summary-title-big">Viaje de la cata</div>
+          <div class="counter">${payload.total} vinos</div>
+        </header>
+
+        <main class="journey-body">
+          <section class="journey-maps-grid journey-map-single">
+            <div class="journey-empty">
+              Falta el mapa journey_europe en maps_data.json.
+            </div>
+          </section>
+        </main>
+
+        <footer class="tv-footer">
+          ${dotsHtml.join('')}
+        </footer>
+      </div>
+    `;
+    return;
+  }
+
+  const [lonMin, lonMax, latMin, latMax] = m.bbox;
+  const [mapW, mapH] = m.size;
+
+  const points = wines
+    .map((wine, idx) => {
+      if (!wine || !Array.isArray(wine.coords) || wine.coords.length !== 2) {
+        return null;
+      }
+
+      const [lat, lon] = wine.coords;
+
+      const x = (lon - lonMin) / (lonMax - lonMin) * mapW;
+      const y = (latMax - lat) / (latMax - latMin) * mapH;
+
+      // Evitar pintar puntos fuera del mapa si alguna coordenada se sale del bbox.
+      if (x < 0 || x > mapW || y < 0 || y > mapH) {
+        return null;
+      }
+
+      return {
+        idx,
+        wine,
+        x,
+        y,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.idx - b.idx);
+
+  const linePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+
+  const pointsHtml = points.map(p => `
+    <g class="journey-point" transform="translate(${p.x} ${p.y})">
+      <circle class="journey-point-halo" r="13"></circle>
+      <circle class="journey-point-dot" r="5.8"></circle>
+      <text class="journey-point-num" x="0" y="0">${p.idx + 1}</text>
+    </g>
+  `).join('');
 
   const itineraryHtml = wines.map((wine, idx) => {
     const place = wine.region || wine.do || '—';
@@ -681,16 +713,6 @@ function renderSummaryJourney(payload) {
       </div>
     `;
   }).join('');
-
-  const serverIdx = (typeof payload._serverIdx === 'number') ? payload._serverIdx : payload.total;
-
-  const dotsHtml = [];
-  for (let i = 0; i < payload.total; i++) {
-    const cls = ['dot', 'done'];
-    if (isMobile() && i <= serverIdx) cls.push('clickable');
-    dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}"></div>`);
-  }
-  dotsHtml.push('<div class="dot summary active"></div>');
 
   root.innerHTML = `
     <div class="summary-frame journey-frame">
@@ -706,12 +728,27 @@ function renderSummaryJourney(payload) {
       </header>
 
       <main class="journey-body">
-        <section class="journey-maps-grid">
-          ${mapsHtml || `
-            <div class="journey-empty">
-              No hay suficientes coordenadas para pintar el viaje.
-            </div>
-          `}
+        <section class="journey-maps-grid journey-map-single">
+          <section class="journey-map-card journey-map-main">
+            <div class="journey-map-title">${escapeHtml(m.label || 'Europa occidental')}</div>
+
+            <svg
+              class="journey-map-svg"
+              viewBox="0 0 ${mapW} ${mapH}"
+              preserveAspectRatio="xMidYMid slice"
+              aria-hidden="true"
+            >
+
+              <rect class="sea" x="0" y="0" width="${mapW}" height="${mapH}"></rect>
+              <path class="country" d="${m.path}"></path>
+
+              ${points.length > 1 ? `
+                <polyline class="journey-line journey-line-main" points="${linePoints}"></polyline>
+              ` : ''}
+
+              ${pointsHtml}
+            </svg>
+          </section>
         </section>
 
         <aside class="journey-itinerary">
