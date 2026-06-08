@@ -28,10 +28,8 @@ function pickMap(lat, lon) {
   // Canarias: Lanzarote, Tenerife, Gran Canaria, etc.
   // Importante: va antes de Iberia porque Canarias está fuera del bbox peninsular.
   if (lon >= -18.5 && lon <= -13.0 && lat >= 27.5 && lat <= 29.6) return 'canaries';
-
   // Iberia peninsular
   if (lon >= -10 && lon <= 4 && lat >= 35 && lat <= 44) return 'iberia';
-
   if (lon >= 6.5 && lon <= 19 && lat >= 36 && lat <= 47) return 'italy';
   if (lon >= 5.5 && lon <= 16 && lat >= 47.5 && lat <= 55) return 'germany';
   if (lon >= -5 && lon <= 8 && lat >= 41 && lat <= 51) return 'france';
@@ -124,7 +122,9 @@ function renderMap(lat, lon) {
 
   // Zoom dinámico solo en TV/desktop.
   // En móvil seguimos usando Leaflet.
-  const viewBox = getZoomedViewBox(x, y, w, h, 1.65);
+  const zoom = m.zoom || 1.65;
+  const viewBox = getZoomedViewBox(x, y, w, h, zoom);
+
 
   cont.innerHTML = `
     <svg
@@ -480,8 +480,8 @@ function applyUpdate(payload) {
     }
     //mapLabel.textContent = w.do || w.region || 'Región';    
     const mapDisplayLabel =
-      mapKey === 'canaries'
-        ? 'Islas Canarias'
+      mapKey && MAPS_DATA && MAPS_DATA[mapKey] && MAPS_DATA[mapKey].label
+        ? MAPS_DATA[mapKey].label
         : (w.do || w.region || 'Región');
 
     mapLabel.textContent = mapDisplayLabel;
