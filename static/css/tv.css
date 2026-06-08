@@ -158,6 +158,8 @@
   }
   .curio.hidden { display: none; }
   .map-container {
+    opacity: 0;
+    transition: opacity 0.4s ease;    
     background: #ede0bc;
     border: 1px solid #c8a878;
     border-radius: 4px;
@@ -166,6 +168,9 @@
     position: relative;
     overflow: hidden;
   }
+  .map-container.visible {
+    opacity: 1;
+  }  
   .map-label {
     position: absolute;
     top: 1vh;
@@ -181,7 +186,7 @@
     font-weight: 600;
     pointer-events: none;
   }
-  #map-inner { width: 100%; height: 100%; }
+  #map-inner { width: 100%; height: 100%; transition: transform 0.4s ease; }
   /* Mapa Leaflet en móvil, teñido a tono sepia/papel para combinar con la paleta */
   #map-leaflet { width: 100%; height: 100%; background: #ede0bc; }
   #map-leaflet .leaflet-tile {
@@ -211,17 +216,28 @@
   #map-pin { display: none; }
   #map-pin.visible { display: block; }
   #map-pin .pulse {
-    fill: #6e0f2a;
+    fill: rgba(110, 15, 42, 0.35);
     transform-origin: center;
     transform-box: fill-box;
-    animation: pin-pulse 2s infinite;
+    animation: pin-pulse 2.2s ease-out infinite;
   }
-  #map-pin .dot { fill: #6e0f2a; }
+  #map-pin .dot {
+    fill: #6e0f2a;
+    stroke: #fff;
+    stroke-width: 2px;
+  }
   @keyframes pin-pulse {
-    0%   { transform: scale(1); opacity: 0.7; }
-    70%  { transform: scale(4); opacity: 0; }
-    100% { transform: scale(4); opacity: 0; }
+    0%   { transform: scale(0.8); opacity: 0.8; }
+    70%  { transform: scale(3.5); opacity: 0; }
+    100% { transform: scale(3.5); opacity: 0; }
   }
+  #map-pin .pulse:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  #map-pin .pulse:nth-child(2) {
+    animation-delay: 1.1s;
+  }  
   .map-outside-label {
     position: absolute;
     bottom: 1vh;
@@ -1721,4 +1737,93 @@
       padding: 2px 8px;
       top: -8px;
     }
+  }
+  #map-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  #map-svg .sea {
+    fill: #ede0bc;
+  }
+
+  #map-svg .country {
+    fill: #d4c08a;
+    stroke: #a8771a;
+    stroke-width: 0.6;
+    opacity: 0.72;
+  }
+
+  .map-svg-zoomed {
+    /* filter: drop-shadow(0 0.4vh 1vh rgba(80, 40, 20, 0.12)); */
+    filter: none;
+  }
+
+  #map-pin {
+    display: none;
+    pointer-events: none;
+  }
+
+  #map-pin.visible {
+    display: block;
+    animation: pin-appear 0.45s ease-out;
+  }
+
+  #map-pin .map-focus-ring {
+    fill: rgba(168, 119, 26, 0.16);
+    stroke: rgba(110, 15, 42, 0.35);
+    stroke-width: 1.4;
+  }
+
+  #map-pin .pulse {
+    fill: rgba(110, 15, 42, 0.35);
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: pin-pulse 2.2s ease-out infinite;
+  }
+
+  #map-pin .dot {
+    fill: #6e0f2a;
+    stroke: #fff;
+    stroke-width: 2;
+  }
+
+  @keyframes pin-pulse {
+    0% {
+      transform: scale(0.8);
+      opacity: 0.8;
+    }
+
+    70% {
+      transform: scale(3.5);
+      opacity: 0;
+    }
+
+    100% {
+      transform: scale(3.5);
+      opacity: 0;
+    }
+  }
+
+  @keyframes pin-appear {
+    0% {
+      transform: scale(0.65);
+      opacity: 0;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  #map-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: hidden;
+  }
+
+  .map-svg-zoomed {
+    filter: none;
   }

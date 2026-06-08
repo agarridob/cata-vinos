@@ -25,12 +25,31 @@ async function loadMapsData() {
 }
 
 function pickMap(lat, lon) {
-  // Iberia primero: cualquier cosa al oeste de lon 4 y al sur de lat 44 (incluye Rioja y norte español)
+  // Canarias: Lanzarote, Tenerife, Gran Canaria, etc.
+  // Importante: va antes de Iberia porque Canarias está fuera del bbox peninsular.
+  if (lon >= -18.5 && lon <= -13.0 && lat >= 27.5 && lat <= 29.6) return 'canaries';
+
+  // Iberia peninsular
   if (lon >= -10 && lon <= 4 && lat >= 35 && lat <= 44) return 'iberia';
+
   if (lon >= 6.5 && lon <= 19 && lat >= 36 && lat <= 47) return 'italy';
   if (lon >= 5.5 && lon <= 16 && lat >= 47.5 && lat <= 55) return 'germany';
   if (lon >= -5 && lon <= 8 && lat >= 41 && lat <= 51) return 'france';
+
   return null;
+}
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getZoomedViewBox(x, y, w, h, zoom = 1.65) {
+  const viewW = w / zoom;
+  const viewH = h / zoom;
+
+  const minX = clamp(x - viewW / 2, 0, Math.max(0, w - viewW));
+  const minY = clamp(y - viewH / 2, 0, Math.max(0, h - viewH));
+
+  return `${minX} ${minY} ${viewW} ${viewH}`;
 }
 function renderMap(lat, lon) {
   const cont = document.getElementById('map-inner');
@@ -99,16 +118,34 @@ function renderMap(lat, lon) {
   const m = MAPS_DATA[key];
   const [lonMin, lonMax, latMin, latMax] = m.bbox;
   const [w, h] = m.size;
+
   const x = (lon - lonMin) / (lonMax - lonMin) * w;
   const y = (latMax - lat) / (latMax - latMin) * h;
-  cont.innerHTML =
-      `<svg id="map-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">`
-    + `<rect class="sea" width="${w}" height="${h}"/>`
-    + `<path class="country" d="${m.path}"/>`
-    + `<g id="map-pin" class="visible" transform="translate(${x} ${y})">`
-    + `<circle class="pulse" cx="0" cy="0" r="6"/>`
-    + `<circle class="dot" cx="0" cy="0" r="4"/>`
-    + `</g></svg>`;
+
+  // Zoom dinámico solo en TV/desktop.
+  // En móvil seguimos usando Leaflet.
+  const viewBox = getZoomedViewBox(x, y, w, h, 1.65);
+
+  cont.innerHTML = `
+    <svg
+      id="map-svg"
+      class="map-svg-zoomed"
+      viewBox="${viewBox}"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+    >
+      <rect class="sea" x="0" y="0" width="${w}" height="${h}"></rect>
+
+      <path class="country" d="${m.path}"></path>
+
+      <g id="map-pin" class="visible" transform="translate(${x} ${y})">
+        <circle class="map-focus-ring" cx="0" cy="0" r="28"></circle>
+        <circle class="pulse" cx="0" cy="0" r="7"></circle>
+        <circle class="dot" cx="0" cy="0" r="4.8"></circle>
+      </g>
+    </svg>
+  `;
+
   return key;
 }
 
@@ -441,7 +478,13 @@ function applyUpdate(payload) {
       mapOutside.textContent = w.region || w.do || 'Internacional';
       mapOutside.classList.add('visible');
     }
-    mapLabel.textContent = w.do || w.region || 'Región';
+    //mapLabel.textContent = w.do || w.region || 'Región';    
+    const mapDisplayLabel =
+      mapKey === 'canaries'
+        ? 'Islas Canarias'
+        : (w.do || w.region || 'Región');
+
+    mapLabel.textContent = mapDisplayLabel;
   } else {
     mapLabel.textContent = w.do || '—';
     renderMap(null, null);
@@ -1050,13 +1093,28 @@ function renderCurrent() {
   }
 
   const bottleArea = document.getElementById('bottle-area');
-  const infoArea   = document.getElementById('info-area');
+  const infoArea = document.getElementById('info-area');
+  const mapContainer = document.querySelector('.map-container');
+
   bottleArea.classList.add('fade-out');
   infoArea.classList.add('fade-out');
+  if (mapContainer) mapContainer.classList.remove('visible');
+
   setTimeout(() => {
     applyUpdate(localPayload);
+
     bottleArea.classList.remove('fade-out');
     infoArea.classList.remove('fade-out');
+
+    if (mapContainer) {
+      // pequeño delay para que el render ocurra antes del fade-in
+      mapContainer.style.transform = 'scale(0.98)';
+      setTimeout(() => {
+        mapContainer.classList.add('visible');
+        mapContainer.style.transform = 'scale(1)';
+      }, 50);
+    }
+
   }, 400);
 }
 
