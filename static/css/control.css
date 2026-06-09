@@ -39,6 +39,22 @@ input, textarea { user-select: text; }
   font-style: italic;
   font-weight: 600;
 }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.hist-link {
+  border: 1px solid #a8771a;
+  background: rgba(168, 119, 26, 0.10);
+  color: #a8771a;
+  border-radius: 999px;
+  padding: 9px 13px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.hist-link:active { transform: scale(0.97); background: rgba(168, 119, 26, 0.18); }
 .logout-form { margin: 0; flex-shrink: 0; }
 .logout-btn {
   border: 1px solid #6e0f2a;
@@ -238,7 +254,8 @@ input, textarea { user-select: text; }
 @media (max-width: 520px) {
   .header-inner { align-items: flex-start; }
   .header h1 { font-size: 16px; letter-spacing: 3.5px; }
-  .logout-btn { padding: 8px 10px; font-size: 10px; }
+  .logout-btn, .hist-link { padding: 8px 10px; font-size: 10px; }
+  .header-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .tabs { gap: 5px; }
   .tab-btn { font-size: 10px; padding: 9px 4px; letter-spacing: 0.5px; }
   .wine-editor-grid { grid-template-columns: 1fr; }

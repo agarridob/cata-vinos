@@ -1102,6 +1102,197 @@ def api_votes_archive():
     })
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Históricos de catas (solo lectura sobre data/archive/)
+# ─────────────────────────────────────────────────────────────────────────────
+def _archive_dir():
+    return os.path.join(DATA_DIR, 'archive')
+
+
+def _resolve_archive_path(filename):
+    """Devuelve la ruta segura de un archivo de históricos, o None si es inválida."""
+    if not filename or not filename.endswith('.json'):
+        return None
+    # Solo el nombre base: evita path traversal (../, rutas absolutas, etc.)
+    if os.path.basename(filename) != filename:
+        return None
+    path = os.path.join(_archive_dir(), filename)
+    if not os.path.isfile(path):
+        return None
+    return path
+
+
+@app.route('/historico')
+@admin_required
+def historico():
+    return render_template('historico.html')
+
+
+@app.route('/api/historico')
+@admin_required
+def api_historico_list():
+    """Lista las catas archivadas con metadatos básicos."""
+    archive_dir = _archive_dir()
+    items = []
+    if os.path.isdir(archive_dir):
+        for fname in os.listdir(archive_dir):
+            if not fname.endswith('.json'):
+                continue
+            try:
+                with open(os.path.join(archive_dir, fname)) as f:
+                    data = json.load(f)
+            except Exception:
+                continue
+            items.append({
+                'file': fname,
+                'session_name': data.get('session_name', ''),
+                'archived_at': data.get('archived_at', ''),
+                'n_wines': len(data.get('wines', [])),
+                'n_users': len(data.get('users', {})),
+            })
+    # Más recientes primero (el nombre empieza por YYYY-MM-DD)
+    items.sort(key=lambda x: (x['archived_at'], x['file']), reverse=True)
+    return jsonify({'catas': items})
+
+
+def _wine_identity(wine):
+    """Clave de identidad de un vino: bodega + nombre + añada (normalizada)."""
+    winery = str(wine.get('winery', '')).strip().lower()
+    name = str(wine.get('name', '')).strip().lower()
+    vintage = str(wine.get('vintage', '')).strip().lower()
+    return f'{winery}|{name}|{vintage}'
+
+
+def _split_grapes(grape):
+    """Separa un campo de uva ('Viura, Garnacha') en lista de uvas."""
+    if not grape:
+        return []
+    return [g.strip() for g in str(grape).replace(';', ',').split(',') if g.strip()]
+
+
+@app.route('/api/historico-wines')
+@admin_required
+def api_historico_wines():
+    """Catálogo de vinos agregado entre todas las catas (clave: bodega+nombre+añada)."""
+    archive_dir = _archive_dir()
+    wines_by_key = {}
+    wineries, dos, grapes = set(), set(), set()
+
+    if os.path.isdir(archive_dir):
+        for fname in sorted(os.listdir(archive_dir)):
+            if not fname.endswith('.json'):
+                continue
+            try:
+                with open(os.path.join(archive_dir, fname)) as f:
+                    data = json.load(f)
+            except Exception:
+                continue
+
+            session_name = data.get('session_name', '')
+            archived_at = data.get('archived_at', '')
+            users = data.get('users', {})
+            votes = data.get('votes', {})
+
+            for idx, wine in enumerate(data.get('wines', [])):
+                key = _wine_identity(wine)
+
+                # Votos de este vino en esta cata
+                rows, total, n = [], 0, 0
+                for uid, uv in votes.items():
+                    v = uv.get(str(idx), uv.get(idx))
+                    if not v:
+                        continue
+                    user = users.get(uid, {})
+                    score = v.get('score')
+                    if isinstance(score, (int, float)):
+                        total += score
+                        n += 1
+                    comment = v.get('comment', '')
+                    if comment:
+                        rows.append({
+                            'session_name': session_name,
+                            'archived_at': archived_at,
+                            'user': user.get('name', '¿?'),
+                            'color': user.get('color', 'gray'),
+                            'score': score if isinstance(score, (int, float)) else None,
+                            'text': comment,
+                        })
+
+                cata_avg = (total / n) if n else None
+
+                entry = wines_by_key.get(key)
+                if entry is None:
+                    entry = {
+                        'key': key,
+                        'name': wine.get('name', ''),
+                        'winery': wine.get('winery', ''),
+                        'vintage': wine.get('vintage', ''),
+                        'do': wine.get('do', ''),
+                        'grape': wine.get('grape', ''),
+                        'region': wine.get('region', ''),
+                        'photo': wine.get('photo', ''),
+                        'price': wine.get('price', ''),
+                        'rating': wine.get('rating', ''),
+                        'grapes': _split_grapes(wine.get('grape', '')),
+                        '_total': 0,
+                        '_n': 0,
+                        'catas': [],
+                        'comments': [],
+                    }
+                    wines_by_key[key] = entry
+
+                entry['_total'] += total
+                entry['_n'] += n
+                entry['catas'].append({
+                    'session_name': session_name,
+                    'archived_at': archived_at,
+                    'avg': cata_avg,
+                    'n': n,
+                })
+                entry['comments'].extend(rows)
+
+                if entry['winery']:
+                    wineries.add(entry['winery'])
+                if entry['do']:
+                    dos.add(entry['do'])
+                grapes.update(entry['grapes'])
+
+    wines = []
+    for e in wines_by_key.values():
+        e['avg'] = (e['_total'] / e['_n']) if e['_n'] else None
+        e['n_votes'] = e['_n']
+        e['n_catas'] = len(e['catas'])
+        del e['_total'], e['_n']
+        wines.append(e)
+
+    # Mayor nota media primero; sin votos al final
+    wines.sort(key=lambda w: (w['avg'] is not None, w['avg'] or 0), reverse=True)
+
+    return jsonify({
+        'wines': wines,
+        'facets': {
+            'wineries': sorted(wineries, key=str.lower),
+            'dos': sorted(dos, key=str.lower),
+            'grapes': sorted(grapes, key=str.lower),
+        },
+    })
+
+
+@app.route('/api/historico/<path:filename>')
+@admin_required
+def api_historico_detail(filename):
+    """Devuelve el JSON completo de una cata archivada."""
+    path = _resolve_archive_path(filename)
+    if not path:
+        return jsonify({'error': 'not_found'}), 404
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except Exception as e:
+        return jsonify({'error': f'read_failed: {e}'}), 500
+    return jsonify(data)
+
+
 @app.route('/api/votes/wipe', methods=['POST'])
 @admin_required
 def api_votes_wipe():

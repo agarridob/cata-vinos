@@ -12,6 +12,7 @@ La app está pensada para una dinámica de cata compartida:
 - Cada invitado puede identificarse con nombre y color, votar vinos y dejar comentarios.
 - La pantalla se actualiza en directo mediante **Server-Sent Events**.
 - La carta de vinos puede editarse visualmente desde el panel de control.
+- Las catas pasadas pueden consultarse desde `/historico` (protegido con login), por cata o por vino.
 - La configuración WiFi puede gestionarse desde la pestaña **Admin**.
 - La pantalla TV usa mapas SVG regionales, zoom dinámico y una vista animada del viaje de la cata.
 - La versión móvil usa Leaflet con OpenStreetMap y fallback CSS robusto para asegurar el render del mapa.
@@ -144,6 +145,37 @@ Ejemplo de configuración WiFi en `wines.json`:
   "password": "clave123"
 }
 ```
+
+---
+
+## 📚 Históricos de catas (`/historico`)
+
+Vista de solo lectura, protegida con el mismo login que `/control`, sobre las
+sesiones archivadas en `data/archive/`. Se accede desde el botón **🍷 Históricos**
+del header del panel de control.
+
+Una pantalla inicial permite elegir el tipo de análisis:
+
+### Por cata
+
+Revive una cata completa. Para cada vino muestra foto, datos, **nota media**,
+**ranking** dentro de esa cata y el desglose por catador (su puntuación y su
+comentario), con el color de copa de cada invitado.
+
+### Por vino
+
+**Catálogo histórico** de todos los vinos catados alguna vez, ordenado por nota
+media. La identidad de un vino es **bodega + nombre + añada**: la misma botella
+catada en varias sesiones se agrupa en una sola ficha.
+
+- **Filtros** por bodega, uva y D.O. + buscador de texto. El campo de uva
+  admite coupages (`Viura, Garnacha Blanca, …`) y filtra por cualquiera de ellas.
+- Al abrir un vino: su **media histórica**, el **desglose por cata** (ves si subió
+  o bajó entre sesiones) y **todos los comentarios** agregados de todas las catas.
+
+> La agrupación por vino es sensible a cómo se escriben los datos: si la añada o el
+> nombre se introducen distinto en dos catas (`2024` vs `'24`), se tratarán como
+> vinos diferentes.
 
 ---
 
@@ -524,7 +556,8 @@ cata-vinos/
 ├── data/
 │   ├── wines.json
 │   ├── votes.json
-│   └── _state.json
+│   ├── _state.json
+│   └── archive/              # catas archivadas (fuente de /historico)
 ├── static/
 │   ├── css/
 │   │   ├── app.css
@@ -545,6 +578,7 @@ cata-vinos/
 ├── templates/
 │   ├── app.html
 │   ├── control.html
+│   ├── historico.html
 │   └── login.html
 └── tools/
     ├── build_canaries_map.py
@@ -743,6 +777,14 @@ PATCH  /api/me/<user_id>
 DELETE /api/me/<user_id>
 ```
 
+Históricos (solo lectura, requieren login):
+
+```http
+GET /api/historico              # índice de catas archivadas
+GET /api/historico/<archivo>    # JSON completo de una cata
+GET /api/historico-wines        # catálogo de vinos agregado entre catas
+```
+
 ---
 
 ## 🗳️ Sistema de votación
@@ -835,6 +877,8 @@ python tools/build_journey_europe_map.py \
 
 ## 🗺️ Roadmap
 
+- Rate limit el login page
+- Cambiar color de tarjetas de vino en función de espumoso, blanco, rosa, orange o tinto
 - Exportar resultados en CSV/JSON.
 - Histórico visual de sesiones archivadas.
 - Más mapas regionales.
