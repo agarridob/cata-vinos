@@ -680,6 +680,20 @@ journalctl -u cata-vinos -f
 
 ---
 
+## Acceso externo (opcional)
+
+La app sirve en la red local por defecto. Para exponerla a internet de forma
+puntual hay un túnel Cloudflare instalado como servicio systemd, parado y
+deshabilitado por defecto:
+
+    systemctl start cloudflared    # activar acceso externo
+    systemctl stop cloudflared     # desactivar
+    systemctl is-active cloudflared
+
+No arranca solo al reiniciar (intencionado): se activa a mano solo cuando se necesita.
+
+---
+
 ## 🔌 API principal
 
 Estado y navegación:
