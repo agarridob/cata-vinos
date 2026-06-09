@@ -73,7 +73,29 @@
     gap: 1.8vh;
     min-height: 0;
     transition: opacity 0.4s ease;
+    position: relative;
   }
+  /* Chip de tipo de vino: arriba a la derecha de la ficha en TV */
+  .wine-type {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--wine-type-color, #8a5a2a);
+    color: #f5ecd5;
+    font-size: 1.6vh;
+    font-weight: 800;
+    letter-spacing: 0.3vh;
+    text-transform: uppercase;
+    padding: 0.7vh 1.5vh;
+    border-radius: 0.8vh;
+    white-space: nowrap;
+  }
+  .wine-type.hidden { display: none; }
+  .wine-type[data-wine-type="tinto"]    { --wine-type-color: #7b1e3a; }
+  .wine-type[data-wine-type="blanco"]   { --wine-type-color: #c9a227; }
+  .wine-type[data-wine-type="rosado"]   { --wine-type-color: #e0788c; }
+  .wine-type[data-wine-type="orange"]   { --wine-type-color: #c8762e; }
+  .wine-type[data-wine-type="espumoso"] { --wine-type-color: #9c8b3a; }
   .fade-out { opacity: 0; }
   .wine-name {
     font-size: 6vh;
@@ -648,6 +670,16 @@
     .meta      { gap: 7px; padding: 4px 0; }
     .meta-system { font-size: 11px; letter-spacing: 2px; }
     .meta-score  { font-size: 26px; }
+    /* En móvil el chip va en el flujo (no flotando), alineado a la derecha */
+    .wine-type {
+      position: static;
+      align-self: flex-end;
+      margin-top: -6px;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      padding: 5px 11px;
+      border-radius: 6px;
+    }
     .data-grid {
       grid-template-columns: 1fr;
       gap: 12px 0;

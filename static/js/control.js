@@ -331,12 +331,12 @@ function setWinesEditorStatus(msg, isError = false) {
 }
 
 function emptyWine() {
-  return { name: '', winery: '', vintage: '', do: '', grape: '', region: '', rating: '', curiosity: '', photo: '', coords: ['', ''] };
+  return { name: '', winery: '', vintage: '', do: '', grape: '', region: '', rating: '', curiosity: '', photo: '', type: '', coords: ['', ''] };
 }
 
 function normalizeWineForEditor(w) {
   const out = emptyWine();
-  ['name','winery','vintage','do','grape','region','rating','curiosity','photo'].forEach(k => {
+  ['name','winery','vintage','do','grape','region','rating','curiosity','photo','type'].forEach(k => {
     out[k] = w && w[k] != null ? String(w[k]) : '';
   });
   if (w && Array.isArray(w.coords) && w.coords.length === 2) {
@@ -406,6 +406,7 @@ function renderWinesEditor() {
         ${editorField('Añada', 'vintage', w.vintage)}
         ${editorField('D.O.', 'do', w.do)}
         ${editorField('Uva', 'grape', w.grape)}
+        ${editorSelect('Tipo', 'type', w.type, WINE_TYPE_OPTIONS)}
         ${editorField('Región', 'region', w.region)}
         ${editorField('Rating', 'rating', w.rating)}
         ${editorField('Foto', 'photo', w.photo)}
@@ -423,13 +424,29 @@ function editorField(label, field, value) {
   return `<label class="editor-label">${label}<input class="editor-input" data-field="${field}" value="${escapeAttr(value || '')}"></label>`;
 }
 
+const WINE_TYPE_OPTIONS = [
+  ['', '— sin definir —'],
+  ['tinto', 'Tinto'],
+  ['blanco', 'Blanco'],
+  ['rosado', 'Rosado'],
+  ['orange', 'Orange'],
+  ['espumoso', 'Espumoso'],
+];
+
+function editorSelect(label, field, value, options) {
+  const opts = options.map(([val, txt]) =>
+    `<option value="${escapeAttr(val)}"${val === (value || '') ? ' selected' : ''}>${escapeHtml(txt)}</option>`
+  ).join('');
+  return `<label class="editor-label">${label}<select class="editor-input" data-field="${field}">${opts}</select></label>`;
+}
+
 function buildWinesEditorPayload() {
   collectWinesEditorData();
   return {
     session: winesEditorData.session,
     wifi: winesEditorData.wifi,
     wines: winesEditorData.wines.map(w => {
-      const out = { name: w.name || '', winery: w.winery || '', vintage: w.vintage || '', do: w.do || '', grape: w.grape || '', region: w.region || '', rating: w.rating || '', curiosity: w.curiosity || '', photo: w.photo || '' };
+      const out = { name: w.name || '', winery: w.winery || '', vintage: w.vintage || '', do: w.do || '', grape: w.grape || '', region: w.region || '', rating: w.rating || '', curiosity: w.curiosity || '', photo: w.photo || '', type: w.type || '' };
       const lat = String(w.coords?.[0] || '').trim();
       const lon = String(w.coords?.[1] || '').trim();
       if (lat !== '' && lon !== '') out.coords = [Number(lat), Number(lon)];
