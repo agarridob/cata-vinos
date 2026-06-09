@@ -2,6 +2,33 @@
 // VISTA BIENVENIDA — QRs (TV) y bloque de registro (móvil)
 // ════════════════════════════════════════════════════════════════════════
 
+// Desglose de la carta por tipo de vino, p.ej. ", 1 espumoso, 3 blancos y 3 tintos".
+// Orden de cata (de ligero a potente). Devuelve '' si ningún vino tiene tipo.
+function winesTypeBreakdownHtml(wines) {
+  if (!Array.isArray(wines)) return '';
+  const labels = {
+    espumoso: ['espumoso', 'espumosos'],
+    blanco:   ['blanco', 'blancos'],
+    rosado:   ['rosado', 'rosados'],
+    orange:   ['orange', 'orange'],
+    tinto:    ['tinto', 'tintos'],
+  };
+  const order = ['espumoso', 'blanco', 'rosado', 'orange', 'tinto'];
+  const counts = {};
+  wines.forEach(w => {
+    const t = w && w.type;
+    if (labels[t]) counts[t] = (counts[t] || 0) + 1;
+  });
+  const parts = order
+    .filter(t => counts[t])
+    .map(t => `${counts[t]} ${labels[t][counts[t] === 1 ? 0 : 1]}`);
+  if (!parts.length) return '';
+  const text = parts.length === 1
+    ? parts[0]
+    : parts.slice(0, -1).join(', ') + ' y ' + parts[parts.length - 1];
+  return `<span class="welcome-host-breakdown"> · ${text}</span>`;
+}
+
 function renderWelcome(payload) {
   const mobile = isMobile();
   // Configuración WiFi (desde wines.json). Si no existe o show=false, no se muestra el QR del WiFi.
@@ -128,7 +155,7 @@ function renderWelcome(payload) {
       ${!mobile ? '<div class="welcome-cta">Escanea con tu móvil para unirte</div>' : ''}
       ${mobileBlockHtml}
       ${guestsHtml}
-      <div class="welcome-host-info">${payload.total} ${payload.total === 1 ? 'vino' : 'vinos'} en cata</div>
+      <div class="welcome-host-info">${payload.total} ${payload.total === 1 ? 'vino' : 'vinos'} en cata${winesTypeBreakdownHtml(payload.all_wines)}</div>
     </div>`;
 
   // En móvil, si NO hay identidad, abrir el modal directamente (a los 600ms para que se vea la bienvenida primero)
