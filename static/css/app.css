@@ -117,10 +117,22 @@
   .meta {
     display: flex;
     align-items: baseline;
-    gap: 1.2vh;
+    flex-wrap: wrap;
+    gap: 1vh;
     padding: 0.4vh 0;
   }
   .meta.hidden { display: none; }
+  /* Cada par "Sistema 95" se mantiene junto; varios pares se separan con un · */
+  .meta-pair {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1.2vh;
+  }
+  .meta-sep {
+    color: #c8a878;
+    font-size: 2.4vh;
+    font-weight: 700;
+  }
   .meta-system {
     font-size: 1.6vh;
     letter-spacing: 0.4vh;
@@ -502,8 +514,18 @@
   .summary-card-rating {
     display: none;
     align-items: baseline;
+    flex-wrap: wrap;
     gap: 0.8vh;
     margin-top: 0.8vh;
+  }
+  .summary-card-rating-pair {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.8vh;
+  }
+  .summary-card-rating-sep {
+    color: #c8a878;
+    font-weight: 700;
   }
   .summary-card-rating-sys {
     font-size: 1.7vh;
@@ -670,6 +692,8 @@
     .wine-name { font-size: 32px; line-height: 1.05; letter-spacing: -0.8px; }
     .winery    { font-size: 13px; letter-spacing: 2.5px; margin-top: 6px; }
     .meta      { gap: 7px; padding: 4px 0; }
+    .meta-pair { gap: 7px; }
+    .meta-sep  { font-size: 18px; }
     .meta-system { font-size: 11px; letter-spacing: 2px; }
     .meta-score  { font-size: 26px; }
     /* En móvil no usamos chip: el tipo se indica con un acento de color en el
@@ -798,6 +822,7 @@
       overflow: hidden;
     }
     .summary-card-rating  { display: flex; gap: 5px; margin-top: 4px; }
+    .summary-card-rating-pair { gap: 5px; }
     .summary-card-rating-sys { font-size: 9px; letter-spacing: 1.5px; }
     .summary-card-rating-sco { font-size: 18px; }
   }

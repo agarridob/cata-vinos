@@ -340,18 +340,12 @@ function renderSummary(payload) {
       const doText = w.do || '';
 
       let ratingHtml = '';
-      if (w.rating && String(w.rating).trim()) {
-        const m = String(w.rating).match(/^(\S+)\s+(.+)$/);
-        if (m) {
-          ratingHtml = `<div class="summary-card-rating">
-            <span class="summary-card-rating-sys">${escapeHtml(m[1])}</span>
-            <span class="summary-card-rating-sco">${escapeHtml(m[2])}</span>
-          </div>`;
-        } else {
-          ratingHtml = `<div class="summary-card-rating">
-            <span class="summary-card-rating-sco">${escapeHtml(w.rating)}</span>
-          </div>`;
-        }
+      const ratingPairs = parseRatingPairs(w.rating);
+      if (ratingPairs.length) {
+        const inner = ratingPairs.map(p =>
+          `<span class="summary-card-rating-pair">${p.sys ? `<span class="summary-card-rating-sys">${escapeHtml(p.sys)}</span>` : ''}<span class="summary-card-rating-sco">${escapeHtml(p.sco)}</span></span>`
+        ).join('<span class="summary-card-rating-sep">·</span>');
+        ratingHtml = `<div class="summary-card-rating">${inner}</div>`;
       }
 
       const vintageInline = w.vintage ? `<span class="summary-card-vintage">${escapeHtml(String(w.vintage))}</span>` : '';
