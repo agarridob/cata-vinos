@@ -2,21 +2,24 @@
 
 .DEFAULT_GOAL := dev
 
-# Activar entorno virtual y lanzar en dev
+# Usamos el intérprete del venv directamente (vía `python -m ...`) en lugar de
+# `source .venv/bin/activate`. El activate guarda la ruta absoluta del venv a la
+# hora de crearlo, así que se rompe si mueves el proyecto de carpeta; invocar el
+# python del venv por su ruta es inmune a eso.
+PY := .venv/bin/python
+
+# Lanzar en dev (con recarga automática)
 dev:
-	source .venv/bin/activate && \
-	export FLASK_APP=app.py && \
-	export FLASK_ENV=development && \
-	flask run --host=0.0.0.0 --port=5001
+	FLASK_APP=app.py FLASK_DEBUG=1 $(PY) -m flask run --host=0.0.0.0 --port=5001
 
 # Instalar dependencias
 install:
-	source .venv/bin/activate && pip install -r requirements.txt
+	$(PY) -m pip install -r requirements.txt
 
 # Actualizar requirements.txt
 freeze:
-	source .venv/bin/activate && pip freeze > requirements.txt
+	$(PY) -m pip freeze > requirements.txt
 
 # Arranque rápido sin debug (tipo prod local)
 run:
-	source .venv/bin/activate && flask --app app run --host 0.0.0.0 --port 5001
+	$(PY) -m flask --app app run --host 0.0.0.0 --port 5001
