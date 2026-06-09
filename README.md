@@ -898,10 +898,11 @@ python tools/build_journey_europe_map.py \
 
 ## 🗺️ Roadmap
 
-- Rate limit el login page
 - Cambiar color de tarjetas de vino en función de espumoso, blanco, rosa, orange o tinto
-- Exportar resultados en CSV/JSON.
-- Histórico visual de sesiones archivadas.
+- Rate limit el login page
+- Mejorar la tarjeta de móvil visualmente: mejorar estrellas, campo de comentario. Posiblemente alternar el orden mapa/votar
+- ~~Exportar resultados en CSV/JSON.~~
+- ~~Histórico visual de sesiones archivadas.~~
 - Más mapas regionales.
 - Fallback visual para vinos sin coordenadas.
 - Mapa mundial opcional para catas no europeas.
