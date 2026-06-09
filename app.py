@@ -1198,6 +1198,7 @@ def api_historico_wines():
 
                 # Votos de este vino en esta cata
                 rows, total, n = [], 0, 0
+                dist = [0, 0, 0, 0, 0]  # nº de votos con nota 1..5
                 for uid, uv in votes.items():
                     v = uv.get(str(idx), uv.get(idx))
                     if not v:
@@ -1207,6 +1208,8 @@ def api_historico_wines():
                     if isinstance(score, (int, float)):
                         total += score
                         n += 1
+                        if 1 <= int(score) <= 5:
+                            dist[int(score) - 1] += 1
                     comment = v.get('comment', '')
                     if comment:
                         rows.append({
@@ -1236,6 +1239,7 @@ def api_historico_wines():
                         'grapes': _split_grapes(wine.get('grape', '')),
                         '_total': 0,
                         '_n': 0,
+                        'dist': [0, 0, 0, 0, 0],
                         'catas': [],
                         'comments': [],
                     }
@@ -1243,6 +1247,8 @@ def api_historico_wines():
 
                 entry['_total'] += total
                 entry['_n'] += n
+                for i in range(5):
+                    entry['dist'][i] += dist[i]
                 entry['catas'].append({
                     'session_name': session_name,
                     'archived_at': archived_at,
