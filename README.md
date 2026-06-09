@@ -12,7 +12,7 @@ La app está pensada para una dinámica de cata compartida:
 - Cada invitado puede identificarse con nombre y color, votar vinos y dejar comentarios.
 - La pantalla se actualiza en directo mediante **Server-Sent Events**.
 - La carta de vinos puede editarse visualmente desde el panel de control.
-- Las catas pasadas pueden consultarse desde `/historico` (protegido con login), por cata o por vino.
+- Las catas pasadas pueden consultarse desde `/historico` (protegido con login): por cata, por vino o con estadísticas globales.
 - La configuración WiFi puede gestionarse desde la pestaña **Admin**.
 - La pantalla TV usa mapas SVG regionales, zoom dinámico y una vista animada del viaje de la cata.
 - La versión móvil usa Leaflet con OpenStreetMap y fallback CSS robusto para asegurar el render del mapa.
@@ -179,6 +179,24 @@ catada en varias sesiones se agrupa en una sola ficha.
 > La agrupación por vino es sensible a cómo se escriben los datos: si la añada o el
 > nombre se introducen distinto en dos catas (`2024` vs `'24`), se tratarán como
 > vinos diferentes.
+
+### Estadísticas
+
+Palmarés agregado de **todas** las catas (se calcula en el cliente sobre
+`/api/historico-wines`, sin endpoint extra):
+
+- **🎖️ Premios**: tarjetas con el favorito de la casa, el más divisivo (mayor
+  dispersión de notas), el chollo (mejor relación nota/precio) y la uva estrella.
+- **🏆 Podio de vinos**: rankings de mejor valorados, más divisivos, mejor
+  calidad-precio y los olvidables. Los rankings de vino exigen un mínimo de votos
+  (`MIN_VOTES`, relajado automáticamente si hay pocos datos).
+- **🍇 Por categoría**: mejores bodegas, uvas y D.O. (media ponderada por votos).
+- **🔢 Números de la casa**: totales (catas, vinos, votos, comentarios), el vino
+  más repetido y un histograma global de todas las puntuaciones.
+
+> No hay estadísticas **por catador** (más activo, más exigente…) porque la
+> identidad de un invitado solo es su nombre, sin identificador estable. Queda
+> pendiente para cuando se pida email en el registro.
 
 ---
 
