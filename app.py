@@ -702,16 +702,99 @@ def api_reload():
     broadcast_update()
     return jsonify({'status': 'ok', 'count': len(wines), 'session': session_name})
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Tipo de vino (tinto/blanco/rosado/orange/espumoso) — para colorear tarjetas.
+# No se guarda obligatoriamente; si falta, se intenta adivinar (modo híbrido:
+# el editor muestra la sugerencia y el anfitrión la confirma o corrige).
+# ─────────────────────────────────────────────────────────────────────────────
+WINE_TYPES = ('tinto', 'blanco', 'rosado', 'orange', 'espumoso')
+
+_SPARKLING_KW = (
+    'espumoso', 'brut', 'cava', 'crémant', 'cremant', 'champagne', 'champán',
+    'champan', 'prosecco', 'franciacorta', 'lambrusco', 'spumante', 'sekt',
+    'pét nat', 'pet nat', 'pétillant', 'petillant', 'ancestral',
+    'blanc de blancs', 'blanc de noirs', 'metodo tradicional', 'método tradicional',
+)
+_ORANGE_KW = ('orange', 'naranja', 'ámbar', 'macerado', 'maceración', 'maceracion',
+              'brisat', 'skin contact', 'vino naranja')
+_ROSE_KW = ('rosado', 'rosé', 'rosat', 'clarete')
+_WHITE_NAME_KW = ('blanco', 'blanc', 'white', 'txakoli', 'txakolina')
+_RED_NAME_KW = ('tinto', 'negre', 'negro', 'noir', 'rouge', 'rosso')
+_WHITE_GRAPES = (
+    'albariño', 'albarino', 'verdejo', 'godello', 'viura', 'macabeo', 'macabeu',
+    'xarel', 'parellada', 'chardonnay', 'sauvignon', 'riesling', 'gewürztraminer',
+    'gewurztraminer', 'malvasía', 'malvasia', 'moscatel', 'pedro ximénez',
+    'pedro ximenez', 'palomino', 'chenin', 'garnacha blanca', 'treixadura',
+    'loureiro', 'listán blanco', 'listan blanco', 'airén', 'airen', 'merseguera',
+    'maturana blanca', 'albillo',
+)
+_RED_GRAPES = (
+    'tempranillo', 'garnacha', 'mencía', 'mencia', 'monastrell', 'syrah', 'shiraz',
+    'cabernet', 'merlot', 'pinot noir', 'bobal', 'cariñena', 'carinena', 'mazuelo',
+    'graciano', 'listán negro', 'listan negro', 'negramoll', 'sumoll', 'trepat',
+    'nebbiolo', 'sangiovese', 'gamay', 'malbec', 'petit verdot', 'forcallà',
+    'forcalla', 'forcallá', 'mandó', 'mando', 'sousón', 'souson', 'brancellao',
+    'caíño', 'caino', 'tinto fino',
+)
+
+
+def _grape_color(token):
+    """Color de una uva suelta: 'blanco', 'tinto' o ''. Pistas de color primero."""
+    if 'blanc' in token:               # "garnacha blanca", "chenin blanc"
+        return 'blanco'
+    if 'tinto' in token or 'negr' in token:
+        return 'tinto'
+    if any(g in token for g in _WHITE_GRAPES):
+        return 'blanco'
+    if any(g in token for g in _RED_GRAPES):
+        return 'tinto'
+    return ''
+
+
+def guess_wine_type(wine):
+    """Adivina el tipo de vino por nombre/DO/uva. Devuelve '' si no está claro."""
+    name = str(wine.get('name', '')).lower()
+    do = str(wine.get('do', '')).lower()
+    grape = str(wine.get('grape', '')).lower()
+    name_do = f'{name} {do}'
+
+    if any(k in name_do for k in _SPARKLING_KW):
+        return 'espumoso'
+    if any(k in name for k in _ORANGE_KW):
+        return 'orange'
+    if any(k in name for k in _ROSE_KW):
+        return 'rosado'
+    if any(k in name for k in _WHITE_NAME_KW):
+        return 'blanco'
+    if any(k in name for k in _RED_NAME_KW):
+        return 'tinto'
+    # Por uva: manda la dominante (la primera); si no, cualquiera
+    tokens = [t.strip() for t in grape.split(',') if t.strip()]
+    if tokens:
+        color = _grape_color(tokens[0])
+        if color:
+            return color
+        for t in tokens[1:]:
+            color = _grape_color(t)
+            if color:
+                return color
+    return ''
+
+
 @app.route('/api/wines-config', methods=['GET'])
 @admin_required
 def api_wines_config_get():
     """
     Devuelve el contenido editable de data/wines.json.
+    Rellena 'type' con una sugerencia cuando falta (modo híbrido).
     Solo anfitrión.
     """
     try:
         with open(WINES_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
+        for wine in data.get('wines', []):
+            if not wine.get('type'):
+                wine['type'] = guess_wine_type(wine)
         return jsonify(data)
     except FileNotFoundError:
         return jsonify({
@@ -767,6 +850,11 @@ def api_wines_config_save():
             if value is None:
                 value = ''
             cleaned[field] = str(value).strip()
+
+        # Tipo de vino (opcional, validado contra la lista permitida)
+        wine_type = str(wine.get('type', '')).strip().lower()
+        if wine_type in WINE_TYPES:
+            cleaned['type'] = wine_type
 
         # coords opcional: [lat, lon]
         coords = wine.get('coords')

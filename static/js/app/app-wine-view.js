@@ -25,6 +25,7 @@ function ensureLayout() {
           <span class="meta-system" id="meta-system"></span>
           <span class="meta-score" id="meta-score"></span>
         </div>
+        <div class="wine-type hidden" id="wine-type"></div>
         <div class="tv-vote-pill" id="tv-vote-pill">
           <span class="tv-vote-stars" id="tv-vote-pill-stars">☆☆☆☆☆</span>
           <span class="tv-vote-value" id="tv-vote-pill-value">—</span>
@@ -102,6 +103,20 @@ function applyUpdate(payload) {
   document.getElementById('d-do').textContent      = w.do || '—';
   document.getElementById('d-grape').textContent   = w.grape || '—';
   document.getElementById('d-region').textContent  = w.region || w.do || '—';
+
+  // Chip de tipo de vino (color), en TV y móvil
+  const wineTypeEl = document.getElementById('wine-type');
+  if (wineTypeEl) {
+    const wineType = WINE_TYPE_LABELS[w.type] ? w.type : '';
+    if (wineType) {
+      wineTypeEl.textContent = WINE_TYPE_LABELS[wineType];
+      wineTypeEl.dataset.wineType = wineType;
+      wineTypeEl.classList.remove('hidden');
+    } else {
+      wineTypeEl.removeAttribute('data-wine-type');
+      wineTypeEl.classList.add('hidden');
+    }
+  }
 
   // Meta: solo puntuación (precio se ignora, queda en JSON pero oculto)
   const meta       = document.getElementById('meta');

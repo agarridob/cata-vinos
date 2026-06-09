@@ -119,6 +119,7 @@ Campos editables:
 - Añada.
 - D.O.
 - Uva.
+- Tipo (tinto / blanco / rosado / orange / espumoso) — muestra un chip de color en la ficha de cada vino (TV y móvil). Se pre-rellena con una sugerencia automática (por uva/DO/nombre) que el anfitrión puede corregir.
 - Región.
 - Rating.
 - Curiosidad.
@@ -898,8 +899,9 @@ python tools/build_journey_europe_map.py \
 
 ## 🗺️ Roadmap
 
-- Cambiar color de tarjetas de vino en función de espumoso, blanco, rosa, orange o tinto
+- ~~Cambiar color de tarjetas de vino en función de espumoso, blanco, rosado, orange o tinto~~
 - Rate limit el login page
+- Crear juego de adivinación con el mapa
 - Mejorar la tarjeta de móvil visualmente: mejorar estrellas, campo de comentario. Posiblemente alternar el orden mapa/votar
 - ~~Exportar resultados en CSV/JSON.~~
 - ~~Histórico visual de sesiones archivadas.~~
