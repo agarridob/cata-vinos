@@ -204,6 +204,31 @@
     .wd-head .global .avg small { font-size: 14px; opacity: .8; }
     .wd-head .global .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; opacity: .85; }
     .wd-section-title { margin: 22px 0 8px; color: #a8771a; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; }
+
+    /* ── Gráficas (ficha de vino) ── */
+    .chart-card {
+      background: rgba(255,255,255,0.55);
+      border: 1px solid #c8a878;
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: 0 6px 18px rgba(80,40,20,0.08);
+    }
+    /* Histograma de puntuaciones */
+    .hist-row { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+    .hist-label { flex: 0 0 34px; font-size: 13px; font-weight: 800; color: #6e0f2a; text-align: right; }
+    .hist-track { flex: 1 1 auto; height: 16px; background: rgba(110,15,42,0.07); border-radius: 4px; overflow: hidden; }
+    .hist-fill { height: 100%; background: #6e0f2a; border-radius: 4px; min-width: 2px; transition: width .3s ease; }
+    .hist-fill.zero { background: transparent; }
+    .hist-val { flex: 0 0 28px; font-size: 13px; color: #5a4030; font-weight: 700; }
+    /* Línea de evolución */
+    .trend svg { width: 100%; height: auto; display: block; }
+    .trend .axis { stroke: #c8a878; stroke-width: 1; }
+    .trend .grid { stroke: #c8a878; stroke-width: 1; opacity: .35; }
+    .trend .line { fill: none; stroke: #6e0f2a; stroke-width: 2.5; }
+    .trend .dot { fill: #f5ecd5; stroke: #6e0f2a; stroke-width: 2.5; }
+    .trend .val { fill: #6e0f2a; font-size: 12px; font-weight: 800; text-anchor: middle; }
+    .trend .xlabel { fill: #8a5a2a; font-size: 11px; text-anchor: middle; }
+    .trend .ylabel { fill: #b39b78; font-size: 10px; text-anchor: end; }
   </style>
 </head>
 <body>
@@ -511,6 +536,67 @@
       });
     }
 
+    function fmtDateShort(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    }
+
+    // Histograma de puntuaciones (5★ → 1★)
+    function renderDistChart(dist, nVotes) {
+      if (!dist || !nVotes) return null;
+      const max = Math.max(...dist, 1);
+      const card = el('div', 'chart-card');
+      for (let s = 5; s >= 1; s--) {
+        const count = dist[s - 1] || 0;
+        const row = el('div', 'hist-row');
+        row.appendChild(el('span', 'hist-label', s + '★'));
+        const track = el('div', 'hist-track');
+        const fill = el('div', 'hist-fill' + (count ? '' : ' zero'));
+        fill.style.width = (count / max * 100) + '%';
+        track.appendChild(fill);
+        row.appendChild(track);
+        row.appendChild(el('span', 'hist-val', String(count)));
+        card.appendChild(row);
+      }
+      return card;
+    }
+
+    // Línea de evolución de la nota media entre catas (cronológica)
+    function renderTrendChart(catas) {
+      const pts = (catas || []).filter(c => c.avg !== null && c.avg !== undefined);
+      if (pts.length < 2) return null;
+
+      const W = 320, H = 150, padL = 22, padR = 16, padTop = 18, padBot = 30;
+      const plotW = W - padL - padR, plotH = H - padTop - padBot;
+      const x = i => padL + plotW * i / (pts.length - 1);
+      const y = v => padTop + plotH * (1 - v / 5);
+
+      let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de la nota media">`;
+      // Rejilla horizontal 0..5 con etiqueta de eje
+      for (let v = 0; v <= 5; v++) {
+        const yy = y(v);
+        svg += `<line class="grid" x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" />`;
+        svg += `<text class="ylabel" x="${padL - 5}" y="${yy + 3}">${v}</text>`;
+      }
+      // Línea
+      const poly = pts.map((c, i) => `${x(i).toFixed(1)},${y(c.avg).toFixed(1)}`).join(' ');
+      svg += `<polyline class="line" points="${poly}" />`;
+      // Puntos, valores y etiquetas de cata
+      pts.forEach((c, i) => {
+        const cx = x(i), cy = y(c.avg);
+        svg += `<circle class="dot" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4" />`;
+        svg += `<text class="val" x="${cx.toFixed(1)}" y="${(cy - 9).toFixed(1)}">${c.avg.toFixed(1)}</text>`;
+        svg += `<text class="xlabel" x="${cx.toFixed(1)}" y="${H - 10}">${escapeHtml(fmtDateShort(c.archived_at))}</text>`;
+      });
+      svg += `</svg>`;
+
+      const card = el('div', 'chart-card trend');
+      card.innerHTML = svg;
+      return card;
+    }
+
     function showWineDetail(key) {
       const w = WINES_CACHE.wines.find(x => x.key === key);
       if (!w) return;
@@ -545,6 +631,18 @@
       }
       head.appendChild(global);
       cont.appendChild(head);
+
+      // Gráficas
+      const trend = renderTrendChart(w.catas);
+      if (trend) {
+        cont.appendChild(el('div', 'wd-section-title', 'Evolución entre catas'));
+        cont.appendChild(trend);
+      }
+      const hist = renderDistChart(w.dist, w.n_votes);
+      if (hist) {
+        cont.appendChild(el('div', 'wd-section-title', 'Distribución de puntuaciones'));
+        cont.appendChild(hist);
+      }
 
       // Por cata
       cont.appendChild(el('div', 'wd-section-title',

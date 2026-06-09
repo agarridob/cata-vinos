@@ -172,6 +172,9 @@ catada en varias sesiones se agrupa en una sola ficha.
   admite coupages (`Viura, Garnacha Blanca, …`) y filtra por cualquiera de ellas.
 - Al abrir un vino: su **media histórica**, el **desglose por cata** (ves si subió
   o bajó entre sesiones) y **todos los comentarios** agregados de todas las catas.
+- **Gráficas** (SVG/CSS, sin librerías): un **histograma de puntuaciones**
+  (cuántos 1★…5★ recibió, para ver consenso o polarización) y, si el vino se ha
+  catado en ≥2 sesiones, una **línea de evolución** de su nota media.
 
 > La agrupación por vino es sensible a cómo se escriben los datos: si la añada o el
 > nombre se introducen distinto en dos catas (`2024` vs `'24`), se tratarán como
