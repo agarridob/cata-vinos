@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **1.1.2**.
+Versión actual: **1.1.3**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -24,6 +24,8 @@ Convención de incremento (semver informal):
 ## Despliegue
 
 El servidor corre como servicio systemd (`cata-vinos.service`, `.venv/bin/python app.py`).
+En el servidor nos conectamos **como root**, así que los comandos van **sin `sudo`**
+(p. ej. `systemctl restart cata-vinos`, no `sudo systemctl ...`).
 Tras `git pull` hay que **reiniciar** (`systemctl restart cata-vinos`): sin debug,
 Jinja cachea las plantillas en memoria y no recarga `templates/*.html` hasta reiniciar.
 `data/` (wines.json, archive/) es git-ignored y no se toca con el pull.

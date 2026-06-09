@@ -1533,12 +1533,20 @@
   /* Agregado mini en cada tarjeta */
   .summary-card-agg {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
+    flex-direction: column;
+    gap: 3px;
     margin-top: 8px;
     padding-top: 8px;
     border-top: 1px dashed #c8a878;
   }
+  .summary-card-score-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  /* Etiqueta "La mesa" / "Mi puntuación": solo en móvil (en TV se mantiene
+     el agregado sin etiqueta, como estaba) */
+  .summary-card-score-label { display: none; }
   .summary-card-agg-stars {
     color: #a8771a;
     font-size: 13px;
@@ -1776,6 +1784,19 @@
     .highlights-title { font-size: 18px; }
     .highlights-quote { font-size: 15px; }
     .summary-card-agg { padding-top: 6px; margin-top: 6px; }
+    .summary-card-score-row { gap: 5px; }
+    .summary-card-score-row .summary-card-agg-stars {
+      font-size: 12px; letter-spacing: 0.5px;
+    }
+    .summary-card-score-label {
+      display: inline-block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8a5a2a;
+      font-weight: 700;
+      white-space: nowrap;
+    }
     .summary-card-badge {
       font-size: 9px;
       padding: 2px 8px;

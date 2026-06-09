@@ -358,20 +358,30 @@ function renderSummary(payload) {
       const grapeHtml = grapeText ? `<div class="summary-card-grape">${escapeHtml(grapeText)}</div>` : '';
       const doHtml = doText ? `<div class="summary-card-do">${escapeHtml(doText)}</div>` : '';
 
-      // Agregado mini de votos
+      // Puntuaciones: "La mesa" (agregado) + "Mi puntuación" (voto propio, móvil)
+      const stars = n => { let s = ''; for (let i = 0; i < 5; i++) s += (i < n ? '★' : '☆'); return s; };
+      let scoreRows = '';
       const agg = votesSummary[String(thisIdx)];
-      let aggHtml = '';
       if (agg && agg.count > 0) {
-        const filled = Math.round(agg.avg);
-        let starStr = '';
-        for (let s = 0; s < 5; s++) starStr += (s < filled ? '★' : '☆');
         const plural = agg.count === 1 ? 'voto' : 'votos';
-        aggHtml = `<div class="summary-card-agg">
-          <span class="summary-card-agg-stars">${starStr}</span>
+        scoreRows += `<div class="summary-card-score-row">
+          <span class="summary-card-score-label">La mesa</span>
+          <span class="summary-card-agg-stars">${stars(Math.round(agg.avg))}</span>
           <span class="summary-card-agg-value">${agg.avg.toFixed(1)}</span>
           <span class="summary-card-agg-count">· ${agg.count} ${plural}</span>
         </div>`;
       }
+      if (isMobile() && myUser && myUser._votes) {
+        const mv = myUser._votes[String(thisIdx)];
+        if (mv && typeof mv.score === 'number') {
+          scoreRows += `<div class="summary-card-score-row">
+            <span class="summary-card-score-label">Mi puntuación</span>
+            <span class="summary-card-agg-stars">${stars(mv.score)}</span>
+            <span class="summary-card-agg-value">${mv.score}</span>
+          </div>`;
+        }
+      }
+      const aggHtml = scoreRows ? `<div class="summary-card-agg">${scoreRows}</div>` : '';
 
       // Fans: usuarios que tienen este vino como su favorito personal
       const fans = personalFavorites[String(thisIdx)] || [];
