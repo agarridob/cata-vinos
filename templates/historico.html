@@ -229,6 +229,63 @@
     .trend .val { fill: #6e0f2a; font-size: 12px; font-weight: 800; text-anchor: middle; }
     .trend .xlabel { fill: #8a5a2a; font-size: 11px; text-anchor: middle; }
     .trend .ylabel { fill: #b39b78; font-size: 10px; text-anchor: end; }
+
+    /* ── Estadísticas globales ── */
+    .stats-section-title {
+      margin: 28px 0 12px; color: #6e0f2a; font-size: 18px; font-weight: 800;
+      letter-spacing: .5px;
+    }
+    .stats-section-title:first-child { margin-top: 6px; }
+
+    /* Premios */
+    .award-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;
+    }
+    .award-card {
+      background: rgba(255,255,255,0.55); border: 1px solid #c8a878; border-radius: 14px;
+      padding: 18px; box-shadow: 0 6px 18px rgba(80,40,20,0.08);
+      transition: transform .08s ease, box-shadow .12s ease;
+    }
+    .award-card.clickable { cursor: pointer; }
+    .award-card.clickable:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(80,40,20,0.16); }
+    .award-emoji { font-size: 30px; }
+    .award-kicker {
+      margin-top: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+      font-weight: 800; color: #a8771a;
+    }
+    .award-title { margin-top: 4px; font-size: 17px; font-weight: 800; color: #6e0f2a; line-height: 1.2; }
+    .award-metric { margin-top: 6px; font-size: 13px; color: #5a4030; }
+
+    /* Listas ranking */
+    .stat-block { margin-top: 4px; }
+    .stat-list {
+      background: rgba(255,255,255,0.55); border: 1px solid #c8a878; border-radius: 12px;
+      overflow: hidden; box-shadow: 0 6px 18px rgba(80,40,20,0.08);
+    }
+    .stat-list-row {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      border-top: 1px solid rgba(200,168,120,.45); font-size: 14px;
+    }
+    .stat-list-row:first-child { border-top: none; }
+    .stat-list-row.clickable { cursor: pointer; }
+    .stat-list-row.clickable:hover { background: rgba(255,255,255,0.6); }
+    .sl-rank { flex: 0 0 26px; font-weight: 800; color: #a8771a; font-size: 13px; }
+    .sl-name { flex: 1 1 auto; min-width: 0; color: #3a2418; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sl-sub { color: #8a5a2a; font-weight: 400; font-size: 12px; }
+    .sl-value { flex: 0 0 auto; color: #6e0f2a; font-weight: 800; }
+
+    /* Números de la casa */
+    .num-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;
+    }
+    .num-tile {
+      background: rgba(255,255,255,0.55); border: 1px solid #c8a878; border-radius: 12px;
+      padding: 16px; text-align: center; box-shadow: 0 6px 18px rgba(80,40,20,0.08);
+    }
+    .num-value { font-size: 30px; font-weight: 800; color: #6e0f2a; line-height: 1; }
+    .num-label { margin-top: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #8a5a2a; }
+    .stats-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; align-items: start; }
   </style>
 </head>
 <body>
@@ -253,6 +310,11 @@
           <div class="mode-emoji">🍷</div>
           <h3>Por vino</h3>
           <p>Catálogo de vinos catados, con su nota media histórica y filtros por bodega, uva y D.O.</p>
+        </button>
+        <button class="mode-card" id="mode-stats">
+          <div class="mode-emoji">📊</div>
+          <h3>Estadísticas</h3>
+          <p>El palmarés de la casa: premios, podios de vinos, mejores bodegas y uvas, y los números de todas las catas.</p>
         </button>
       </div>
     </div>
@@ -293,6 +355,13 @@
     <div id="view-wine-detail" class="hidden">
       <div class="back"><button class="link" id="btn-back-wines">← Volver al catálogo</button></div>
       <div id="wine-detail"></div>
+    </div>
+
+    <!-- Estadísticas globales -->
+    <div id="view-stats" class="hidden">
+      <div class="back"><button class="link" data-home>← Inicio</button></div>
+      <div id="stats-content"></div>
+      <div id="stats-loading" class="loading">Cargando estadísticas…</div>
     </div>
   </main>
 
@@ -451,7 +520,7 @@
     }
 
     // ── Router de vistas ──
-    const VIEWS = ['view-home', 'view-index', 'view-detail', 'view-wines', 'view-wine-detail'];
+    const VIEWS = ['view-home', 'view-index', 'view-detail', 'view-wines', 'view-wine-detail', 'view-stats'];
     function showView(id) {
       VIEWS.forEach(v => document.getElementById(v).classList.toggle('hidden', v !== id));
       window.scrollTo(0, 0);
@@ -459,6 +528,13 @@
 
     // ── Por vino: catálogo ──
     let WINES_CACHE = null;
+    let winesViewReady = false;
+
+    async function ensureWines() {
+      if (WINES_CACHE) return WINES_CACHE;
+      WINES_CACHE = await (await fetch('/api/historico-wines')).json();
+      return WINES_CACHE;
+    }
 
     function fillSelect(id, values, allLabel) {
       const sel = document.getElementById(id);
@@ -472,15 +548,15 @@
 
     async function openWines() {
       showView('view-wines');
-      if (WINES_CACHE) return;
+      if (winesViewReady) return;
       try {
-        const data = await (await fetch('/api/historico-wines')).json();
-        WINES_CACHE = data;
+        const data = await ensureWines();
         document.getElementById('wines-loading').classList.add('hidden');
         fillSelect('filter-winery', data.facets.wineries, 'Todas las bodegas');
         fillSelect('filter-grape', data.facets.grapes, 'Todas las uvas');
         fillSelect('filter-do', data.facets.dos, 'Todas las D.O.');
         renderWines();
+        winesViewReady = true;
       } catch (e) {
         document.getElementById('wines-loading').textContent = 'Error cargando vinos.';
       }
@@ -531,7 +607,7 @@
         body.appendChild(stat);
 
         card.appendChild(body);
-        card.addEventListener('click', () => showWineDetail(w.key));
+        card.addEventListener('click', () => openWineFrom(w.key, 'view-wines', '← Volver al catálogo'));
         grid.appendChild(card);
       });
     }
@@ -692,6 +768,189 @@
       showView('view-wine-detail');
     }
 
+    // Abre la ficha de un vino recordando a qué vista volver
+    let wineBack = { view: 'view-wines', label: '← Volver al catálogo' };
+    function openWineFrom(key, view, label) {
+      wineBack = { view, label };
+      document.getElementById('btn-back-wines').textContent = label;
+      showWineDetail(key);
+    }
+
+    // ── Estadísticas globales ──
+    const MIN_VOTES = 5;
+
+    function parsePrice(p) {
+      if (!p) return null;
+      const m = String(p).replace(/\./g, '').replace(',', '.').match(/[\d.]+/);
+      return m ? parseFloat(m[0]) : null;
+    }
+    function wineTotal(w) {
+      let t = 0;
+      for (let i = 0; i < 5; i++) t += (i + 1) * (w.dist ? w.dist[i] : 0);
+      return t;
+    }
+    function wineStd(w) {
+      const N = w.n_votes;
+      if (!N) return null;
+      const mean = wineTotal(w) / N;
+      let v = 0;
+      for (let i = 0; i < 5; i++) v += w.dist[i] * Math.pow((i + 1) - mean, 2);
+      return Math.sqrt(v / N);
+    }
+    // Vinos "justos" para rankings: con un mínimo de votos; si quedan muy pocos, se relaja
+    function qualified(wines) {
+      const q = wines.filter(w => w.n_votes >= MIN_VOTES);
+      return q.length >= 3 ? q : wines.filter(w => w.n_votes > 0);
+    }
+    function aggregateBy(wines, keyFn) {
+      const map = new Map();
+      wines.forEach(w => {
+        if (!w.n_votes) return;
+        keyFn(w).forEach(k => {
+          if (!k) return;
+          const e = map.get(k) || { key: k, total: 0, votes: 0, wines: 0 };
+          e.total += wineTotal(w); e.votes += w.n_votes; e.wines += 1;
+          map.set(k, e);
+        });
+      });
+      return [...map.values()]
+        .map(e => ({ ...e, avg: e.votes ? e.total / e.votes : null }))
+        .filter(e => e.avg !== null)
+        .sort((a, b) => b.avg - a.avg);
+    }
+
+    function awardCard(emoji, kicker, title, metric, onClick) {
+      const c = el('div', 'award-card' + (onClick ? ' clickable' : ''));
+      c.innerHTML = `<div class="award-emoji">${emoji}</div>`
+        + `<div class="award-kicker">${escapeHtml(kicker)}</div>`
+        + `<div class="award-title">${escapeHtml(title)}</div>`
+        + `<div class="award-metric">${metric}</div>`;
+      if (onClick) c.addEventListener('click', onClick);
+      return c;
+    }
+
+    function statList(title, rows) {
+      const block = el('div', 'stat-block');
+      block.appendChild(el('div', 'wd-section-title', title));
+      const list = el('div', 'stat-list');
+      rows.forEach((r, i) => {
+        const row = el('div', 'stat-list-row' + (r.onClick ? ' clickable' : ''));
+        row.appendChild(el('span', 'sl-rank', '#' + (i + 1)));
+        const nm = el('span', 'sl-name');
+        nm.innerHTML = escapeHtml(r.name) + (r.sub ? ` <span class="sl-sub">${escapeHtml(r.sub)}</span>` : '');
+        row.appendChild(nm);
+        row.appendChild(el('span', 'sl-value', r.value));
+        if (r.onClick) row.addEventListener('click', r.onClick);
+        list.appendChild(row);
+      });
+      block.appendChild(list);
+      return block;
+    }
+
+    const goWine = key => () => openWineFrom(key, 'view-stats', '← Volver a estadísticas');
+
+    function renderStats(allWines) {
+      const cont = document.getElementById('stats-content');
+      cont.innerHTML = '';
+
+      const voted = allWines.filter(w => w.n_votes > 0);
+      if (!voted.length) {
+        cont.appendChild(el('p', 'muted', 'Aún no hay catas archivadas con votos.'));
+        return;
+      }
+      const q = qualified(voted);
+
+      // ── 🎖️ Premios ──
+      cont.appendChild(el('div', 'stats-section-title', '🎖️ El palmarés'));
+      const awards = el('div', 'award-grid');
+
+      const favorito = [...q].sort((a, b) => b.avg - a.avg)[0];
+      if (favorito) awards.appendChild(awardCard('🏆', 'El favorito de la casa',
+        favorito.name, `${favorito.avg.toFixed(1)} ★ · ${escapeHtml(favorito.winery || '')}`, goWine(favorito.key)));
+
+      const divisivo = [...q].sort((a, b) => wineStd(b) - wineStd(a))[0];
+      if (divisivo) awards.appendChild(awardCard('⚡', 'El más divisivo',
+        divisivo.name, `±${wineStd(divisivo).toFixed(1)} de dispersión · ${divisivo.avg.toFixed(1)} ★`, goWine(divisivo.key)));
+
+      const priced = voted.map(w => ({ w, price: parsePrice(w.price) })).filter(x => x.price);
+      const chollo = priced.sort((a, b) => (b.w.avg / b.price) - (a.w.avg / a.price))[0];
+      if (chollo) awards.appendChild(awardCard('💰', 'El chollo',
+        chollo.w.name, `${chollo.w.avg.toFixed(1)} ★ · ${escapeHtml(chollo.w.price)}`, goWine(chollo.w.key)));
+
+      const grapeRank = aggregateBy(voted, w => w.grapes);
+      if (grapeRank[0]) awards.appendChild(awardCard('🍇', 'La uva estrella',
+        grapeRank[0].key, `${grapeRank[0].avg.toFixed(1)} ★ · ${grapeRank[0].wines} vino${grapeRank[0].wines === 1 ? '' : 's'}`));
+
+      cont.appendChild(awards);
+
+      // ── 🏆 Podio de vinos ──
+      cont.appendChild(el('div', 'stats-section-title', '🏆 Podio de vinos'));
+      const wineRow = w => ({
+        name: w.name, sub: w.winery || '', value: `${w.avg.toFixed(1)} ★`, onClick: goWine(w.key),
+      });
+      const podios = el('div', 'stats-cols');
+      podios.appendChild(statList('Mejor valorados',
+        [...q].sort((a, b) => b.avg - a.avg).slice(0, 5).map(wineRow)));
+      podios.appendChild(statList('Más divisivos',
+        [...q].sort((a, b) => wineStd(b) - wineStd(a)).slice(0, 5).map(w => ({
+          name: w.name, sub: w.winery || '', value: `±${wineStd(w).toFixed(1)}`, onClick: goWine(w.key),
+        }))));
+      if (priced.length) podios.appendChild(statList('Mejor calidad-precio',
+        priced.sort((a, b) => (b.w.avg / b.price) - (a.w.avg / a.price)).slice(0, 5).map(x => ({
+          name: x.w.name, sub: x.w.winery || '', value: `${x.w.avg.toFixed(1)}★ · ${escapeHtml(x.w.price)}`, onClick: goWine(x.w.key),
+        }))));
+      podios.appendChild(statList('Los olvidables',
+        [...q].sort((a, b) => a.avg - b.avg).slice(0, 5).map(wineRow)));
+      cont.appendChild(podios);
+
+      // ── 🍇 Por categoría ──
+      cont.appendChild(el('div', 'stats-section-title', '🍇 Por categoría'));
+      const catRow = e => ({ name: e.key, sub: `${e.wines} vino${e.wines === 1 ? '' : 's'}`, value: `${e.avg.toFixed(1)} ★` });
+      const cats = el('div', 'stats-cols');
+      cats.appendChild(statList('Mejores bodegas',
+        aggregateBy(voted, w => [w.winery]).slice(0, 5).map(catRow)));
+      cats.appendChild(statList('Mejores uvas', grapeRank.slice(0, 5).map(catRow)));
+      cats.appendChild(statList('Mejores D.O.',
+        aggregateBy(voted, w => [w.do]).slice(0, 5).map(catRow)));
+      cont.appendChild(cats);
+
+      // ── 🔢 Números de la casa ──
+      cont.appendChild(el('div', 'stats-section-title', '🔢 Números de la casa'));
+      const catasSet = new Set();
+      allWines.forEach(w => w.catas.forEach(c => catasSet.add(`${c.session_name}|${c.archived_at}`)));
+      const totalVotes = voted.reduce((s, w) => s + w.n_votes, 0);
+      const totalComments = allWines.reduce((s, w) => s + (w.comments ? w.comments.length : 0), 0);
+
+      const nums = el('div', 'num-grid');
+      const tile = (val, label) => {
+        const t = el('div', 'num-tile');
+        t.appendChild(el('div', 'num-value', String(val)));
+        t.appendChild(el('div', 'num-label', label));
+        return t;
+      };
+      nums.appendChild(tile(catasSet.size, catasSet.size === 1 ? 'cata' : 'catas'));
+      nums.appendChild(tile(allWines.length, 'vinos'));
+      nums.appendChild(tile(totalVotes, 'votos'));
+      nums.appendChild(tile(totalComments, 'comentarios'));
+      cont.appendChild(nums);
+
+      const masCatado = [...allWines].sort((a, b) => b.n_catas - a.n_catas)[0];
+      if (masCatado && masCatado.n_catas > 1) {
+        cont.appendChild(statList('El más repetido', [{
+          name: masCatado.name, sub: masCatado.winery || '',
+          value: `${masCatado.n_catas} catas`, onClick: goWine(masCatado.key),
+        }]));
+      }
+
+      const globalDist = [0, 0, 0, 0, 0];
+      voted.forEach(w => { for (let i = 0; i < 5; i++) globalDist[i] += w.dist[i]; });
+      const hist = renderDistChart(globalDist, totalVotes);
+      if (hist) {
+        cont.appendChild(el('div', 'wd-section-title', 'Cómo puntuamos'));
+        cont.appendChild(hist);
+      }
+    }
+
     // ── Navegación ──
     let INDEX_LOADED = false;
     function openCatas() {
@@ -699,12 +958,27 @@
       if (!INDEX_LOADED) { INDEX_LOADED = true; loadIndex(); }
     }
 
+    let statsReady = false;
+    async function openStats() {
+      showView('view-stats');
+      if (statsReady) return;
+      try {
+        const data = await ensureWines();
+        document.getElementById('stats-loading').classList.add('hidden');
+        renderStats(data.wines);
+        statsReady = true;
+      } catch (e) {
+        document.getElementById('stats-loading').textContent = 'Error cargando estadísticas.';
+      }
+    }
+
     document.getElementById('mode-cata').addEventListener('click', openCatas);
     document.getElementById('mode-vino').addEventListener('click', openWines);
+    document.getElementById('mode-stats').addEventListener('click', openStats);
     document.querySelectorAll('[data-home]').forEach(b =>
       b.addEventListener('click', () => showView('view-home')));
     document.getElementById('btn-back').addEventListener('click', openCatas);
-    document.getElementById('btn-back-wines').addEventListener('click', () => showView('view-wines'));
+    document.getElementById('btn-back-wines').addEventListener('click', () => showView(wineBack.view));
 
     ['wine-search', 'filter-winery', 'filter-grape', 'filter-do'].forEach(id => {
       const ev = id === 'wine-search' ? 'input' : 'change';
