@@ -597,12 +597,19 @@ function updateCommentBtnState() {
     : '';
 
   if (current === savedComment) {
-    btnEl.classList.add('saved');
-    btnEl.textContent = '✓ Guardado';
-    btnEl.disabled = true;
+    if (!savedComment) {
+      // Nada escrito ni guardado → sin botón (evita el "Guardado" fantasma)
+      btnEl.classList.add('hidden');
+    } else {
+      btnEl.classList.remove('hidden');
+      btnEl.classList.add('saved');
+      btnEl.textContent = '✓ Guardado';
+      btnEl.disabled = true;
+    }
   } else {
+    btnEl.classList.remove('hidden');
     btnEl.classList.remove('saved');
-    btnEl.textContent = myUser ? 'Enviar' : 'Identifícate y envía';
+    btnEl.textContent = myUser ? 'Enviar comentario' : 'Identifícate y envía';
     btnEl.disabled = false;
   }
 }

@@ -56,12 +56,12 @@ function ensureLayout() {
             <textarea class="vote-comment" id="vote-comment"
                       placeholder="Comentario (opcional) — escribe tranquilo y pulsa Enviar · máx 140 caracteres"
                       maxlength="140"></textarea>
-            <button type="button" class="vote-comment-btn saved" id="vote-comment-btn" disabled>✓ Guardado</button>
+            <button type="button" class="vote-comment-btn hidden" id="vote-comment-btn" disabled></button>
           </div>
-          <div class="vote-aggregate">
-            <span class="vote-agg-label">La mesa</span>
-            <span id="vote-aggregate-value"><span class="vote-agg-empty">Aún sin votos</span></span>
-          </div>
+        </div>
+        <div class="vote-aggregate vote-aggregate--standalone">
+          <span class="vote-agg-label">La mesa</span>
+          <span id="vote-aggregate-value"><span class="vote-agg-empty">Aún sin votos</span></span>
         </div>
         <div class="curio hidden" id="curio">
           <div class="curio-mark">&ldquo;</div>
