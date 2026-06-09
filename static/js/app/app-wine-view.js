@@ -21,10 +21,7 @@ function ensureLayout() {
           <h1 class="wine-name" id="wine-name">—</h1>
           <p class="winery" id="winery">—</p>
         </div>
-        <div class="meta hidden" id="meta">
-          <span class="meta-system" id="meta-system"></span>
-          <span class="meta-score" id="meta-score"></span>
-        </div>
+        <div class="meta hidden" id="meta"></div>
         <div class="wine-type hidden" id="wine-type"></div>
         <div class="tv-vote-pill" id="tv-vote-pill">
           <span class="tv-vote-stars" id="tv-vote-pill-stars">☆☆☆☆☆</span>
@@ -121,20 +118,14 @@ function applyUpdate(payload) {
     if (wineTypeEl) wineTypeEl.classList.add('hidden');
   }
 
-  // Meta: solo puntuación (precio se ignora, queda en JSON pero oculto)
-  const meta       = document.getElementById('meta');
-  const metaSystem = document.getElementById('meta-system');
-  const metaScore  = document.getElementById('meta-score');
-  const hasRating  = w.rating && String(w.rating).trim();
-  if (hasRating) {
-    const m = String(w.rating).match(/^(\S+)\s+(.+)$/);
-    if (m) {
-      metaSystem.textContent = m[1];
-      metaScore.textContent  = m[2];
-    } else {
-      metaSystem.textContent = '';
-      metaScore.textContent  = w.rating;
-    }
+  // Meta: puntuaciones de expertos. Puede haber varias ("Suckling 95 · Parker 92+"):
+  // cada nombre de sistema va pequeño y cada nota grande, con un "·" entre pares.
+  const meta = document.getElementById('meta');
+  const ratingPairs = parseRatingPairs(w.rating);
+  if (ratingPairs.length) {
+    meta.innerHTML = ratingPairs.map(p =>
+      `<span class="meta-pair">${p.sys ? `<span class="meta-system">${escapeHtml(p.sys)}</span>` : ''}<span class="meta-score">${escapeHtml(p.sco)}</span></span>`
+    ).join('<span class="meta-sep">·</span>');
     meta.classList.remove('hidden');
   } else {
     meta.classList.add('hidden');

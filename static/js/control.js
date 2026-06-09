@@ -91,12 +91,12 @@ function render() {
       </div>`;
   } else {
     let metaHtml = '';
-    const hasRating = state.wine.rating && String(state.wine.rating).trim();
-    if (hasRating) {
-      const m = String(state.wine.rating).match(/^(\S+)\s+(.+)$/);
-      metaHtml = m
-        ? `<div class="current-meta"><span class="current-meta-system">${escapeHtml(m[1])}</span><span class="current-meta-score">${escapeHtml(m[2])}</span></div>`
-        : `<div class="current-meta"><span class="current-meta-score">${escapeHtml(state.wine.rating)}</span></div>`;
+    const ratingPairs = parseRatingPairs(state.wine.rating);
+    if (ratingPairs.length) {
+      const inner = ratingPairs.map(p =>
+        `<span class="current-meta-pair">${p.sys ? `<span class="current-meta-system">${escapeHtml(p.sys)}</span>` : ''}<span class="current-meta-score">${escapeHtml(p.sco)}</span></span>`
+      ).join('<span class="current-meta-sep">·</span>');
+      metaHtml = `<div class="current-meta">${inner}</div>`;
     }
     cardHtml = `
       <div class="current-card">
@@ -681,6 +681,15 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+// Igual que en app-core.js: parsea "Suckling 95 · Parker 92+" en pares {sys, sco}.
+function parseRatingPairs(rating) {
+  if (!rating || !String(rating).trim()) return [];
+  return String(rating).split('·').map(s => s.trim()).filter(Boolean).map(seg => {
+    const m = seg.match(/^(\S+)\s+(.+)$/);
+    return m ? { sys: m[1], sco: m[2] } : { sys: '', sco: seg };
+  });
+}
 
 fetchColorMap();
 bindTabs();

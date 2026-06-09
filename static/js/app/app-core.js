@@ -92,6 +92,16 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Parsea un rating de expertos en pares {sys, sco}. Admite varios separados
+// por "·", p.ej. "Suckling 95 · Parker 92+" → [{sys:Suckling,sco:95},{sys:Parker,sco:92+}].
+function parseRatingPairs(rating) {
+  if (!rating || !String(rating).trim()) return [];
+  return String(rating).split('·').map(s => s.trim()).filter(Boolean).map(seg => {
+    const m = seg.match(/^(\S+)\s+(.+)$/);
+    return m ? { sys: m[1], sco: m[2] } : { sys: '', sco: seg };
+  });
+}
+
 function renderEmpty(sessionName) {
   root.innerHTML = `
     <div class="empty-state">
