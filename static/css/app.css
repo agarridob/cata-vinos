@@ -91,11 +91,13 @@
     white-space: nowrap;
   }
   .wine-type.hidden { display: none; }
-  .wine-type[data-wine-type="tinto"]    { --wine-type-color: #7b1e3a; }
-  .wine-type[data-wine-type="blanco"]   { --wine-type-color: #c9a227; }
-  .wine-type[data-wine-type="rosado"]   { --wine-type-color: #e0788c; }
-  .wine-type[data-wine-type="orange"]   { --wine-type-color: #c8762e; }
-  .wine-type[data-wine-type="espumoso"] { --wine-type-color: #9c8b3a; }
+  /* Color por tipo, definido en el marco para que llegue al chip (TV) y al
+     borde de la tarjeta (móvil) */
+  .tv-frame[data-wine-type="tinto"]    { --wine-type-color: #7b1e3a; }
+  .tv-frame[data-wine-type="blanco"]   { --wine-type-color: #c9a227; }
+  .tv-frame[data-wine-type="rosado"]   { --wine-type-color: #e0788c; }
+  .tv-frame[data-wine-type="orange"]   { --wine-type-color: #c8762e; }
+  .tv-frame[data-wine-type="espumoso"] { --wine-type-color: #9c8b3a; }
   .fade-out { opacity: 0; }
   .wine-name {
     font-size: 6vh;
@@ -670,15 +672,12 @@
     .meta      { gap: 7px; padding: 4px 0; }
     .meta-system { font-size: 11px; letter-spacing: 2px; }
     .meta-score  { font-size: 26px; }
-    /* En móvil el chip va en el flujo (no flotando), alineado a la derecha */
-    .wine-type {
-      position: static;
-      align-self: flex-end;
-      margin-top: -6px;
-      font-size: 12px;
-      letter-spacing: 1.5px;
-      padding: 5px 11px;
-      border-radius: 6px;
+    /* En móvil no usamos chip: el tipo se indica con un acento de color en el
+       borde izquierdo de la tarjeta del vino (más sobrio) */
+    .wine-type { display: none; }
+    .tv-frame[data-wine-type] .bottle-area {
+      border-left-width: 6px;
+      border-left-color: var(--wine-type-color);
     }
     .data-grid {
       grid-template-columns: 1fr;
@@ -1383,6 +1382,7 @@
     font-style: italic;
     text-align: center;
   }
+  .welcome-host-breakdown { opacity: 0.85; }
   /* Móvil: layout más vertical */
   @media (max-width: 1100px) {
     .welcome-frame {

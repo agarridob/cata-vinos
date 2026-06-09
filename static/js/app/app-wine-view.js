@@ -104,18 +104,21 @@ function applyUpdate(payload) {
   document.getElementById('d-grape').textContent   = w.grape || '—';
   document.getElementById('d-region').textContent  = w.region || w.do || '—';
 
-  // Chip de tipo de vino (color), en TV y móvil
+  // Tipo de vino: chip arriba-derecha en TV, acento de color en el borde de
+  // la tarjeta en móvil. El data-wine-type va en el marco para que la variable
+  // de color (--wine-type-color) llegue tanto al chip como a la tarjeta.
   const wineTypeEl = document.getElementById('wine-type');
-  if (wineTypeEl) {
-    const wineType = WINE_TYPE_LABELS[w.type] ? w.type : '';
-    if (wineType) {
+  const frameEl = root.querySelector('.tv-frame');
+  const wineType = WINE_TYPE_LABELS[w.type] ? w.type : '';
+  if (wineType) {
+    if (frameEl) frameEl.dataset.wineType = wineType;
+    if (wineTypeEl) {
       wineTypeEl.textContent = WINE_TYPE_LABELS[wineType];
-      wineTypeEl.dataset.wineType = wineType;
       wineTypeEl.classList.remove('hidden');
-    } else {
-      wineTypeEl.removeAttribute('data-wine-type');
-      wineTypeEl.classList.add('hidden');
     }
+  } else {
+    if (frameEl) frameEl.removeAttribute('data-wine-type');
+    if (wineTypeEl) wineTypeEl.classList.add('hidden');
   }
 
   // Meta: solo puntuación (precio se ignora, queda en JSON pero oculto)
