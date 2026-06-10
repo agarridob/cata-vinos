@@ -309,7 +309,7 @@
         <button class="mode-card" id="mode-vino">
           <div class="mode-emoji">🍷</div>
           <h3>Por vino</h3>
-          <p>Catálogo de vinos catados, con su nota media histórica y filtros por bodega, uva y D.O.</p>
+          <p>Catálogo de vinos catados, con su nota media histórica y filtros por tipo, bodega, uva y D.O.</p>
         </button>
         <button class="mode-card" id="mode-stats">
           <div class="mode-emoji">📊</div>
@@ -342,6 +342,7 @@
       <div class="back"><button class="link" data-home>← Inicio</button></div>
       <div class="filters">
         <input type="search" id="wine-search" placeholder="Buscar vino o bodega…">
+        <select id="filter-type"><option value="">Todos los tipos</option></select>
         <select id="filter-winery"><option value="">Todas las bodegas</option></select>
         <select id="filter-grape"><option value="">Todas las uvas</option></select>
         <select id="filter-do"><option value="">Todas las D.O.</option></select>
@@ -541,7 +542,7 @@
       sel.innerHTML = `<option value="">${allLabel}</option>`;
       values.forEach(v => {
         const o = document.createElement('option');
-        o.value = v; o.textContent = v;
+        o.value = v; o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
         sel.appendChild(o);
       });
     }
@@ -552,6 +553,7 @@
       try {
         const data = await ensureWines();
         document.getElementById('wines-loading').classList.add('hidden');
+        fillSelect('filter-type', data.facets.types || [], 'Todos los tipos');
         fillSelect('filter-winery', data.facets.wineries, 'Todas las bodegas');
         fillSelect('filter-grape', data.facets.grapes, 'Todas las uvas');
         fillSelect('filter-do', data.facets.dos, 'Todas las D.O.');
@@ -565,11 +567,13 @@
     function renderWines() {
       if (!WINES_CACHE) return;
       const q = document.getElementById('wine-search').value.trim().toLowerCase();
+      const fT = document.getElementById('filter-type').value;
       const fW = document.getElementById('filter-winery').value;
       const fG = document.getElementById('filter-grape').value;
       const fD = document.getElementById('filter-do').value;
 
       const list = WINES_CACHE.wines.filter(w => {
+        if (fT && w.type !== fT) return false;
         if (fW && w.winery !== fW) return false;
         if (fD && w.do !== fD) return false;
         if (fG && !w.grapes.includes(fG)) return false;
@@ -946,7 +950,7 @@
       voted.forEach(w => { for (let i = 0; i < 5; i++) globalDist[i] += w.dist[i]; });
       const hist = renderDistChart(globalDist, totalVotes);
       if (hist) {
-        cont.appendChild(el('div', 'wd-section-title', 'Cómo puntuamos'));
+        cont.appendChild(el('div', 'wd-section-title', 'Cómo puntúa la gente'));
         cont.appendChild(hist);
       }
     }
@@ -980,7 +984,7 @@
     document.getElementById('btn-back').addEventListener('click', openCatas);
     document.getElementById('btn-back-wines').addEventListener('click', () => showView(wineBack.view));
 
-    ['wine-search', 'filter-winery', 'filter-grape', 'filter-do'].forEach(id => {
+    ['wine-search', 'filter-type', 'filter-winery', 'filter-grape', 'filter-do'].forEach(id => {
       const ev = id === 'wine-search' ? 'input' : 'change';
       document.getElementById(id).addEventListener(ev, renderWines);
     });
