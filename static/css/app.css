@@ -540,11 +540,36 @@
     color: #a8771a;
     letter-spacing: -0.08vh;
   }
+  /* Píldoras del resumen: una por vista (cards/journey). La activa se llena
+     progresivamente (vía .fill animado) hasta que toca cambiar de vista. */
   .dot.summary {
     width: 2.6vh;
     border-radius: 0.5vh;
-    background: #a8771a;
+    background: #d8c094;
+    position: relative;
+    overflow: hidden;
+  }
+  .dot.summary.active {
+    background: #d8c094;
     box-shadow: 0 0 1vh rgba(168, 119, 26, 0.5);
+  }
+  .dot.summary .fill {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    border-radius: inherit;
+    background: #a8771a;
+  }
+  .dot.summary.active .fill { width: 100%; }
+  .dot.summary.filling .fill {
+    width: 0;
+    animation-name: summary-pill-fill;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+  @keyframes summary-pill-fill {
+    from { width: 0; }
+    to   { width: 100%; }
   }
 
   /* Botón fullscreen flotante */

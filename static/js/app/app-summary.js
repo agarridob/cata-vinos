@@ -6,6 +6,7 @@ const SUMMARY_ROTATE_MS = 30000;
 
 let summaryViewTimer = null;
 let summaryLocalView = 'cards'; // 'cards' | 'journey'
+let summaryViewSince = 0;       // cuándo empezó la vista actual (para la píldora de progreso)
 
 /**
  * Devuelve un array con cuántos vinos van en cada fila del resumen,
@@ -76,11 +77,41 @@ function ensureSummaryViewTimer() {
 
   if (summaryViewTimer) return;
 
+  summaryViewSince = Date.now();
   summaryViewTimer = setInterval(() => {
     summaryLocalView = summaryLocalView === 'cards' ? 'journey' : 'cards';
+    summaryViewSince = Date.now();
     currentSig = null; // forzar re-render de la vista resumen
     renderCurrent();
   }, SUMMARY_ROTATE_MS);
+}
+
+/**
+ * Píldoras del resumen en el footer: una por vista (cards y journey).
+ * La activa se va llenando durante SUMMARY_ROTATE_MS hasta el cambio de vista.
+ * El delay negativo arranca la animación en el punto correcto si la pantalla
+ * se re-renderiza a mitad de ciclo (p. ej. al entrar un voto nuevo).
+ */
+function summaryPillsHtml(activeView) {
+  if (isMobile()) {
+    return '<div class="dot summary active"><div class="fill"></div></div>';
+  }
+
+  const auto = shouldAutoRotateSummary();
+  const elapsed = (auto && summaryViewSince) ? (Date.now() - summaryViewSince) : 0;
+
+  return ['cards', 'journey'].map(view => {
+    const cls = ['dot', 'summary'];
+    let style = '';
+    if (view === activeView) {
+      cls.push('active');
+      if (auto) {
+        cls.push('filling');
+        style = ` style="animation-duration:${SUMMARY_ROTATE_MS}ms;animation-delay:-${elapsed}ms"`;
+      }
+    }
+    return `<div class="${cls.join(' ')}"><div class="fill"${style}></div></div>`;
+  }).join('');
 }
 
 function getCurrentSummaryView() {
@@ -106,7 +137,7 @@ function renderSummaryJourney(payload) {
     if (isMobile() && i <= serverIdx) cls.push('clickable');
     dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}"></div>`);
   }
-  dotsHtml.push('<div class="dot summary active"></div>');
+  dotsHtml.push(summaryPillsHtml('journey'));
 
   if (!m) {
     root.innerHTML = `
@@ -455,7 +486,7 @@ function renderSummary(payload) {
     if (mobile && i <= serverIdx) cls.push('clickable');
     dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}"></div>`);
   }
-  dotsHtml.push('<div class="dot summary"></div>');
+  dotsHtml.push(summaryPillsHtml('cards'));
 
   root.innerHTML = `
     <div class="summary-frame">
