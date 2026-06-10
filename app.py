@@ -16,12 +16,14 @@ API:
   GET  /stream               → Server-Sent Events para la TV
 """
 
+import hmac
 import json
 import os
 import queue
 import random
 import statistics
 import threading
+import time
 import uuid
 from datetime import datetime
 from functools import wraps
@@ -618,18 +620,59 @@ def admin_required(fn):
 def index():
     return render_template('app.html')
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Rate limit del login: intentos fallidos por IP y globales (detrás de un
+# túnel todas las IPs pueden llegar iguales, y X-Forwarded-For es falsificable,
+# así que el límite global es el que de verdad frena la fuerza bruta).
+
+LOGIN_WINDOW_S       = 300   # ventana de 5 minutos
+LOGIN_MAX_FAILS_IP   = 5
+LOGIN_MAX_FAILS_ALL  = 20
+
+_login_fails = {}            # ip -> [timestamps de fallos]
+_login_lock  = threading.Lock()
+
+
+def _login_throttled(ip):
+    """Devuelve True si esta IP (o el global) ha agotado los intentos."""
+    cutoff = time.time() - LOGIN_WINDOW_S
+    with _login_lock:
+        for k in list(_login_fails):
+            _login_fails[k] = [t for t in _login_fails[k] if t > cutoff]
+            if not _login_fails[k]:
+                del _login_fails[k]
+        total = sum(len(v) for v in _login_fails.values())
+        return (len(_login_fails.get(ip, [])) >= LOGIN_MAX_FAILS_IP
+                or total >= LOGIN_MAX_FAILS_ALL)
+
+
+def _login_record_fail(ip):
+    with _login_lock:
+        _login_fails.setdefault(ip, []).append(time.time())
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
 
     if request.method == 'POST':
+        ip = request.remote_addr or '?'
+
+        if _login_throttled(ip):
+            error = 'Demasiados intentos. Espera unos minutos.'
+            return render_template('login.html', error=error), 429
+
         password = request.form.get('password', '')
 
-        if password == ADMIN_PASSWORD:
+        if hmac.compare_digest(password, ADMIN_PASSWORD):
             session['is_admin'] = True
-            next_url = request.args.get('next') or url_for('control')
+            # Solo rutas internas: evita open redirect vía ?next=https://evil.com
+            next_url = request.args.get('next', '')
+            if not next_url.startswith('/') or next_url.startswith('//') or '\\' in next_url:
+                next_url = url_for('control')
             return redirect(next_url)
 
+        _login_record_fail(ip)
         error = 'Contraseña incorrecta'
 
     return render_template('login.html', error=error)

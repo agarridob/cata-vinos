@@ -894,13 +894,14 @@ python tools/build_journey_europe_map.py \
 - Servicio recomendado con usuario no-root.
 - Datos locales separados en `data/`.
 - Acciones destructivas protegidas con confirmación en frontend.
+- Rate limit en `/login`: 5 intentos fallidos por IP y 20 globales cada 5 minutos.
 
 ---
 
 ## 🗺️ Roadmap
 
 - ~~Cambiar color de tarjetas de vino en función de espumoso, blanco, rosado, orange o tinto~~
-- Rate limit el login page
+- ~~Rate limit el login page~~
 - Crear juego de adivinación con el mapa
 - Mejorar la tarjeta de móvil visualmente: mejorar estrellas, campo de comentario. Posiblemente alternar el orden mapa/votar
 - ~~Exportar resultados en CSV/JSON.~~
