@@ -1307,7 +1307,7 @@ def api_historico_wines():
     """Catálogo de vinos agregado entre todas las catas (clave: bodega+nombre+añada)."""
     archive_dir = _archive_dir()
     wines_by_key = {}
-    wineries, dos, grapes = set(), set(), set()
+    wineries, dos, grapes, types = set(), set(), set(), set()
 
     if os.path.isdir(archive_dir):
         for fname in sorted(os.listdir(archive_dir)):
@@ -1326,6 +1326,11 @@ def api_historico_wines():
 
             for idx, wine in enumerate(data.get('wines', [])):
                 key = _wine_identity(wine)
+
+                # Catas antiguas archivadas pueden no traer 'type': lo adivinamos.
+                wine_type = str(wine.get('type', '')).strip().lower()
+                if wine_type not in WINE_TYPES:
+                    wine_type = guess_wine_type(wine)
 
                 # Votos de este vino en esta cata
                 rows, total, n = [], 0, 0
@@ -1362,6 +1367,7 @@ def api_historico_wines():
                         'winery': wine.get('winery', ''),
                         'vintage': wine.get('vintage', ''),
                         'do': wine.get('do', ''),
+                        'type': wine_type,
                         'grape': wine.get('grape', ''),
                         'region': wine.get('region', ''),
                         'photo': wine.get('photo', ''),
@@ -1388,10 +1394,16 @@ def api_historico_wines():
                 })
                 entry['comments'].extend(rows)
 
+                # Si una cata posterior trae el tipo y la entrada no lo tenía, rellenamos.
+                if not entry['type'] and wine_type:
+                    entry['type'] = wine_type
+
                 if entry['winery']:
                     wineries.add(entry['winery'])
                 if entry['do']:
                     dos.add(entry['do'])
+                if entry['type']:
+                    types.add(entry['type'])
                 grapes.update(entry['grapes'])
 
     wines = []
@@ -1411,6 +1423,8 @@ def api_historico_wines():
             'wineries': sorted(wineries, key=str.lower),
             'dos': sorted(dos, key=str.lower),
             'grapes': sorted(grapes, key=str.lower),
+            # En el orden canónico de WINE_TYPES, no alfabético
+            'types': [t for t in WINE_TYPES if t in types],
         },
     })
 
