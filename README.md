@@ -748,6 +748,42 @@ deshabilitado por defecto:
 
 No arranca solo al reiniciar (intencionado): se activa a mano solo cuando se necesita.
 
+### Login del panel de control
+
+El panel `/control` (y las rutas de escritura de la API) exige autenticación.
+Hay dos capas, complementarias:
+
+- **Local (LAN):** login por contraseña (`ADMIN_PASSWORD`), con rate-limit por IP
+  y global. Es lo que siempre funciona, incluso con el túnel parado.
+- **Internet (Cloudflare Access):** cuando se entra por el dominio del túnel,
+  Cloudflare autentica al usuario en su borde (Google, GitHub, código por email…)
+  **antes** de que la petición llegue a la app, y reenvía un JWT firmado. La app
+  verifica ese JWT contra las claves públicas del equipo; si es válido, concede
+  admin sin pedir contraseña. Como la firma es de Cloudflare, no se puede
+  falsificar accediendo directamente a la app por la LAN.
+
+Cloudflare Access es **opcional**. Para activarlo:
+
+1. En el dashboard de **Cloudflare Zero Trust** → *Access* → *Applications*, crea
+   una aplicación self-hosted apuntando a la ruta del panel (p. ej.
+   `tudominio.com/control`), y define una policy *allow* con los correos
+   autorizados y el método de login (Google, o *One-time PIN* por email, que no
+   requiere configurar IdP).
+2. Copia el **Application Audience (AUD) tag** de la app y el **dominio del
+   equipo** (`miequipo.cloudflareaccess.com`) al `.env`:
+
+   ```ini
+   CF_ACCESS_TEAM_DOMAIN=miequipo.cloudflareaccess.com
+   CF_ACCESS_AUD=el-aud-tag-de-la-app
+   CF_ACCESS_EMAILS=tu@correo.com   # allowlist opcional (defensa en profundidad)
+   ```
+
+3. Reinicia el servicio (`systemctl restart cata-vinos`).
+
+Si esas variables se dejan vacías, la integración queda desactivada y solo
+funciona la contraseña. Deja pública la ruta raíz `/` (la TV) en Cloudflare
+Access: solo el panel de control necesita protección.
+
 ---
 
 ## 🔌 API principal

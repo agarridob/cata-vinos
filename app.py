@@ -29,8 +29,10 @@ from datetime import datetime
 from functools import wraps
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+import jwt
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, render_template, request, session, redirect, url_for
+from jwt import PyJWKClient
 
 load_dotenv()
 
@@ -43,6 +45,59 @@ if not app.secret_key:
 
 if not ADMIN_PASSWORD:
     raise RuntimeError("Falta ADMIN_PASSWORD en variables de entorno")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cloudflare Access (acceso por internet vía el túnel).
+#
+# Cuando se entra desde fuera, Cloudflare Access autentica al usuario en su borde
+# y reenvía a la app un JWT firmado (cabecera Cf-Access-Jwt-Assertion). Aquí lo
+# verificamos criptográficamente contra las claves públicas del equipo: como está
+# firmado por Cloudflare, NO se puede falsificar desde la LAN saltándose el túnel.
+#
+# Si un usuario trae un JWT válido -> admin sin contraseña. Si no (p. ej. acceso
+# local por IP), se cae al login por contraseña de siempre.
+#
+# Todo es opcional: sin CF_ACCESS_TEAM_DOMAIN + CF_ACCESS_AUD, la integración
+# queda desactivada y solo funciona la contraseña (comportamiento actual).
+CF_ACCESS_TEAM_DOMAIN = os.environ.get('CF_ACCESS_TEAM_DOMAIN', '').strip()  # miequipo.cloudflareaccess.com
+CF_ACCESS_AUD         = os.environ.get('CF_ACCESS_AUD', '').strip()          # Application Audience (AUD) tag
+CF_ACCESS_EMAILS      = {e.strip().lower()
+                         for e in os.environ.get('CF_ACCESS_EMAILS', '').split(',')
+                         if e.strip()}                                       # allowlist opcional
+CF_ACCESS_ENABLED     = bool(CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD)
+
+_cf_jwk_client = (PyJWKClient(f"https://{CF_ACCESS_TEAM_DOMAIN}/cdn-cgi/access/certs")
+                  if CF_ACCESS_ENABLED else None)
+
+
+def cf_access_user():
+    """Devuelve el email del usuario si la petición trae un JWT de Cloudflare
+    Access válido; None en caso contrario. La firma la valida Cloudflare, así que
+    no es falsificable por quien acceda directamente a la app saltándose el túnel."""
+    if not CF_ACCESS_ENABLED:
+        return None
+
+    token = (request.headers.get('Cf-Access-Jwt-Assertion')
+             or request.cookies.get('CF_Authorization'))
+    if not token:
+        return None
+
+    try:
+        signing_key = _cf_jwk_client.get_signing_key_from_jwt(token)
+        claims = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=['RS256'],
+            audience=CF_ACCESS_AUD,
+            issuer=f"https://{CF_ACCESS_TEAM_DOMAIN}",
+        )
+    except Exception:
+        return None
+
+    email = (claims.get('email') or '').lower()
+    if CF_ACCESS_EMAILS and email not in CF_ACCESS_EMAILS:
+        return None
+    return email or None
 
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR    = os.path.join(BASE_DIR, 'data')
@@ -603,7 +658,9 @@ def calculate_highlights(wines):
 def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        if session.get('is_admin'):
+        # Sesión local (login por contraseña) o usuario autenticado por
+        # Cloudflare Access (acceso desde internet): ambos cuentan como admin.
+        if session.get('is_admin') or cf_access_user():
             return fn(*args, **kwargs)
 
         if request.path.startswith('/api/'):
