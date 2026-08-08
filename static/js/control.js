@@ -91,7 +91,7 @@ function render() {
       </div>`;
   } else {
     let metaHtml = '';
-    const ratingPairs = parseRatingPairs(state.wine.rating);
+    const ratingPairs = wineRatingPairs(state.wine);
     if (ratingPairs.length) {
       const inner = ratingPairs.map(p =>
         `<span class="current-meta-pair">${p.sys ? `<span class="current-meta-system">${escapeHtml(p.sys)}</span>` : ''}<span class="current-meta-score">${escapeHtml(p.sco)}</span></span>`
@@ -331,14 +331,15 @@ function setWinesEditorStatus(msg, isError = false) {
 }
 
 function emptyWine() {
-  return { name: '', winery: '', vintage: '', do: '', grape: '', region: '', rating: '', curiosity: '', photo: '', type: '', coords: ['', ''] };
+  return { name: '', winery: '', vintage: '', do: '', grape: '', region: '', ratings: [], curiosity: '', photo: '', type: '', coords: ['', ''] };
 }
 
 function normalizeWineForEditor(w) {
   const out = emptyWine();
-  ['name','winery','vintage','do','grape','region','rating','curiosity','photo','type'].forEach(k => {
+  ['name','winery','vintage','do','grape','region','curiosity','photo','type'].forEach(k => {
     out[k] = w && w[k] != null ? String(w[k]) : '';
   });
+  out.ratings = ratingsFromWine(w);
   if (w && Array.isArray(w.coords) && w.coords.length === 2) {
     out.coords = [w.coords[0] != null ? String(w.coords[0]) : '', w.coords[1] != null ? String(w.coords[1]) : ''];
   }
@@ -376,6 +377,15 @@ function collectWinesEditorData() {
       else if (f === 'lon') wine.coords[1] = input.value.trim();
       else wine[f] = input.value.trim();
     });
+    // Puntuaciones: se conservan las filas tal cual (incluidas las vacías) para
+    // que una fila recién añadida sobreviva al re-render; se filtran al guardar.
+    const ratings = [];
+    card.querySelectorAll('.rating-row').forEach(row => {
+      const nameEl = row.querySelector('[data-rating-field="name"]');
+      const scoreEl = row.querySelector('[data-rating-field="score"]');
+      ratings.push({ name: nameEl ? nameEl.value.trim() : '', score: scoreEl ? scoreEl.value.trim() : '' });
+    });
+    wine.ratings = ratings;
   });
 }
 
@@ -408,10 +418,10 @@ function renderWinesEditor() {
         ${editorField('Uva', 'grape', w.grape)}
         ${editorSelect('Tipo', 'type', w.type, WINE_TYPE_OPTIONS)}
         ${editorField('Región', 'region', w.region)}
-        ${editorField('Rating', 'rating', w.rating)}
         ${editorField('Foto', 'photo', w.photo)}
         ${editorField('Latitud', 'lat', w.coords[0])}
         ${editorField('Longitud', 'lon', w.coords[1])}
+        ${editorRatings(w.ratings)}
         <label class="editor-label full">Curiosidad
           <textarea class="editor-textarea" data-field="curiosity">${escapeHtml(w.curiosity || '')}</textarea>
         </label>
@@ -422,6 +432,21 @@ function renderWinesEditor() {
 
 function editorField(label, field, value) {
   return `<label class="editor-label">${label}<input class="editor-input" data-field="${field}" value="${escapeAttr(value || '')}"></label>`;
+}
+
+// Sub-editor de puntuaciones: N filas de {Sistema, Nota} + botón para añadir.
+function editorRatings(ratings) {
+  const rows = (Array.isArray(ratings) ? ratings : []).map((r, i) => `
+    <div class="rating-row" data-rating-idx="${i}">
+      <input class="editor-input" data-rating-field="name" placeholder="Sistema (p.ej. Parker)" value="${escapeAttr(r.name || '')}">
+      <input class="editor-input" data-rating-field="score" placeholder="Nota (p.ej. 92+)" value="${escapeAttr(r.score || '')}">
+      <button class="mini-btn danger" data-rating-action="remove" title="Quitar puntuación">✕</button>
+    </div>`).join('');
+  return `
+    <div class="editor-label full ratings-editor">Puntuaciones
+      <div class="ratings-rows">${rows}</div>
+      <button class="mini-btn ratings-add" data-rating-action="add">+ puntuación</button>
+    </div>`;
 }
 
 const WINE_TYPE_OPTIONS = [
@@ -446,7 +471,11 @@ function buildWinesEditorPayload() {
     session: winesEditorData.session,
     wifi: winesEditorData.wifi,
     wines: winesEditorData.wines.map(w => {
-      const out = { name: w.name || '', winery: w.winery || '', vintage: w.vintage || '', do: w.do || '', grape: w.grape || '', region: w.region || '', rating: w.rating || '', curiosity: w.curiosity || '', photo: w.photo || '', type: w.type || '' };
+      const out = { name: w.name || '', winery: w.winery || '', vintage: w.vintage || '', do: w.do || '', grape: w.grape || '', region: w.region || '', curiosity: w.curiosity || '', photo: w.photo || '', type: w.type || '' };
+      const ratings = (Array.isArray(w.ratings) ? w.ratings : [])
+        .map(r => ({ name: String(r.name || '').trim(), score: String(r.score || '').trim() }))
+        .filter(r => r.name || r.score);
+      if (ratings.length) out.ratings = ratings;
       const lat = String(w.coords?.[0] || '').trim();
       const lon = String(w.coords?.[1] || '').trim();
       if (lat !== '' && lon !== '') out.coords = [Number(lat), Number(lon)];
@@ -481,6 +510,26 @@ function addEditorWine() {
 }
 
 function handleEditorAction(e) {
+  // Añadir/quitar puntuaciones dentro de una tarjeta.
+  const ratingBtn = e.target.closest('[data-rating-action]');
+  if (ratingBtn) {
+    const card = ratingBtn.closest('.wine-editor-card');
+    if (!card) return;
+    collectWinesEditorData();
+    const wine = winesEditorData.wines[parseInt(card.dataset.idx, 10)];
+    if (!wine) return;
+    if (!Array.isArray(wine.ratings)) wine.ratings = [];
+    if (ratingBtn.dataset.ratingAction === 'add') {
+      wine.ratings.push({ name: '', score: '' });
+    } else {
+      const row = ratingBtn.closest('.rating-row');
+      if (row) wine.ratings.splice(parseInt(row.dataset.ratingIdx, 10), 1);
+    }
+    renderWinesEditor();
+    setWinesEditorStatus('Cambios pendientes de guardar.');
+    return;
+  }
+
   const btn = e.target.closest('[data-editor-action]');
   if (!btn) return;
   const card = btn.closest('.wine-editor-card');
@@ -683,12 +732,34 @@ function escapeHtml(s) {
 function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
 // Igual que en app-core.js: parsea "Suckling 95 · Parker 92+" en pares {sys, sco}.
+// Solo compatibilidad con el formato antiguo (rating string).
 function parseRatingPairs(rating) {
   if (!rating || !String(rating).trim()) return [];
   return String(rating).split('·').map(s => s.trim()).filter(Boolean).map(seg => {
     const m = seg.match(/^(\S+)\s+(.+)$/);
     return m ? { sys: m[1], sco: m[2] } : { sys: '', sco: seg };
   });
+}
+
+// Puntuaciones de un vino como pares {sys, sco}. Prefiere wine.ratings=[{name,score}];
+// cae al string legacy wine.rating si no existe.
+function wineRatingPairs(wine) {
+  if (wine && Array.isArray(wine.ratings)) {
+    return wine.ratings
+      .map(r => ({ sys: String((r && r.name) || '').trim(), sco: String((r && r.score) || '').trim() }))
+      .filter(r => r.sys || r.sco);
+  }
+  return parseRatingPairs(wine && wine.rating);
+}
+
+// Puntuaciones para el editor: array de {name, score}. Convierte el legacy string.
+function ratingsFromWine(wine) {
+  if (wine && Array.isArray(wine.ratings)) {
+    return wine.ratings
+      .map(r => ({ name: String((r && r.name) || '').trim(), score: String((r && r.score) || '').trim() }))
+      .filter(r => r.name || r.score);
+  }
+  return parseRatingPairs(wine && wine.rating).map(p => ({ name: p.sys, score: p.sco }));
 }
 
 fetchColorMap();
