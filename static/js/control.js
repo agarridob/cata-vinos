@@ -452,6 +452,7 @@ function editorRatings(ratings) {
 const WINE_TYPE_OPTIONS = [
   ['', '— sin definir —'],
   ['tinto', 'Tinto'],
+  ['clarete', 'Clarete'],
   ['blanco', 'Blanco'],
   ['rosado', 'Rosado'],
   ['orange', 'Orange'],

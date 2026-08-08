@@ -11,9 +11,10 @@ function winesTypeBreakdownHtml(wines) {
     blanco:   ['blanco', 'blancos'],
     rosado:   ['rosado', 'rosados'],
     orange:   ['orange', 'orange'],
+    clarete:  ['clarete', 'claretes'],
     tinto:    ['tinto', 'tintos'],
   };
-  const order = ['espumoso', 'blanco', 'rosado', 'orange', 'tinto'];
+  const order = ['espumoso', 'blanco', 'rosado', 'orange', 'clarete', 'tinto'];
   const counts = {};
   wines.forEach(w => {
     const t = w && w.type;

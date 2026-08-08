@@ -94,6 +94,7 @@
   /* Color por tipo, definido en el marco para que llegue al chip (TV) y al
      borde de la tarjeta (móvil) */
   .tv-frame[data-wine-type="tinto"]    { --wine-type-color: #7b1e3a; }
+  .tv-frame[data-wine-type="clarete"]  { --wine-type-color: #b23a5a; }
   .tv-frame[data-wine-type="blanco"]   { --wine-type-color: #c9a227; }
   .tv-frame[data-wine-type="rosado"]   { --wine-type-color: #e0788c; }
   .tv-frame[data-wine-type="orange"]   { --wine-type-color: #c8762e; }

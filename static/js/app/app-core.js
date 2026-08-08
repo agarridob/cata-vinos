@@ -15,6 +15,7 @@ const isMobile = () => window.innerWidth <= 900;
 // Tipo de vino → etiqueta del chip de color en la ficha (espumoso lleva copa)
 const WINE_TYPE_LABELS = {
   tinto: 'Tinto',
+  clarete: 'Clarete',
   blanco: 'Blanco',
   rosado: 'Rosado',
   orange: 'Orange',
