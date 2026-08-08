@@ -489,7 +489,7 @@ function renderSummary(payload) {
   dotsHtml.push(summaryPillsHtml('cards'));
 
   root.innerHTML = `
-    <div class="summary-frame">
+    <div class="summary-frame" data-rows="${layout.length}">
       <div class="corner tl"></div><div class="corner tr"></div>
       <div class="corner bl"></div><div class="corner br"></div>
       <div class="summary-header">

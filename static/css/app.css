@@ -540,6 +540,28 @@
     color: #a8771a;
     letter-spacing: -0.08vh;
   }
+  /* Escalado del resumen según nº de filas: con pocos vinos las tarjetas son
+     muy altas, así que agrandamos foto y texto para aprovechar el espacio.
+     El caso base (3 filas, 7-11 vinos) queda tal cual; solo ajustamos los
+     extremos. */
+  .summary-frame[data-rows="2"] .summary-card { gap: 2.4vh; padding: 2vh 2.4vh; }
+  .summary-frame[data-rows="2"] .summary-card-photo { width: 15vh; }
+  .summary-frame[data-rows="2"] .summary-card-name { font-size: 2.7vh; }
+  .summary-frame[data-rows="2"] .summary-card-winery { font-size: 2.2vh; }
+  .summary-frame[data-rows="2"] .summary-card-grape { font-size: 2.5vh; }
+  .summary-frame[data-rows="2"] .summary-card-do,
+  .summary-frame[data-rows="2"] .summary-card-vintage { font-size: 2vh; }
+
+  .summary-frame[data-rows="1"] .summary-card { gap: 3vh; padding: 2.5vh 3vh; }
+  .summary-frame[data-rows="1"] .summary-card-photo { width: 26vh; }
+  .summary-frame[data-rows="1"] .summary-card-name { font-size: 3.2vh; }
+  .summary-frame[data-rows="1"] .summary-card-winery { font-size: 2.6vh; }
+  .summary-frame[data-rows="1"] .summary-card-grape { font-size: 3vh; }
+  .summary-frame[data-rows="1"] .summary-card-do,
+  .summary-frame[data-rows="1"] .summary-card-vintage { font-size: 2.4vh; }
+
+  .summary-frame[data-rows="4"] .summary-card-photo { width: 9.5vh; }
+
   /* Píldoras del resumen: una por vista (cards/journey). La activa se llena
      progresivamente (vía .fill animado) hasta que toca cambiar de vista. */
   .dot.summary {
