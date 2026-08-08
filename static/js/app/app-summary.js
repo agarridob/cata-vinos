@@ -371,7 +371,7 @@ function renderSummary(payload) {
       const doText = w.do || '';
 
       let ratingHtml = '';
-      const ratingPairs = parseRatingPairs(w.rating);
+      const ratingPairs = wineRatingPairs(w);
       if (ratingPairs.length) {
         const inner = ratingPairs.map(p =>
           `<span class="summary-card-rating-pair">${p.sys ? `<span class="summary-card-rating-sys">${escapeHtml(p.sys)}</span>` : ''}<span class="summary-card-rating-sco">${escapeHtml(p.sco)}</span></span>`

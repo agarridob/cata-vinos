@@ -10,7 +10,10 @@
       "region": "Haro, La Rioja",
       "coords": [42.57, -2.85],
       "price": "12,00 €",
-      "rating": "Parker 92",
+      "ratings": [
+        { "name": "Parker", "score": "92" },
+        { "name": "Suckling", "score": "95" }
+      ],
       "photo": "ejemplo.jpg",
       "curiosity": ""
     },

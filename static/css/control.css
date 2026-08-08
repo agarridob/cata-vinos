@@ -237,6 +237,10 @@ input, textarea { user-select: text; }
 .mini-btn.danger { border-color: #a02818; color: #a02818; background: rgba(160, 40, 24, 0.05); }
 .wine-editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .wine-editor-grid .full { grid-column: 1 / -1; }
+.ratings-editor .ratings-rows { display: flex; flex-direction: column; gap: 7px; }
+.rating-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 7px; align-items: center; }
+.rating-row .editor-input { margin: 0; }
+.ratings-add { align-self: flex-start; margin-top: 8px; }
 .wifi-toggle { display: flex; align-items: center; gap: 10px; color: #6e0f2a; font-size: 13px; font-weight: 700; margin-bottom: 12px; }
 .wifi-toggle input { width: 18px; height: 18px; accent-color: #6e0f2a; }
 .archive-modal { position: fixed; inset: 0; background: rgba(20, 12, 8, 0.55); z-index: 4000; display: none; align-items: center; justify-content: center; padding: 24px 14px; backdrop-filter: blur(2px); }

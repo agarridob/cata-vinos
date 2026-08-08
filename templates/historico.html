@@ -698,7 +698,10 @@
       const sub = [w.winery, w.vintage, w.do, w.grape].filter(Boolean).join(' · ');
       info.appendChild(el('div', 'sub', escapeHtml(sub)));
       if (w.region) info.appendChild(el('div', 'sub', escapeHtml(w.region)));
-      const extras = [w.price, w.rating].filter(Boolean).join(' · ');
+      const ratingText = Array.isArray(w.ratings) && w.ratings.length
+        ? w.ratings.map(r => [r && r.name, r && r.score].filter(Boolean).join(' ').trim()).filter(Boolean).join(' · ')
+        : (w.rating || '');
+      const extras = [w.price, ratingText].filter(Boolean).join(' · ');
       if (extras) info.appendChild(el('div', 'sub', escapeHtml(extras)));
       head.appendChild(info);
 

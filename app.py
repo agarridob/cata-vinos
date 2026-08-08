@@ -942,7 +942,6 @@ def api_wines_config_save():
             'do',
             'grape',
             'region',
-            'rating',
             'curiosity',
             'photo',
         ]:
@@ -950,6 +949,23 @@ def api_wines_config_save():
             if value is None:
                 value = ''
             cleaned[field] = str(value).strip()
+
+        # Puntuaciones de expertos: lista de {name, score}. Los vinos antiguos
+        # traían un string suelto en 'rating'; se acepta como compatibilidad.
+        ratings = wine.get('ratings')
+        cleaned_ratings = []
+        if isinstance(ratings, list):
+            for r in ratings:
+                if not isinstance(r, dict):
+                    continue
+                r_name = str(r.get('name', '') or '').strip()
+                r_score = str(r.get('score', '') or '').strip()
+                if r_name or r_score:
+                    cleaned_ratings.append({'name': r_name, 'score': r_score})
+        if cleaned_ratings:
+            cleaned['ratings'] = cleaned_ratings
+        elif wine.get('rating'):
+            cleaned['rating'] = str(wine.get('rating')).strip()
 
         # Tipo de vino (opcional, validado contra la lista permitida)
         wine_type = str(wine.get('type', '')).strip().lower()
@@ -1430,6 +1446,7 @@ def api_historico_wines():
                         'photo': wine.get('photo', ''),
                         'price': wine.get('price', ''),
                         'rating': wine.get('rating', ''),
+                        'ratings': wine.get('ratings', []),
                         'grapes': _split_grapes(wine.get('grape', '')),
                         '_total': 0,
                         '_n': 0,

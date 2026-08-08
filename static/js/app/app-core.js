@@ -94,12 +94,26 @@ function escapeHtml(s) {
 
 // Parsea un rating de expertos en pares {sys, sco}. Admite varios separados
 // por "·", p.ej. "Suckling 95 · Parker 92+" → [{sys:Suckling,sco:95},{sys:Parker,sco:92+}].
+// Solo se usa como compatibilidad con el formato antiguo (rating string). Los vinos
+// nuevos traen wine.ratings = [{name, score}] y no dependen de este heurístico.
 function parseRatingPairs(rating) {
   if (!rating || !String(rating).trim()) return [];
   return String(rating).split('·').map(s => s.trim()).filter(Boolean).map(seg => {
     const m = seg.match(/^(\S+)\s+(.+)$/);
     return m ? { sys: m[1], sco: m[2] } : { sys: '', sco: seg };
   });
+}
+
+// Devuelve las puntuaciones de un vino como pares {sys, sco} para render.
+// Prefiere el formato nuevo wine.ratings = [{name, score}]; si no existe, cae al
+// string legacy wine.rating (parseado con el heurístico antiguo).
+function wineRatingPairs(wine) {
+  if (wine && Array.isArray(wine.ratings)) {
+    return wine.ratings
+      .map(r => ({ sys: String((r && r.name) || '').trim(), sco: String((r && r.score) || '').trim() }))
+      .filter(r => r.sys || r.sco);
+  }
+  return parseRatingPairs(wine && wine.rating);
 }
 
 function renderEmpty(sessionName) {

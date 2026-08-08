@@ -121,7 +121,7 @@ function applyUpdate(payload) {
   // Meta: puntuaciones de expertos. Puede haber varias ("Suckling 95 · Parker 92+"):
   // cada nombre de sistema va pequeño y cada nota grande, con un "·" entre pares.
   const meta = document.getElementById('meta');
-  const ratingPairs = parseRatingPairs(w.rating);
+  const ratingPairs = wineRatingPairs(w);
   if (ratingPairs.length) {
     meta.innerHTML = ratingPairs.map(p =>
       `<span class="meta-pair">${p.sys ? `<span class="meta-system">${escapeHtml(p.sys)}</span>` : ''}<span class="meta-score">${escapeHtml(p.sco)}</span></span>`
