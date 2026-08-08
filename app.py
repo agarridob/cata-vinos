@@ -807,7 +807,7 @@ def api_reload():
 # No se guarda obligatoriamente; si falta, se intenta adivinar (modo híbrido:
 # el editor muestra la sugerencia y el anfitrión la confirma o corrige).
 # ─────────────────────────────────────────────────────────────────────────────
-WINE_TYPES = ('tinto', 'blanco', 'rosado', 'orange', 'espumoso')
+WINE_TYPES = ('tinto', 'clarete', 'blanco', 'rosado', 'orange', 'espumoso')
 
 _SPARKLING_KW = (
     'espumoso', 'brut', 'cava', 'crémant', 'cremant', 'champagne', 'champán',
@@ -817,7 +817,8 @@ _SPARKLING_KW = (
 )
 _ORANGE_KW = ('orange', 'naranja', 'ámbar', 'macerado', 'maceración', 'maceracion',
               'brisat', 'skin contact', 'vino naranja')
-_ROSE_KW = ('rosado', 'rosé', 'rosat', 'clarete')
+_CLARETE_KW = ('clarete',)
+_ROSE_KW = ('rosado', 'rosé', 'rosat')
 _WHITE_NAME_KW = ('blanco', 'blanc', 'white', 'txakoli', 'txakolina')
 _RED_NAME_KW = ('tinto', 'negre', 'negro', 'noir', 'rouge', 'rosso')
 _WHITE_GRAPES = (
@@ -862,6 +863,8 @@ def guess_wine_type(wine):
         return 'espumoso'
     if any(k in name for k in _ORANGE_KW):
         return 'orange'
+    if any(k in name for k in _CLARETE_KW):
+        return 'clarete'
     if any(k in name for k in _ROSE_KW):
         return 'rosado'
     if any(k in name for k in _WHITE_NAME_KW):
