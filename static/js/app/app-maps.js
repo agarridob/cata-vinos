@@ -103,13 +103,17 @@ function renderMap(lat, lon) {
       leafletMap = L.map(host, {
         zoomControl: false,
         attributionControl: true,
-        dragging: false,
-        touchZoom: false,
-        doubleClickZoom: false,
+        dragging: true,
+        touchZoom: true,
+        doubleClickZoom: true,
         scrollWheelZoom: false,
         boxZoom: false,
         keyboard: false,
+        tap: true,
       });
+
+      // Zoom en la esquina superior derecha: la izquierda la ocupa la etiqueta de la D.O.
+      L.control.zoom({ position: 'topright' }).addTo(leafletMap);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
