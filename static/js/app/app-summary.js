@@ -571,6 +571,10 @@ function renderHighlight(el, highlights, idx) {
   const h = highlights[idx];
   if (!h) { el.innerHTML = ''; return; }
 
+  // Nº de vino justo antes del nombre en todas las tarjetas de destacados,
+  // para ubicarlo de un vistazo (p. ej. "3. Roselito").
+  const winePrefix = typeof h.wine_idx === 'number' ? `${h.wine_idx + 1}. ` : '';
+
   // Indicadores de rotación (solo si hay >1 destacado)
   const dotsHtml = highlights.length > 1
     ? highlights.map((_, i) =>
@@ -588,7 +592,7 @@ function renderHighlight(el, highlights, idx) {
     for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
     const plural = h.count === 1 ? 'voto' : 'votos';
     bodyHtml = `
-      <div class="highlights-title">${escapeHtml(h.wine_name || '')}</div>
+      <div class="highlights-title">${escapeHtml(winePrefix + (h.wine_name || ''))}</div>
       <div class="highlights-meta">
         <span class="highlights-stars">${starStr}</span>
         <span class="highlights-avg">${(h.avg || 0).toFixed(1)}</span>
@@ -597,7 +601,7 @@ function renderHighlight(el, highlights, idx) {
   } else if (h.type === 'polarizing') {
     iconChar = '⚡';
     bodyHtml = `
-      <div class="highlights-title">${escapeHtml(h.wine_name || '')}</div>
+      <div class="highlights-title">${escapeHtml(winePrefix + (h.wine_name || ''))}</div>
       <div class="highlights-meta">
         <span class="highlights-extra">De ${h.min_score}★ a ${h.max_score}★ · sin consenso</span>
       </div>`;
@@ -607,7 +611,7 @@ function renderHighlight(el, highlights, idx) {
     let starStr = '';
     for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
     bodyHtml = `
-      <div class="highlights-title">${escapeHtml(h.wine_name || '')}</div>
+      <div class="highlights-title">${escapeHtml(winePrefix + (h.wine_name || ''))}</div>
       <div class="highlights-meta">
         <span class="highlights-stars">${starStr}</span>
         <span class="highlights-avg">${(h.avg || 0).toFixed(1)}</span>
@@ -620,7 +624,7 @@ function renderHighlight(el, highlights, idx) {
       <div class="highlights-quote">${escapeHtml(h.comment || '')}</div>
       <div class="highlights-attrib">
         <span class="highlights-attrib-dot" style="background:${colorHex}"></span>
-        <span><strong>${escapeHtml(h.user_name || '—')}</strong> sobre ${escapeHtml(h.wine_name || '')}</span>
+        <span><strong>${escapeHtml(h.user_name || '—')}</strong> sobre ${escapeHtml(winePrefix + (h.wine_name || ''))}</span>
       </div>`;
   }
 
