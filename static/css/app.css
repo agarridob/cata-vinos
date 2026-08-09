@@ -769,9 +769,65 @@
     .map-label   { font-size: 11px; padding: 5px 10px; letter-spacing: 1.8px; }
     .map-outside-label { font-size: 11px; padding: 5px 10px; letter-spacing: 1.8px; }
 
-    .tv-footer { gap: 7px; padding-top: 6px; }
-    .dot { width: 9px; height: 9px; }
-    .dot.active { width: 9px; height: 9px; box-shadow: 0 0 6px rgba(168,119,26,0.5); }
+    /* ─── Móvil: los dots son botones grandes con el número del vino dentro,
+       para poder saltar de vino cómodamente con el pulgar. En la TV siguen
+       siendo indicadores de progreso diminutos (no se navega desde la tele). */
+    .tv-footer {
+      gap: 8px;
+      padding-top: 12px;
+      flex-wrap: wrap;
+    }
+    .dot {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #6e0f2a;
+      background: #e7d6ab;
+      border: 1px solid #cbb488;
+    }
+    .dot.done {
+      background: #6e0f2a;
+      color: #f5ecd5;
+      border-color: #6e0f2a;
+    }
+    .dot.active {
+      width: 44px;
+      height: 44px;
+      background: #a8771a;
+      color: #fff;
+      border-color: #a8771a;
+      box-shadow: 0 0 10px rgba(168,119,26,0.5);
+    }
+    .dot.locked {
+      opacity: 0.4;
+    }
+    .dot.clickable:active {
+      transform: scale(0.9);
+    }
+    /* Botón del resumen (glifo ☰): mismo tamaño que el resto */
+    .dot.summary {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      font-size: 20px;
+      color: #6e0f2a;
+      background: #e7d6ab;
+      border: 1px solid #cbb488;
+    }
+    .dot.summary.active {
+      background: #a8771a;
+      color: #fff;
+      border-color: #a8771a;
+      box-shadow: 0 0 10px rgba(168,119,26,0.5);
+    }
+    /* En la vista resumen, el propio botón ☰ es el activo; su .fill sobra en móvil */
+    .dot.summary .fill { display: none; }
 
     .corner { width: 12px; height: 12px; }
 

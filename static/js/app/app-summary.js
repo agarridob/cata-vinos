@@ -94,7 +94,7 @@ function ensureSummaryViewTimer() {
  */
 function summaryPillsHtml(activeView) {
   if (isMobile()) {
-    return '<div class="dot summary active"><div class="fill"></div></div>';
+    return '<div class="dot summary active">☰</div>';
   }
 
   const auto = shouldAutoRotateSummary();
@@ -131,11 +131,12 @@ function renderSummaryJourney(payload) {
 
   const serverIdx = (typeof payload._serverIdx === 'number') ? payload._serverIdx : payload.total;
 
+  const mobile = isMobile();
   const dotsHtml = [];
   for (let i = 0; i < payload.total; i++) {
     const cls = ['dot', 'done'];
-    if (isMobile() && i <= serverIdx) cls.push('clickable');
-    dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}"></div>`);
+    if (mobile && i <= serverIdx) cls.push('clickable');
+    dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}">${mobile ? (i + 1) : ''}</div>`);
   }
   dotsHtml.push(summaryPillsHtml('journey'));
 
@@ -484,7 +485,7 @@ function renderSummary(payload) {
   for (let i = 0; i < payload.total; i++) {
     const cls = ['dot', 'done'];
     if (mobile && i <= serverIdx) cls.push('clickable');
-    dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}"></div>`);
+    dotsHtml.push(`<div class="${cls.join(' ')}" data-idx="${i}">${mobile ? (i + 1) : ''}</div>`);
   }
   dotsHtml.push(summaryPillsHtml('cards'));
 
