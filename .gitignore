@@ -2,6 +2,7 @@
 # Ignora todo data/ y luego se readmite solo la plantilla
 data/*
 !data/wines.example.json
+!data/wines.pruebas.json
 
 # ── Backups locales de plantillas ─────
 templates/*.bak-*

@@ -186,6 +186,7 @@ input, textarea { user-select: text; }
 .admin-section { margin-top: 28px; padding-top: 16px; border-top: 1px dashed #c8a878; }
 .first-section { margin-top: 0; padding-top: 0; border-top: none; }
 .admin-test-section { margin-top: 36px; padding-top: 16px; border-top: 1px dashed #b894b0; }
+.editor-test { margin-top: 24px; padding-top: 14px; border-top: 1px dashed #b894b0; }
 .admin-test-title { color: #7a3a6e; }
 .admin-btn {
   width: 100%;
