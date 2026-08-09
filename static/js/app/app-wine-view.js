@@ -173,6 +173,8 @@ function applyUpdate(payload) {
   for (let i = 0; i < payload.total; i++) {
     const d = document.createElement('div');
     d.className = 'dot';
+    // En móvil los dots son botones grandes con el número del vino dentro.
+    if (mobile) d.textContent = i + 1;
     if (i < payload.index)        d.classList.add('done');
     else if (i === payload.index) d.classList.add('active');
     if (i > serverIdx) {
@@ -187,6 +189,8 @@ function applyUpdate(payload) {
   if (serverIdx === payload.total) {
     const d = document.createElement('div');
     d.className = 'dot summary' + (mobile ? ' clickable' : '');
+    // En móvil el botón del resumen lleva un glifo de lista en vez de número.
+    if (mobile) d.textContent = '☰';
     if (mobile) d.onclick = () => navigateTo(payload.total);
     dots.appendChild(d);
   }
