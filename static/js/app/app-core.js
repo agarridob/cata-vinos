@@ -235,6 +235,10 @@ function renderCurrent() {
       ensureLayout();
     }
     applyUpdate(localPayload);
+    // Al entrar desde bienvenida/resumen no pasamos por el fade de abajo, así que
+    // hay que hacer visible el mapa aquí o se queda en opacity:0 (bug: mapa invisible).
+    const mapContainer = document.querySelector('.map-container');
+    if (mapContainer) mapContainer.classList.add('visible');
     return;
   }
 
