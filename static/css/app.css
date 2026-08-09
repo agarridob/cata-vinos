@@ -769,22 +769,32 @@
     .map-label   { font-size: 11px; padding: 5px 10px; letter-spacing: 1.8px; }
     .map-outside-label { font-size: 11px; padding: 5px 10px; letter-spacing: 1.8px; }
 
-    /* ─── Móvil: los dots son botones grandes con el número del vino dentro,
-       para poder saltar de vino cómodamente con el pulgar. En la TV siguen
-       siendo indicadores de progreso diminutos (no se navega desde la tele). */
+    /* ─── Móvil: los dots del footer son botones con el número del vino dentro,
+       para saltar de vino con el pulgar. Ancho flexible (flex:1) para que quepan
+       hasta ~10 vinos en una sola fila sin envolver. Los vinos por delante del
+       anfitrión (locked) se muestran como barritas finas y tenues SIN número:
+       así es evidente que aún no puedes avanzar ahí. En la TV no aplica nada de
+       esto: los dots siguen siendo indicadores de progreso diminutos. */
     .tv-footer {
-      gap: 8px;
+      gap: 5px;
       padding-top: 12px;
-      flex-wrap: wrap;
+      align-items: center;
+      flex-wrap: nowrap;
     }
+    /* Círculos numerados; ancho flexible (flex-basis + shrink) para que quepan
+       hasta ~10 vinos en una sola fila. aspect-ratio 1 los mantiene redondos
+       aunque encojan. */
     .dot {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
+      flex: 0 1 34px;
+      min-width: 0;
+      width: auto;
+      height: auto;
+      aspect-ratio: 1;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 17px;
+      font-size: 14px;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: #6e0f2a;
@@ -797,25 +807,33 @@
       border-color: #6e0f2a;
     }
     .dot.active {
-      width: 44px;
-      height: 44px;
       background: #a8771a;
       color: #fff;
       border-color: #a8771a;
-      box-shadow: 0 0 10px rgba(168,119,26,0.5);
+      box-shadow: 0 0 8px rgba(168,119,26,0.5);
     }
+    /* Vino por delante del anfitrión: puntito redondo tenue y sin número, para
+       que sea evidente que aún no puedes avanzar ahí. */
     .dot.locked {
-      opacity: 0.4;
+      background: #d8c094;
+      border: none;
+      color: transparent;
+      opacity: 0.45;
+      box-shadow: none;
+      transform: scale(0.34);
     }
     .dot.clickable:active {
-      transform: scale(0.9);
+      transform: scale(0.92);
     }
-    /* Botón del resumen (glifo ☰): mismo tamaño que el resto */
+    /* Botón del resumen (glifo ☰): mismo círculo que el resto */
     .dot.summary {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      font-size: 20px;
+      flex: 0 1 34px;
+      min-width: 0;
+      aspect-ratio: 1;
+      width: auto;
+      height: auto;
+      border-radius: 50%;
+      font-size: 16px;
       color: #6e0f2a;
       background: #e7d6ab;
       border: 1px solid #cbb488;
@@ -824,7 +842,7 @@
       background: #a8771a;
       color: #fff;
       border-color: #a8771a;
-      box-shadow: 0 0 10px rgba(168,119,26,0.5);
+      box-shadow: 0 0 8px rgba(168,119,26,0.5);
     }
     /* En la vista resumen, el propio botón ☰ es el activo; su .fill sobra en móvil */
     .dot.summary .fill { display: none; }
