@@ -510,6 +510,27 @@ function addEditorWine() {
   setWinesEditorStatus('Vino añadido. Recuerda guardar cambios.');
 }
 
+async function handleLoadSampleWines() {
+  if (!confirm('⚠️ MODO PRUEBAS ⚠️\n\n¿Cargar la carta de pruebas (14 vinos de ejemplo)?\n\nSustituye la carta actual (wines.json) y refresca la TV.\nNo afecta a votos ni invitados.')) return;
+  setWinesEditorStatus('Cargando vinos de pruebas…');
+  try {
+    const r = await fetch('/api/wines-config/load-sample', { method: 'POST' });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    showToast(`Carta de pruebas cargada (${data.count} vinos).`);
+    setWinesEditorStatus(`Vinos de pruebas cargados · ${data.count} vinos.`);
+    await loadWinesEditor();
+    await fetchState();
+  } catch (e) {
+    console.error(e);
+    const msg = e.message === 'sample_not_found'
+      ? 'No existe data/wines.pruebas.json en el servidor.'
+      : `No se pudieron cargar los vinos de pruebas: ${e.message}`;
+    setWinesEditorStatus(msg, true);
+    showToast('No se pudo cargar la carta de pruebas', true);
+  }
+}
+
 function handleEditorAction(e) {
   // Añadir/quitar puntuaciones dentro de una tarjeta.
   const ratingBtn = e.target.closest('[data-rating-action]');
@@ -558,6 +579,8 @@ function bindWineEditorControls() {
   document.getElementById('btn-load-editor').onclick = loadWinesEditor;
   document.getElementById('btn-add-editor-wine').onclick = addEditorWine;
   document.getElementById('btn-save-editor').onclick = saveWinesEditor;
+  const sampleBtn = document.getElementById('btn-load-sample-wines');
+  if (sampleBtn) sampleBtn.onclick = handleLoadSampleWines;
   document.getElementById('wines-editor-list').onclick = handleEditorAction;
 }
 

@@ -102,6 +102,9 @@ def cf_access_user():
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR    = os.path.join(BASE_DIR, 'data')
 WINES_FILE  = os.path.join(DATA_DIR, 'wines.json')
+# Carta de pruebas versionada (14 vinos variados) para poblar la cata de golpe
+# desde el editor del panel de control. Ver data/wines.pruebas.json.
+SAMPLE_WINES_FILE = os.path.join(DATA_DIR, 'wines.pruebas.json')
 STATE_FILE  = os.path.join(DATA_DIR, '_state.json')
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -801,6 +804,51 @@ def api_reload():
     save_persisted_state()
     broadcast_update()
     return jsonify({'status': 'ok', 'count': len(wines), 'session': session_name})
+
+
+@app.route('/api/wines-config/load-sample', methods=['POST'])
+@admin_required
+def api_wines_config_load_sample():
+    """
+    Sustituye data/wines.json por la carta de pruebas versionada
+    (data/wines.pruebas.json) para poblar la cata de golpe. Solo anfitrión.
+    Pensado para probar la UI con muchos vinos; es destructivo con la carta actual.
+    """
+    try:
+        with open(SAMPLE_WINES_FILE, 'r', encoding='utf-8') as f:
+            sample = json.load(f)
+    except FileNotFoundError:
+        return jsonify({'error': 'sample_not_found'}), 404
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[load-sample] Error leyendo la carta de pruebas: {e}")
+        return jsonify({'error': 'sample_invalid'}), 500
+
+    if not isinstance(sample, dict) or not isinstance(sample.get('wines'), list):
+        return jsonify({'error': 'sample_invalid'}), 500
+
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+
+        tmp = WINES_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(sample, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, WINES_FILE)
+
+        session_name, wines, wifi = load_wines()
+        with state_lock:
+            state['session_name'] = session_name
+            state['wines'] = wines
+            state['wifi'] = wifi
+            if state['current_index'] > len(wines):
+                state['current_index'] = max(0, len(wines))
+
+        save_persisted_state()
+        broadcast_update()
+
+        return jsonify({'status': 'ok', 'count': len(wines), 'session': session_name})
+    except Exception as e:
+        print(f"[load-sample] Error: {e}")
+        return jsonify({'error': 'save_failed'}), 500
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tipo de vino (tinto/blanco/rosado/orange/espumoso) — para colorear tarjetas.
