@@ -825,7 +825,9 @@
     .dot.clickable:active {
       transform: scale(0.92);
     }
-    /* Botón del resumen (glifo ☰): mismo círculo que el resto */
+    /* Botón del resumen: mismo círculo que el resto, con un icono de lista
+       (hamburguesa) dibujado en CSS. Usamos las tres barras via ::before en
+       vez del glifo ☰ porque el glifo no queda ópticamente centrado. */
     .dot.summary {
       flex: 0 1 34px;
       min-width: 0;
@@ -833,10 +835,18 @@
       width: auto;
       height: auto;
       border-radius: 50%;
-      font-size: 16px;
+      font-size: 0;
       color: #6e0f2a;
       background: #e7d6ab;
       border: 1px solid #cbb488;
+    }
+    .dot.summary::before {
+      content: "";
+      width: 11px;
+      height: 2px;
+      border-radius: 2px;
+      background: currentColor;
+      box-shadow: 0 -4px 0 currentColor, 0 4px 0 currentColor;
     }
     .dot.summary.active {
       background: #a8771a;
