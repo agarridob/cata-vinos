@@ -1,0 +1,261 @@
+{
+  "session": "A catinha - Prova em família",
+  "wines": [
+    {
+      "name": "Berbereta Arinto & Chardonnay Reserva Brut Nature",
+      "winery": "Quinta do Porto Nogueira",
+      "vintage": "2022",
+      "do": "DOC Óbidos",
+      "grape": "Arinto (60%), Chardonnay (40%)",
+      "region": "Óbidos, Lisboa, Portugal",
+      "curiosity": "Método tradicional, mínimo 30 meses en botella. Misma quinta que el Quinta Nogueira.",
+      "photo": "berbereta1.png",
+      "type": "espumoso",
+      "coords": [
+        39.36,
+        -9.16
+      ]
+    },
+    {
+      "name": "Quinta Nogueira Reserva Branco",
+      "winery": "Quinta do Porto Nogueira",
+      "vintage": "2017",
+      "do": "IG Lisboa",
+      "grape": "Chardonnay, Sauvignon Blanc, Arinto",
+      "region": "Óbidos, Lisboa, Portugal",
+      "curiosity": "Fermentado y criado en barrica nueva de roble francés (~160 días con bâtonnage).",
+      "photo": "quinta_nogueira1.png",
+      "ratings": [
+        {
+          "name": "Vinhos de Lisboa",
+          "score": "Oro"
+        }
+      ],
+      "type": "blanco",
+      "coords": [
+        39.36,
+        -9.16
+      ]
+    },
+    {
+      "name": "Chablis 1er Cru Les Fourneaux",
+      "winery": "Domaine Fourrey",
+      "vintage": "2023",
+      "do": "Chablis 1er Cru",
+      "grape": "Chardonnay",
+      "region": "Chablis, Borgoña, Francia",
+      "curiosity": "",
+      "photo": "fourrey_chablis1.png",
+      "type": "blanco",
+      "coords": [
+        47.81,
+        3.8
+      ]
+    },
+    {
+      "name": "Poeira Clarete Desalinhados",
+      "winery": "Poeira (Jorge Moreira)",
+      "vintage": "2021",
+      "do": "DOC Douro",
+      "grape": "Touriga Nacional",
+      "region": "Sabrosa, Douro, Portugal",
+      "curiosity": "Clarete ligero (12,5%), de la serie irreverente \"Desalinhados\".",
+      "photo": "poeira_clarete1.png",
+      "ratings": [
+        {
+          "name": "Grandes Escolhas",
+          "score": "18"
+        }
+      ],
+      "type": "clarete",
+      "coords": [
+        41.26,
+        -7.57
+      ]
+    },
+    {
+      "name": "Morgon Château-Gaillard",
+      "winery": "Domaine Anita",
+      "vintage": "2023",
+      "do": "AOC Morgon",
+      "grape": "Gamay",
+      "region": "Beaujolais, Francia",
+      "curiosity": "",
+      "photo": "domaine_anita1.png",
+      "type": "tinto",
+      "coords": [
+        46.18,
+        4.68
+      ]
+    },
+    {
+      "name": "Luis Pato 11 (BTT)",
+      "winery": "Luis Pato",
+      "vintage": "2011",
+      "do": "Vinho Regional Beiras",
+      "grape": "Baga, Touriga Nacional, Bical",
+      "region": "Bairrada, Beiras, Portugal",
+      "curiosity": "BTT = Baga · Touriga Nacional · Bical; la etiqueta dibuja las letras con bicicletas (BTT = bici de montaña).",
+      "photo": "luis_pato_btt1.png",
+      "type": "tinto",
+      "coords": [
+        40.44,
+        -8.43
+      ]
+    },
+    {
+      "name": "Laudacius Brut Nature SSA",
+      "winery": "Maison Laudacius",
+      "vintage": "",
+      "do": "Crémant de Loire",
+      "grape": "Chenin Blanc",
+      "region": "Valle del Loira, Francia",
+      "curiosity": "",
+      "photo": "laudacius.png",
+      "ratings": [
+        {
+          "name": "Decanter",
+          "score": "97"
+        }
+      ],
+      "type": "espumoso",
+      "coords": [
+        47.26,
+        -0.08
+      ]
+    },
+    {
+      "name": "El Grifo Malvasía",
+      "winery": "El Grifo",
+      "vintage": "2025",
+      "do": "Lanzarote",
+      "grape": "Malvasía Volcánica",
+      "region": "La Geria, Lanzarote",
+      "curiosity": "",
+      "photo": "el_grifo.png",
+      "type": "blanco",
+      "coords": [
+        28.98,
+        -13.66
+      ]
+    },
+    {
+      "name": "Exopto Field Blend Blanco",
+      "winery": "Bodegas Exopto",
+      "vintage": "2024",
+      "do": "Rioja",
+      "grape": "Viura, Garnacha Blanca, Malvasía, Maturana, Palomino, Moscatel",
+      "region": "Laguardia, Rioja Alavesa",
+      "curiosity": "",
+      "photo": "exopto_blanco.jpg",
+      "ratings": [
+        {
+          "name": "Parker",
+          "score": "94"
+        }
+      ],
+      "type": "blanco",
+      "coords": [
+        42.55,
+        -2.58
+      ]
+    },
+    {
+      "name": "Qvinterra Riesling Trocken",
+      "winery": "Kühling-Gillot",
+      "vintage": "2024",
+      "do": "Rheinhessen",
+      "grape": "Riesling",
+      "region": "Bodenheim, Rheinhessen",
+      "curiosity": "",
+      "photo": "kuhling_gillot.png",
+      "ratings": [
+        {
+          "name": "Suckling",
+          "score": "93"
+        }
+      ],
+      "type": "blanco",
+      "coords": [
+        49.93,
+        8.31
+      ]
+    },
+    {
+      "name": "Roselito",
+      "winery": "Bodegas Antídoto",
+      "vintage": "2025",
+      "do": "Ribera del Duero",
+      "grape": "Tinto Fino, Albillo (38%)",
+      "region": "Ribera del Duero",
+      "curiosity": "",
+      "photo": "roselito.png",
+      "type": "tinto",
+      "coords": [
+        41.69,
+        -3.69
+      ]
+    },
+    {
+      "name": "La Forcallá de Antonia",
+      "winery": "Rafa Cambra",
+      "vintage": "2024",
+      "do": "Valencia",
+      "grape": "Forcallá",
+      "region": "Fontanars dels Alforins, Valencia",
+      "curiosity": "",
+      "photo": "forcalla.png",
+      "ratings": [
+        {
+          "name": "Parker",
+          "score": "95"
+        }
+      ],
+      "type": "tinto",
+      "coords": [
+        38.78,
+        -0.78
+      ]
+    },
+    {
+      "name": "Camiño Real",
+      "winery": "Guímaro",
+      "vintage": "2023",
+      "do": "Ribeira Sacra",
+      "grape": "Mencía, Sousón, Brancellao, Merenzao",
+      "region": "Sober, Lugo",
+      "curiosity": "",
+      "photo": "camino_real.jpg",
+      "type": "tinto",
+      "coords": [
+        42.46,
+        -7.58
+      ]
+    },
+    {
+      "name": "Morgon Château-Gaillard",
+      "winery": "Domaine Anita",
+      "vintage": "2023",
+      "do": "Morgon (Beaujolais)",
+      "grape": "Gamay",
+      "region": "Morgon, Beaujolais",
+      "curiosity": "",
+      "photo": "domaine_anita.png",
+      "ratings": [
+        {
+          "name": "Suckling",
+          "score": "95"
+        },
+        {
+          "name": "Parker",
+          "score": "92+"
+        }
+      ],
+      "type": "tinto",
+      "coords": [
+        46.18,
+        4.68
+      ]
+    }
+  ]
+}

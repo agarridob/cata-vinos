@@ -577,6 +577,8 @@ cata-vinos/
 ├── .env.example
 ├── data/
 │   ├── wines.json
+│   ├── wines.example.json    # plantilla mínima del esquema (versionada)
+│   ├── wines.pruebas.json    # dataset de pruebas: 14 vinos con tipos/puntuaciones (versionado)
 │   ├── votes.json
 │   ├── _state.json
 │   └── archive/              # catas archivadas (fuente de /historico)
