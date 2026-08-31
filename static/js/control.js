@@ -160,13 +160,15 @@ function syncAdminButtons() {
     welcomeBtn.disabled = !!state.is_welcome;
     welcomeBtn.style.opacity = state.is_welcome ? '0.4' : '';
   }
-  // El aviso de voto solo tiene sentido estando en un vino (no en bienvenida/resumen).
-  const alertBtn = document.getElementById('btn-vote-alert');
-  if (alertBtn && state) {
-    const noWine = !!state.is_welcome || !!state.is_summary;
-    alertBtn.disabled = noWine;
-    alertBtn.style.opacity = noWine ? '0.4' : '';
-  }
+  // Los avisos de voto solo tienen sentido estando en un vino (no en bienvenida/resumen).
+  const noWine = !!(state && (state.is_welcome || state.is_summary));
+  ['btn-vote-alert', 'btn-vote-alert-hide'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn && state) {
+      btn.disabled = noWine;
+      btn.style.opacity = noWine ? '0.4' : '';
+    }
+  });
 }
 
 // ──────────────────────────────────────────
@@ -715,6 +717,20 @@ async function handleVoteAlert() {
   }
 }
 
+async function handleVoteAlertHide() {
+  if (busy) return;
+  busy = true;
+  try {
+    const r = await fetch('/api/vote-alert/hide', { method: 'POST' });
+    const data = await r.json().catch(() => ({}));
+    showToast(r.ok ? 'Aviso ocultado en la TV' : (data.error || 'No se pudo ocultar el aviso'), !r.ok);
+  } catch (e) {
+    showToast('Error de red al ocultar el aviso', true);
+  } finally {
+    busy = false;
+  }
+}
+
 async function handleWelcomeBack() {
   if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen. La pantalla TV mostrará el QR otra vez.')) return;
   try {
@@ -766,6 +782,7 @@ archiveModal.onclick = (e) => { if (e.target === archiveModal) archiveModal.clas
 
 function bindAdminControls() {
   document.getElementById('btn-vote-alert').onclick = handleVoteAlert;
+  document.getElementById('btn-vote-alert-hide').onclick = handleVoteAlertHide;
   document.getElementById('btn-welcome-back').onclick = handleWelcomeBack;
   document.getElementById('btn-clear-votes').onclick = handleClearVotes;
   document.getElementById('btn-archive').onclick = openArchiveModal;
