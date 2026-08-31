@@ -160,6 +160,13 @@ function syncAdminButtons() {
     welcomeBtn.disabled = !!state.is_welcome;
     welcomeBtn.style.opacity = state.is_welcome ? '0.4' : '';
   }
+  // El aviso de voto solo tiene sentido estando en un vino (no en bienvenida/resumen).
+  const alertBtn = document.getElementById('btn-vote-alert');
+  if (alertBtn && state) {
+    const noWine = !!state.is_welcome || !!state.is_summary;
+    alertBtn.disabled = noWine;
+    alertBtn.style.opacity = noWine ? '0.4' : '';
+  }
 }
 
 // ──────────────────────────────────────────
@@ -694,6 +701,20 @@ async function handleWipe() {
   } catch (e) { showToast('Error de red', true); }
 }
 
+async function handleVoteAlert() {
+  if (busy) return;
+  busy = true;
+  try {
+    const r = await fetch('/api/vote-alert', { method: 'POST' });
+    const data = await r.json().catch(() => ({}));
+    showToast(r.ok ? 'Aviso de voto enviado a la TV' : (data.error || 'No se pudo enviar el aviso'), !r.ok);
+  } catch (e) {
+    showToast('Error de red al enviar el aviso', true);
+  } finally {
+    busy = false;
+  }
+}
+
 async function handleWelcomeBack() {
   if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen. La pantalla TV mostrará el QR otra vez.')) return;
   try {
@@ -744,6 +765,7 @@ archiveConfirmBtn.onclick = async () => {
 archiveModal.onclick = (e) => { if (e.target === archiveModal) archiveModal.classList.remove('visible'); };
 
 function bindAdminControls() {
+  document.getElementById('btn-vote-alert').onclick = handleVoteAlert;
   document.getElementById('btn-welcome-back').onclick = handleWelcomeBack;
   document.getElementById('btn-clear-votes').onclick = handleClearVotes;
   document.getElementById('btn-archive').onclick = openArchiveModal;

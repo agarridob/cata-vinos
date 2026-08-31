@@ -1,14 +1,12 @@
 // ════════════════════════════════════════════════════════════════════════
 // AVISO DE VOTO — banner + sonido en la TV (solo TV). La TV es la pantalla
 // compartida a la que todos miran (los avisos en el móvil no llegan con la
-// pantalla bloqueada). Flujo por vino:
-//   • Al ENTRAR en un vino no sale nada (aún se está sirviendo/catando).
-//   • A los 5 min aparece el recordatorio "¡Hora de votar el Vino X!" y se
-//     queda.
-//   • Al pulsar "siguiente", el servidor NO cambia al instante: abre una
-//     "última llamada" de 30 s (payload.closing) durante la cual TV y móviles
-//     siguen en el vino actual; aquí mostramos el banner con cuenta atrás.
-//     Al expirar, el servidor cambia de verdad y empieza el ciclo del siguiente.
+// pantalla bloqueada). El banner "¡Hora de votar el Vino X!" aparece:
+//   • Automáticamente a los 5 min de entrar en el vino, y se queda.
+//   • Manualmente cuando el anfitrión pulsa el botón del panel (el servidor
+//     incrementa payload.alert_nonce y la TV reacciona al verlo subir).
+// Al ENTRAR en un vino no sale nada (aún se está sirviendo/catando) y el
+// cambio de vino es instantáneo, sin esperas.
 // ════════════════════════════════════════════════════════════════════════
 
 // Retardo del recordatorio automático tras entrar en un vino. Se puede ajustar
@@ -81,10 +79,10 @@ function playVoteChime() {
 
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _alertReminderTimer = null;   // temporizador de los 5 min
-let _alertCountdownTimer = null;  // intervalo de la cuenta atrás (cierre)
 let _alertWineIdx = null;         // vino que estamos "vigilando"
-let _alertReminderDue = false;    // ya han pasado los 5 min de este vino
+let _alertReminderDue = false;    // ya toca mostrar el aviso de este vino (5 min o manual)
 let _alertVisible = false;        // banner mostrándose ahora mismo
+let _alertLastNonce = null;       // último alert_nonce visto (aviso manual del panel)
 
 // Punto de entrada único: se llama en cada update del servidor (solo TV).
 function syncVoteAlert(payload) {
@@ -107,16 +105,23 @@ function syncVoteAlert(payload) {
     if (_alertReminderTimer) clearTimeout(_alertReminderTimer);
     _alertReminderTimer = setTimeout(() => {
       _alertReminderDue = true;
-      showVoteAlert('reminder', wine, idx, total, 0);
+      showVoteAlert(wine, idx, total);
     }, VOTE_REMINDER_DELAY_MS);
     hideVoteAlert();
   }
 
-  if (payload.closing) {
-    // Última llamada: banner con cuenta atrás (prioritario sobre el recordatorio).
-    showVoteAlert('closing', wine, idx, total, payload.closing_seconds || 0);
-  } else if (_alertReminderDue) {
-    showVoteAlert('reminder', wine, idx, total, 0);
+  // Aviso manual desde el panel: el servidor incrementa alert_nonce. Al ver un
+  // valor mayor que el último, mostramos el banner ya (como el recordatorio).
+  const nonce = payload.alert_nonce;
+  if (typeof nonce === 'number') {
+    if (_alertLastNonce !== null && nonce > _alertLastNonce) {
+      _alertReminderDue = true;
+    }
+    _alertLastNonce = nonce;
+  }
+
+  if (_alertReminderDue) {
+    showVoteAlert(wine, idx, total);
   } else {
     hideVoteAlert();
   }
@@ -132,13 +137,12 @@ function resetVoteAlert() {
 
 function hideVoteAlert() {
   const el = document.getElementById('vote-alert');
-  if (el) { el.classList.remove('show', 'closing'); el.dataset.key = ''; }
-  if (_alertCountdownTimer) { clearInterval(_alertCountdownTimer); _alertCountdownTimer = null; }
+  if (el) { el.classList.remove('show'); el.dataset.key = ''; }
   _alertVisible = false;
 }
 
 // ── Banner visual ───────────────────────────────────────────────────────────
-function showVoteAlert(mode, wine, index, total, seconds) {
+function showVoteAlert(wine, index, total) {
   let el = document.getElementById('vote-alert');
   if (!el) {
     el = document.createElement('div');
@@ -152,58 +156,24 @@ function showVoteAlert(mode, wine, index, total, seconds) {
   const name = (wine && wine.name) ? escapeHtml(wine.name) : '';
   const type = (wine && wine.type) || '';
 
-  // Reconstruir el DOM solo cuando cambia el modo/vino o estaba oculto (así la
-  // cuenta atrás no reinicia la animación de entrada en cada tick).
-  const key = mode + '|' + index;
+  // Reconstruir solo cuando cambia el vino o estaba oculto (no en cada update).
+  const key = 'wine|' + index;
   if (el.dataset.key !== key || !_alertVisible) {
-    const wasHidden = !_alertVisible;
     el.dataset.key = key;
     el.dataset.wineType = type;
-    el.classList.toggle('closing', mode === 'closing');
     el.innerHTML = `
       <div class="vote-alert-card">
-        <div class="vote-alert-icon">${mode === 'closing' ? '⏳' : '🍷'}</div>
+        <div class="vote-alert-icon">🍷</div>
         <div class="vote-alert-text">
           <div class="vote-alert-headline">${headline}</div>
           ${name ? `<div class="vote-alert-name">${name}</div>` : ''}
-          <div class="vote-alert-sub"></div>
+          <div class="vote-alert-sub">📲 Abre la web en tu móvil y no te olvides de votar</div>
         </div>
       </div>`;
-    if (wasHidden) {
-      el.classList.remove('show');
-      void el.offsetWidth;   // forzar reflow → reejecuta la transición de entrada
-      el.classList.add('show');
-      playVoteChime();
-    } else {
-      el.classList.add('show');
-    }
+    el.classList.remove('show');
+    void el.offsetWidth;   // forzar reflow → reejecuta la transición de entrada
+    el.classList.add('show');
+    playVoteChime();
     _alertVisible = true;
-  }
-
-  // Texto inferior (se actualiza sin reconstruir, para la cuenta atrás).
-  const sub = el.querySelector('.vote-alert-sub');
-  if (sub) {
-    if (mode === 'closing') {
-      const s = Math.max(0, seconds);
-      sub.innerHTML = `Cambiamos de vino en <span class="vote-alert-count">${s}s</span> · ¡vota ya desde el móvil!`;
-    } else {
-      sub.textContent = '📲 Abre la web en tu móvil y no te olvides de votar';
-    }
-  }
-
-  // Cuenta atrás local solo en modo cierre. El servidor reenvía closing_seconds
-  // en cada broadcast (votos, etc.), así que resincronizamos el arranque.
-  if (mode === 'closing') {
-    if (_alertCountdownTimer) clearInterval(_alertCountdownTimer);
-    let remaining = Math.max(0, seconds);
-    _alertCountdownTimer = setInterval(() => {
-      remaining -= 1;
-      const s = el.querySelector('.vote-alert-count');
-      if (s && remaining >= 0) s.textContent = remaining + 's';
-      if (remaining <= 0) { clearInterval(_alertCountdownTimer); _alertCountdownTimer = null; }
-    }, 1000);
-  } else if (_alertCountdownTimer) {
-    clearInterval(_alertCountdownTimer);
-    _alertCountdownTimer = null;
   }
 }
