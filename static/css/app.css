@@ -1362,35 +1362,38 @@
     #vote-popup-container { display: none; }
   }
 
-  /* ── Aviso de voto (banner grande al cambiar de vino, solo TV) ── */
+  /* ── Aviso de voto (banner inferior persistente al cambiar de vino, solo TV) ──
+     No es un flash ni un modal: se queda un buen rato sobre el vino actual y
+     no tapa la ficha (por eso va abajo, no centrado). */
   #vote-alert {
     position: fixed;
-    inset: 0;
+    left: 50%;
+    bottom: 8vh;
+    transform: translate(-50%, 140%);
     z-index: 3000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
-    background: radial-gradient(circle at center, rgba(42, 24, 18, 0.32) 0%, rgba(42, 24, 18, 0) 70%);
-    transition: opacity 0.45s ease, visibility 0.45s ease;
+    transition: opacity 0.4s ease, transform 0.55s cubic-bezier(0.34, 1.4, 0.55, 1),
+                visibility 0.4s ease;
   }
   #vote-alert.show {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.35s ease;
+    transform: translate(-50%, 0);
   }
   #vote-alert .vote-alert-card {
     --alert-accent: var(--wine-type-color, #8a5a2a);
+    display: flex;
+    align-items: center;
+    gap: 3vh;
     background: linear-gradient(135deg, #f7efd9 0%, #efe3c2 100%);
-    border: 0.4vh solid var(--alert-accent);
-    border-radius: 3vh;
-    padding: 5vh 8vh;
-    text-align: center;
-    box-shadow: 0 3vh 8vh rgba(80, 40, 20, 0.45);
-    transform: scale(0.82);
-    transition: transform 0.5s cubic-bezier(0.34, 1.5, 0.55, 1);
+    border: 0.3vh solid var(--alert-accent);
+    border-bottom: 1vh solid var(--alert-accent);
+    border-radius: 2.4vh;
+    padding: 2.6vh 5vh;
+    box-shadow: 0 2vh 6vh rgba(80, 40, 20, 0.4);
+    max-width: 88vw;
   }
   #vote-alert[data-wine-type="tinto"]    .vote-alert-card { --alert-accent: #7b1e3a; }
   #vote-alert[data-wine-type="clarete"]  .vote-alert-card { --alert-accent: #b23a5a; }
@@ -1398,39 +1401,37 @@
   #vote-alert[data-wine-type="rosado"]   .vote-alert-card { --alert-accent: #e0788c; }
   #vote-alert[data-wine-type="orange"]   .vote-alert-card { --alert-accent: #c8762e; }
   #vote-alert[data-wine-type="espumoso"] .vote-alert-card { --alert-accent: #9c8b3a; }
-  #vote-alert.show .vote-alert-card {
-    transform: scale(1);
-    animation: vote-alert-pop 0.6s cubic-bezier(0.34, 1.5, 0.55, 1);
-  }
-  @keyframes vote-alert-pop {
-    0%   { transform: scale(0.82); }
-    55%  { transform: scale(1.05); }
-    100% { transform: scale(1); }
-  }
   #vote-alert .vote-alert-icon {
-    font-size: 12vh;
+    font-size: 8vh;
     line-height: 1;
-    margin-bottom: 1.5vh;
-    animation: vote-alert-swing 1.2s ease-in-out infinite;
-    transform-origin: 50% 15%;
+    flex-shrink: 0;
+    animation: vote-alert-swing 1.3s ease-in-out infinite;
+    transform-origin: 50% 12%;
   }
   @keyframes vote-alert-swing {
-    0%, 100% { transform: rotate(-9deg); }
-    50%      { transform: rotate(9deg); }
+    0%, 100% { transform: rotate(-8deg); }
+    50%      { transform: rotate(8deg); }
   }
+  #vote-alert .vote-alert-text { text-align: left; }
   #vote-alert .vote-alert-headline {
-    font-size: 7vh;
+    font-size: 5vh;
     font-weight: 700;
     color: var(--alert-accent);
-    letter-spacing: 0.2vh;
+    letter-spacing: 0.15vh;
     line-height: 1.05;
   }
+  #vote-alert .vote-alert-name {
+    margin-top: 0.4vh;
+    font-size: 3vh;
+    font-weight: 600;
+    color: #2a1812;
+    font-style: italic;
+  }
   #vote-alert .vote-alert-sub {
-    margin-top: 1.6vh;
-    font-size: 3.6vh;
+    margin-top: 1vh;
+    font-size: 3vh;
     font-weight: 500;
     color: #5a3a20;
-    font-style: italic;
   }
   /* En móvil no se muestra el aviso (es cosa de la TV compartida). */
   @media (max-width: 1100px) {
