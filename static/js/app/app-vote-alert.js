@@ -2,9 +2,10 @@
 // AVISO DE VOTO — banner + sonido en la TV (solo TV). La TV es la pantalla
 // compartida a la que todos miran (los avisos en el móvil no llegan con la
 // pantalla bloqueada). El banner "¡Hora de votar el Vino X!" aparece:
-//   • Automáticamente a los 5 min de entrar en el vino, y se queda.
-//   • Manualmente cuando el anfitrión pulsa el botón del panel (el servidor
-//     incrementa payload.alert_nonce y la TV reacciona al verlo subir).
+//   • Automáticamente a los 5 min de entrar en el vino, y se oculta al minuto.
+//   • Manualmente al pulsar "lanzar aviso" en el panel (payload.alert_nonce);
+//     se oculta a los 30 s.
+//   • Se puede quitar a mano con "quitar popup" (payload.alert_hide_nonce).
 // Al ENTRAR en un vino no sale nada (aún se está sirviendo/catando) y el
 // cambio de vino es instantáneo, sin esperas.
 // ════════════════════════════════════════════════════════════════════════
@@ -77,14 +78,25 @@ function playVoteChime() {
   });
 }
 
+// El banner se oculta solo pasado un rato: el recordatorio automático dura más;
+// el aviso manual es un empujón puntual y dura menos.
+const VOTE_AUTO_HIDE_MS = 60 * 1000;    // recordatorio de 5 min → 1 min visible
+const VOTE_MANUAL_HIDE_MS = 30 * 1000;  // aviso manual del panel → 30 s visible
+
 // ── Estado interno ──────────────────────────────────────────────────────────
-let _alertReminderTimer = null;   // temporizador de los 5 min
+let _alertReminderTimer = null;   // temporizador de los 5 min (auto)
+let _alertHideTimer = null;       // temporizador de auto-ocultado del banner
 let _alertWineIdx = null;         // vino que estamos "vigilando"
-let _alertReminderDue = false;    // ya toca mostrar el aviso de este vino (5 min o manual)
 let _alertVisible = false;        // banner mostrándose ahora mismo
-let _alertLastNonce = null;       // último alert_nonce visto (aviso manual del panel)
+let _alertWine = null;            // ficha del vino actual (para el trigger diferido)
+let _alertTotal = 0;
+let _alertLastNonce = null;       // último alert_nonce visto (botón "lanzar aviso")
+let _alertLastHideNonce = null;   // último alert_hide_nonce visto (botón "quitar popup")
 
 // Punto de entrada único: se llama en cada update del servidor (solo TV).
+// Modelo por eventos: el banner solo se muestra en momentos concretos (a los
+// 5 min, o al pulsar el botón) y se oculta solo; NO se re-muestra en cada
+// update, así que una vez oculto se queda oculto.
 function syncVoteAlert(payload) {
   const onWine = payload && !payload.is_welcome && !payload.is_summary
     && payload.all_wines && payload.all_wines[payload.index];
@@ -95,43 +107,55 @@ function syncVoteAlert(payload) {
   }
 
   const idx = payload.index;
-  const wine = payload.all_wines[idx];
-  const total = payload.total;
+  _alertWine = payload.all_wines[idx];
+  _alertTotal = payload.total;
 
-  // ¿Vino nuevo? Reiniciar: sin banner y arrancar el temporizador de 5 min.
+  // ¿Vino nuevo? Reiniciar (sin banner) y armar el recordatorio de 5 min.
   if (idx !== _alertWineIdx) {
     _alertWineIdx = idx;
-    _alertReminderDue = false;
-    if (_alertReminderTimer) clearTimeout(_alertReminderTimer);
-    _alertReminderTimer = setTimeout(() => {
-      _alertReminderDue = true;
-      showVoteAlert(wine, idx, total);
-    }, VOTE_REMINDER_DELAY_MS);
+    clearAlertTimers();
     hideVoteAlert();
+    _alertReminderTimer = setTimeout(() => triggerVoteAlert('auto'), VOTE_REMINDER_DELAY_MS);
   }
 
-  // Aviso manual desde el panel: el servidor incrementa alert_nonce. Al ver un
-  // valor mayor que el último, mostramos el banner ya (como el recordatorio).
+  // Botón "lanzar aviso": el servidor incrementa alert_nonce. Al verlo subir,
+  // mostramos el banner ya.
   const nonce = payload.alert_nonce;
   if (typeof nonce === 'number') {
-    if (_alertLastNonce !== null && nonce > _alertLastNonce) {
-      _alertReminderDue = true;
-    }
+    if (_alertLastNonce !== null && nonce > _alertLastNonce) triggerVoteAlert('manual');
     _alertLastNonce = nonce;
   }
 
-  if (_alertReminderDue) {
-    showVoteAlert(wine, idx, total);
-  } else {
-    hideVoteAlert();
+  // Botón "quitar popup": el servidor incrementa alert_hide_nonce. Al verlo
+  // subir, ocultamos el banner (y dejamos de recordar automáticamente en este
+  // vino, para que "quitar" signifique de verdad quitar).
+  const hideNonce = payload.alert_hide_nonce;
+  if (typeof hideNonce === 'number') {
+    if (_alertLastHideNonce !== null && hideNonce > _alertLastHideNonce) {
+      clearAlertTimers();
+      hideVoteAlert();
+    }
+    _alertLastHideNonce = hideNonce;
   }
+}
+
+// Muestra el banner y programa su auto-ocultado según el origen.
+function triggerVoteAlert(source) {
+  const hideMs = source === 'manual' ? VOTE_MANUAL_HIDE_MS : VOTE_AUTO_HIDE_MS;
+  showVoteAlert(_alertWine, _alertWineIdx, _alertTotal, source === 'manual');
+  if (_alertHideTimer) clearTimeout(_alertHideTimer);
+  _alertHideTimer = setTimeout(() => hideVoteAlert(), hideMs);
+}
+
+function clearAlertTimers() {
+  if (_alertReminderTimer) { clearTimeout(_alertReminderTimer); _alertReminderTimer = null; }
+  if (_alertHideTimer) { clearTimeout(_alertHideTimer); _alertHideTimer = null; }
 }
 
 // Reset total (al salir a bienvenida/resumen, o en móvil).
 function resetVoteAlert() {
   _alertWineIdx = null;
-  _alertReminderDue = false;
-  if (_alertReminderTimer) { clearTimeout(_alertReminderTimer); _alertReminderTimer = null; }
+  clearAlertTimers();
   hideVoteAlert();
 }
 
@@ -142,7 +166,7 @@ function hideVoteAlert() {
 }
 
 // ── Banner visual ───────────────────────────────────────────────────────────
-function showVoteAlert(wine, index, total) {
+function showVoteAlert(wine, index, total, force) {
   let el = document.getElementById('vote-alert');
   if (!el) {
     el = document.createElement('div');
@@ -156,9 +180,10 @@ function showVoteAlert(wine, index, total) {
   const name = (wine && wine.name) ? escapeHtml(wine.name) : '';
   const type = (wine && wine.type) || '';
 
-  // Reconstruir solo cuando cambia el vino o estaba oculto (no en cada update).
+  // Reconstruir/animar cuando cambia el vino, estaba oculto, o se fuerza (aviso
+  // manual repetido): así el botón siempre "llama la atención" (reanima + suena).
   const key = 'wine|' + index;
-  if (el.dataset.key !== key || !_alertVisible) {
+  if (el.dataset.key !== key || !_alertVisible || force) {
     el.dataset.key = key;
     el.dataset.wineType = type;
     el.innerHTML = `

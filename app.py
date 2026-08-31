@@ -204,10 +204,11 @@ state = {
     # summary_auto=False: la TV fija summary_view ('cards' o 'journey').
     'summary_auto': True,
     'summary_view': 'cards',
-    # Contador para el aviso de voto manual (botón del panel). Cada pulsación lo
-    # incrementa; la TV muestra el banner cuando ve un valor mayor al último.
-    # Transitorio: no se persiste (se reinicia a 0 al reiniciar el servicio).
+    # Contadores para el aviso de voto manual (botones del panel). Cada pulsación
+    # incrementa el suyo; la TV muestra ('alert_nonce') u oculta ('alert_hide_nonce')
+    # el banner al ver un valor mayor al último. Transitorios: no se persisten.
     'alert_nonce': 0,
+    'alert_hide_nonce': 0,
 }
 
 # Lista de queues, una por cada cliente SSE conectado
@@ -292,6 +293,7 @@ def current_payload():
         if summary_view not in ('cards', 'journey'):
             summary_view = 'cards'
         alert_nonce = state.get('alert_nonce', 0)
+        alert_hide_nonce = state.get('alert_hide_nonce', 0)
     # Info pública de usuarios (para mostrar nombres+colores en destacados/comentarios)
     with votes_lock:
         users_public = {
@@ -388,6 +390,7 @@ def current_payload():
         'summary_view': summary_view,
         'current_wine_votes': current_wine_votes,
         'alert_nonce': alert_nonce,
+        'alert_hide_nonce': alert_hide_nonce,
     }
 
 
@@ -806,6 +809,21 @@ def api_vote_alert():
         on_wine = bool(state['wines']) and 0 <= idx < len(state['wines'])
         if on_wine:
             state['alert_nonce'] = state.get('alert_nonce', 0) + 1
+    if on_wine:
+        broadcast_update()
+    return jsonify(current_payload())
+
+
+@app.route('/api/vote-alert/hide', methods=['POST'])
+@admin_required
+def api_vote_alert_hide():
+    """Quita el banner de aviso de voto de la TV (botón "quitar popup")."""
+    on_wine = False
+    with state_lock:
+        idx = state['current_index']
+        on_wine = bool(state['wines']) and 0 <= idx < len(state['wines'])
+        if on_wine:
+            state['alert_hide_nonce'] = state.get('alert_hide_nonce', 0) + 1
     if on_wine:
         broadcast_update()
     return jsonify(current_payload())
