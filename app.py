@@ -210,6 +210,17 @@ state = {
 listeners = []
 listeners_lock = threading.Lock()
 
+# ── Última llamada antes de avanzar ──────────────────────────────────────────
+# Al pulsar "siguiente" desde un vino NO cambiamos al instante: abrimos una
+# ventana de VOTE_CLOSING_SECONDS durante la cual TV y móviles siguen en el vino
+# actual (para que dé tiempo a votar desde el móvil) y la TV muestra el banner
+# con cuenta atrás. Al expirar, se avanza de verdad. Todo protegido por
+# state_lock.
+VOTE_CLOSING_SECONDS = 30
+_advance_timer = None       # threading.Timer pendiente, o None
+_advance_target = None      # índice destino cuando expire, o None
+_advance_deadline = None    # time.monotonic() en que expira, o None
+
 
 def load_wines():
     try:
@@ -287,6 +298,12 @@ def current_payload():
         summary_view = state.get('summary_view', 'cards')
         if summary_view not in ('cards', 'journey'):
             summary_view = 'cards'
+        # Última llamada en curso (solo aplica estando en un vino).
+        closing = _advance_target is not None
+        closing_seconds = (
+            max(0, int(round(_advance_deadline - time.monotonic())))
+            if closing and _advance_deadline is not None else 0
+        )
     # Info pública de usuarios (para mostrar nombres+colores en destacados/comentarios)
     with votes_lock:
         users_public = {
@@ -382,6 +399,8 @@ def current_payload():
         'summary_auto': summary_auto,
         'summary_view': summary_view,
         'current_wine_votes': current_wine_votes,
+        'closing': closing,
+        'closing_seconds': closing_seconds,
     }
 
 
@@ -394,6 +413,31 @@ def broadcast_update():
                 q.put_nowait(msg)
             except Exception:
                 pass
+
+
+def _cancel_pending_advance():
+    """Cancela la última llamada en curso, si la hay. Llamar con state_lock tomado."""
+    global _advance_timer, _advance_target, _advance_deadline
+    if _advance_timer is not None:
+        _advance_timer.cancel()
+    _advance_timer = None
+    _advance_target = None
+    _advance_deadline = None
+
+
+def _commit_advance():
+    """Ejecuta el avance pendiente al expirar la última llamada (callback del Timer)."""
+    global _advance_timer, _advance_target, _advance_deadline
+    with state_lock:
+        if _advance_target is None:
+            return
+        target = _advance_target
+        _advance_timer = None
+        _advance_target = None
+        _advance_deadline = None
+        state['current_index'] = min(target, len(state['wines']))
+    save_persisted_state()
+    broadcast_update()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -756,12 +800,34 @@ def api_state():
 @app.route('/api/next', methods=['POST'])
 @admin_required
 def api_next():
+    global _advance_timer, _advance_target, _advance_deadline
+    changed = False
     with state_lock:
-        # Permite avanzar desde -1 (bienvenida) hasta len(wines) (resumen)
-        if state['wines'] and state['current_index'] < len(state['wines']):
-            state['current_index'] += 1
-    save_persisted_state()
-    broadcast_update()
+        idx = state['current_index']
+        n = len(state['wines'])
+        if not state['wines'] or idx >= n:
+            # Nada que avanzar (sin vinos o ya en el resumen).
+            pass
+        elif _advance_target is not None:
+            # Ya hay una última llamada en curso: ignorar pulsaciones extra.
+            pass
+        elif idx < 0:
+            # Desde la bienvenida no hay vino que cerrar: arrancamos ya.
+            state['current_index'] = idx + 1
+            changed = True
+        else:
+            # Desde un vino: abrir última llamada de N s antes de cambiar de verdad.
+            # No tocamos current_index todavía → TV y móviles siguen en este vino.
+            _advance_target = idx + 1
+            _advance_deadline = time.monotonic() + VOTE_CLOSING_SECONDS
+            _advance_timer = threading.Timer(VOTE_CLOSING_SECONDS, _commit_advance)
+            _advance_timer.daemon = True
+            _advance_timer.start()
+            changed = True
+    # Fuera del lock: current_payload() y broadcast_update() vuelven a tomarlo.
+    if changed:
+        save_persisted_state()
+        broadcast_update()
     return jsonify(current_payload())
 
 
@@ -769,6 +835,8 @@ def api_next():
 @admin_required
 def api_prev():
     with state_lock:
+        # Retroceder cancela cualquier última llamada pendiente y actúa al instante.
+        _cancel_pending_advance()
         # Permite retroceder hasta -1, que representa la pantalla de bienvenida
         if state['current_index'] > -1:
             state['current_index'] -= 1
@@ -781,6 +849,8 @@ def api_prev():
 @admin_required
 def api_goto(idx):
     with state_lock:
+        # Saltar a un vino concreto cancela la última llamada y actúa al instante.
+        _cancel_pending_advance()
         # 0..len-1 son vinos; len es la pantalla de resumen
         if state['wines'] and 0 <= idx <= len(state['wines']):
             state['current_index'] = idx
@@ -795,6 +865,7 @@ def api_reload():
     """Recarga wines.json sin reiniciar el servicio."""
     session_name, wines, wifi = load_wines()
     with state_lock:
+        _cancel_pending_advance()
         state['session_name'] = session_name
         state['wines'] = wines
         state['wifi'] = wifi
@@ -836,6 +907,7 @@ def api_wines_config_load_sample():
 
         session_name, wines, wifi = load_wines()
         with state_lock:
+            _cancel_pending_advance()
             state['session_name'] = session_name
             state['wines'] = wines
             state['wifi'] = wifi
