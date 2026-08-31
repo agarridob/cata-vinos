@@ -1,14 +1,20 @@
 // ════════════════════════════════════════════════════════════════════════
-// AVISO DE VOTO — banner grande + sonido al cambiar de vino (solo TV)
-// La TV es la pantalla compartida a la que todos miran: cuando el anfitrión
-// cambia de vino, avisamos aquí (visual + audio) para que la gente desbloquee
-// el móvil y vote. No dependemos de notificaciones en el móvil (que no llegan
-// con la pantalla bloqueada).
+// AVISO DE VOTO — banner + sonido en la TV (solo TV). La TV es la pantalla
+// compartida a la que todos miran (los avisos en el móvil no llegan con la
+// pantalla bloqueada). Flujo por vino:
+//   • Al ENTRAR en un vino no sale nada (aún se está sirviendo/catando).
+//   • A los 5 min aparece el recordatorio "¡Hora de votar el Vino X!" y se
+//     queda.
+//   • Al pulsar "siguiente", el servidor NO cambia al instante: abre una
+//     "última llamada" de 30 s (payload.closing) durante la cual TV y móviles
+//     siguen en el vino actual; aquí mostramos el banner con cuenta atrás.
+//     Al expirar, el servidor cambia de verdad y empieza el ciclo del siguiente.
 // ════════════════════════════════════════════════════════════════════════
 
-// El aviso NO es un flash momentáneo: se queda un buen rato sobre el vino
-// actual para dar tiempo a catar y votar (la gente mira la TV de vez en cuando).
-const VOTE_ALERT_DURATION_MS = 15000;
+// Retardo del recordatorio automático tras entrar en un vino. Se puede ajustar
+// (o acelerar en pruebas) con window.__VOTE_REMINDER_MS__ antes de cargar.
+const VOTE_REMINDER_DELAY_MS =
+  (typeof window !== 'undefined' && window.__VOTE_REMINDER_MS__) || 5 * 60 * 1000;
 
 // ── Audio: campanita generada con WebAudio (sin fichero externo) ──────────
 // Los navegadores bloquean el autoplay hasta que hay un gesto del usuario.
@@ -73,15 +79,66 @@ function playVoteChime() {
   });
 }
 
-// ── Banner visual ─────────────────────────────────────────────────────────
-let _voteAlertHideTimer = null;
+// ── Estado interno ──────────────────────────────────────────────────────────
+let _alertReminderTimer = null;   // temporizador de los 5 min
+let _alertCountdownTimer = null;  // intervalo de la cuenta atrás (cierre)
+let _alertWineIdx = null;         // vino que estamos "vigilando"
+let _alertReminderDue = false;    // ya han pasado los 5 min de este vino
+let _alertVisible = false;        // banner mostrándose ahora mismo
 
-function triggerVoteAlert(wine, index, total) {
-  showVoteAlertBanner(wine, index, total);
-  playVoteChime();
+// Punto de entrada único: se llama en cada update del servidor (solo TV).
+function syncVoteAlert(payload) {
+  const onWine = payload && !payload.is_welcome && !payload.is_summary
+    && payload.all_wines && payload.all_wines[payload.index];
+
+  if (isMobile() || !onWine) {
+    resetVoteAlert();
+    return;
+  }
+
+  const idx = payload.index;
+  const wine = payload.all_wines[idx];
+  const total = payload.total;
+
+  // ¿Vino nuevo? Reiniciar: sin banner y arrancar el temporizador de 5 min.
+  if (idx !== _alertWineIdx) {
+    _alertWineIdx = idx;
+    _alertReminderDue = false;
+    if (_alertReminderTimer) clearTimeout(_alertReminderTimer);
+    _alertReminderTimer = setTimeout(() => {
+      _alertReminderDue = true;
+      showVoteAlert('reminder', wine, idx, total, 0);
+    }, VOTE_REMINDER_DELAY_MS);
+    hideVoteAlert();
+  }
+
+  if (payload.closing) {
+    // Última llamada: banner con cuenta atrás (prioritario sobre el recordatorio).
+    showVoteAlert('closing', wine, idx, total, payload.closing_seconds || 0);
+  } else if (_alertReminderDue) {
+    showVoteAlert('reminder', wine, idx, total, 0);
+  } else {
+    hideVoteAlert();
+  }
 }
 
-function showVoteAlertBanner(wine, index, total) {
+// Reset total (al salir a bienvenida/resumen, o en móvil).
+function resetVoteAlert() {
+  _alertWineIdx = null;
+  _alertReminderDue = false;
+  if (_alertReminderTimer) { clearTimeout(_alertReminderTimer); _alertReminderTimer = null; }
+  hideVoteAlert();
+}
+
+function hideVoteAlert() {
+  const el = document.getElementById('vote-alert');
+  if (el) { el.classList.remove('show', 'closing'); el.dataset.key = ''; }
+  if (_alertCountdownTimer) { clearInterval(_alertCountdownTimer); _alertCountdownTimer = null; }
+  _alertVisible = false;
+}
+
+// ── Banner visual ───────────────────────────────────────────────────────────
+function showVoteAlert(mode, wine, index, total, seconds) {
   let el = document.getElementById('vote-alert');
   if (!el) {
     el = document.createElement('div');
@@ -90,30 +147,63 @@ function showVoteAlertBanner(wine, index, total) {
     document.body.appendChild(el);
   }
 
-  const type = (wine && wine.type) || '';
   const num = (typeof index === 'number' ? index + 1 : null);
   const headline = num ? `¡Hora de votar el Vino ${num}!` : '¡Hora de votar!';
   const name = (wine && wine.name) ? escapeHtml(wine.name) : '';
+  const type = (wine && wine.type) || '';
 
-  el.dataset.wineType = type;
-  el.innerHTML = `
-    <div class="vote-alert-card">
-      <div class="vote-alert-icon">🍷</div>
-      <div class="vote-alert-text">
-        <div class="vote-alert-headline">${headline}</div>
-        ${name ? `<div class="vote-alert-name">${name}</div>` : ''}
-        <div class="vote-alert-sub">📲 Abre la web en tu móvil y no te olvides de votar</div>
-      </div>
-    </div>`;
+  // Reconstruir el DOM solo cuando cambia el modo/vino o estaba oculto (así la
+  // cuenta atrás no reinicia la animación de entrada en cada tick).
+  const key = mode + '|' + index;
+  if (el.dataset.key !== key || !_alertVisible) {
+    const wasHidden = !_alertVisible;
+    el.dataset.key = key;
+    el.dataset.wineType = type;
+    el.classList.toggle('closing', mode === 'closing');
+    el.innerHTML = `
+      <div class="vote-alert-card">
+        <div class="vote-alert-icon">${mode === 'closing' ? '⏳' : '🍷'}</div>
+        <div class="vote-alert-text">
+          <div class="vote-alert-headline">${headline}</div>
+          ${name ? `<div class="vote-alert-name">${name}</div>` : ''}
+          <div class="vote-alert-sub"></div>
+        </div>
+      </div>`;
+    if (wasHidden) {
+      el.classList.remove('show');
+      void el.offsetWidth;   // forzar reflow → reejecuta la transición de entrada
+      el.classList.add('show');
+      playVoteChime();
+    } else {
+      el.classList.add('show');
+    }
+    _alertVisible = true;
+  }
 
-  // Reiniciar animación si ya estaba visible
-  el.classList.remove('show');
-  // Forzar reflow para reejecutar la transición
-  void el.offsetWidth;
-  el.classList.add('show');
+  // Texto inferior (se actualiza sin reconstruir, para la cuenta atrás).
+  const sub = el.querySelector('.vote-alert-sub');
+  if (sub) {
+    if (mode === 'closing') {
+      const s = Math.max(0, seconds);
+      sub.innerHTML = `Cambiamos de vino en <span class="vote-alert-count">${s}s</span> · ¡vota ya desde el móvil!`;
+    } else {
+      sub.textContent = '📲 Abre la web en tu móvil y no te olvides de votar';
+    }
+  }
 
-  if (_voteAlertHideTimer) clearTimeout(_voteAlertHideTimer);
-  _voteAlertHideTimer = setTimeout(() => {
-    el.classList.remove('show');
-  }, VOTE_ALERT_DURATION_MS);
+  // Cuenta atrás local solo en modo cierre. El servidor reenvía closing_seconds
+  // en cada broadcast (votos, etc.), así que resincronizamos el arranque.
+  if (mode === 'closing') {
+    if (_alertCountdownTimer) clearInterval(_alertCountdownTimer);
+    let remaining = Math.max(0, seconds);
+    _alertCountdownTimer = setInterval(() => {
+      remaining -= 1;
+      const s = el.querySelector('.vote-alert-count');
+      if (s && remaining >= 0) s.textContent = remaining + 's';
+      if (remaining <= 0) { clearInterval(_alertCountdownTimer); _alertCountdownTimer = null; }
+    }, 1000);
+  } else if (_alertCountdownTimer) {
+    clearInterval(_alertCountdownTimer);
+    _alertCountdownTimer = null;
+  }
 }

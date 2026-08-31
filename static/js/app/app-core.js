@@ -42,21 +42,10 @@ window.addEventListener('resize', () => {
   }
 });
 
-// Clave de vista para detectar cambios reales (bienvenida / resumen / vino N).
-// No basta con comparar índices: la bienvenida también tiene index.
-function viewKey(s) {
-  if (!s) return null;
-  if (s.is_welcome) return 'welcome';
-  if (s.is_summary) return 'summary';
-  return 'wine:' + s.index;
-}
-
 function onServerUpdate(payload) {
   const prevServerIdx = serverState
     ? (serverState.is_summary ? serverState.total : serverState.index)
     : null;
-
-  const prevViewKey = viewKey(serverState);
 
   serverState = payload;
 
@@ -88,20 +77,9 @@ function onServerUpdate(payload) {
 
   renderCurrent();
 
-  // Aviso de voto en la TV: al entrar en un vino nuevo (cambio real de vista
-  // hacia un vino), banner grande + sonido. Solo TV; nunca en móvil ni en la
-  // primera carga (prevViewKey null → refresco de la TP a mitad de cata no chilla).
-  const newViewKey = viewKey(payload);
-  if (
-    !isMobile() &&
-    prevViewKey !== null &&
-    newViewKey !== prevViewKey &&
-    typeof newViewKey === 'string' &&
-    newViewKey.startsWith('wine:')
-  ) {
-    const w = payload.all_wines && payload.all_wines[payload.index];
-    if (w) triggerVoteAlert(w, payload.index, payload.total);
-  }
+  // Aviso de voto en la TV (recordatorio a los 5 min + última llamada de 30 s).
+  // Gestiona sus propios temporizadores; se le pasa cada update.
+  syncVoteAlert(payload);
 
   // Popups de votos en TV (solo en vista de vino)
   if (!isMobile() && !payload.is_summary && !payload.is_welcome && payload.current_wine_votes) {

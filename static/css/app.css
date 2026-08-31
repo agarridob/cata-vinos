@@ -1433,6 +1433,19 @@
     font-weight: 500;
     color: #5a3a20;
   }
+  #vote-alert .vote-alert-count {
+    font-weight: 700;
+    color: var(--alert-accent);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Última llamada (cuenta atrás): un latido suave para dar urgencia. */
+  #vote-alert.closing .vote-alert-card {
+    animation: vote-alert-attention 1s ease-in-out infinite alternate;
+  }
+  @keyframes vote-alert-attention {
+    from { box-shadow: 0 2vh 6vh rgba(80, 40, 20, 0.4); }
+    to   { box-shadow: 0 2vh 7.5vh rgba(170, 40, 40, 0.55); }
+  }
   /* En móvil no se muestra el aviso (es cosa de la TV compartida). */
   @media (max-width: 1100px) {
     #vote-alert { display: none; }
