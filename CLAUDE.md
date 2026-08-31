@@ -64,3 +64,50 @@ Cloudflare Access (hoy: `/control` y `/historico`). Los `/api/*` NO necesitan
 destination: se llaman por `fetch` con la cookie `CF_Authorization` ya presente en
 el hostname, que la app valida. Si añades una página protegida nueva, acuérdate de
 darla de alta como destination en Access.
+
+## Estado global y SSE (arquitectura)
+
+El estado vive en memoria en `app.py`: `state` (dict, protegido por `state_lock`)
+y el estado de votos (`votes_state`, protegido por `votes_lock`). El control (panel
+del anfitrión) cambia el estado por `POST /api/*`, y la TV + los móviles reciben el
+nuevo estado en tiempo real por **SSE** (`GET /stream`). El ciclo es siempre:
+mutar `state` bajo el lock → `save_persisted_state()` → `broadcast_update()`, que
+serializa `current_payload()` y lo empuja a cada cliente conectado.
+
+**Gotcha (deadlock):** `state_lock` es un `threading.Lock` normal, **no reentrante**.
+`current_payload()` y `broadcast_update()` **toman `state_lock` por dentro**, así que
+NUNCA los llames mientras ya tienes el lock cogido. Patrón correcto: haz las mutaciones
+dentro del `with state_lock:`, marca una bandera (`changed`/`on_wine`), y llama a
+`broadcast_update()` / `return jsonify(current_payload())` **fuera** del `with`.
+
+El cliente (TV) recibe cada payload en `onServerUpdate()` (`static/js/app/app-core.js`).
+`isMobile()` (ancho ≤ 900) decide TV vs móvil: bastantes cosas (popups de voto, banner
+de aviso, mapas SVG vs Leaflet) son solo-TV o solo-móvil.
+
+### Señales one-shot a la TV vía "nonce"
+
+Para lanzar una acción puntual en la TV desde el control (no un cambio de estado
+persistente), usamos un **contador que solo sube**: el endpoint incrementa
+`state['<algo>_nonce']`, se incluye en el payload, y la TV actúa cuando ve un valor
+**mayor que el último** que registró (guardando el nonce inicial como baseline, sin
+disparar). Así una TV que se reconecta a mitad no re-dispara acciones viejas. Estos
+contadores son **transitorios** (no se persisten; vuelven a 0 al reiniciar el servicio).
+
+## Aviso de voto en la TV (`app-vote-alert.js`)
+
+Banner "¡Hora de votar el Vino X!" **solo en la TV** (la pantalla compartida; los
+avisos en el móvil no llegan con la pantalla bloqueada). Al entrar en un vino no
+sale nada y el cambio de vino es instantáneo. El banner aparece:
+
+- **Automático:** a los 5 min de entrar en el vino; se oculta al minuto.
+- **Manual:** botón «📣 Lanzar aviso de voto» del panel → `POST /api/vote-alert`
+  (sube `alert_nonce`); se oculta a los 30 s.
+- **Quitar:** botón «🚫 Quitar popup» → `POST /api/vote-alert/hide` (sube
+  `alert_hide_nonce`); oculta el banner al instante.
+
+`syncVoteAlert(payload)` (solo TV) es por eventos: muestra el banner solo en esos
+momentos y lo oculta con temporizador; una vez oculto **no reaparece** en los
+siguientes updates. El sonido es una campanita generada con **WebAudio** (sin fichero),
+desbloqueada con el primer gesto del usuario en la TV (típicamente el botón de
+pantalla completa). Duraciones y retardo son constantes al principio del archivo
+(`VOTE_REMINDER_DELAY_MS`, `VOTE_AUTO_HIDE_MS`, `VOTE_MANUAL_HIDE_MS`).
