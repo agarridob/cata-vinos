@@ -1362,6 +1362,81 @@
     #vote-popup-container { display: none; }
   }
 
+  /* ── Aviso de voto (banner grande al cambiar de vino, solo TV) ── */
+  #vote-alert {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    background: radial-gradient(circle at center, rgba(42, 24, 18, 0.32) 0%, rgba(42, 24, 18, 0) 70%);
+    transition: opacity 0.45s ease, visibility 0.45s ease;
+  }
+  #vote-alert.show {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.35s ease;
+  }
+  #vote-alert .vote-alert-card {
+    --alert-accent: var(--wine-type-color, #8a5a2a);
+    background: linear-gradient(135deg, #f7efd9 0%, #efe3c2 100%);
+    border: 0.4vh solid var(--alert-accent);
+    border-radius: 3vh;
+    padding: 5vh 8vh;
+    text-align: center;
+    box-shadow: 0 3vh 8vh rgba(80, 40, 20, 0.45);
+    transform: scale(0.82);
+    transition: transform 0.5s cubic-bezier(0.34, 1.5, 0.55, 1);
+  }
+  #vote-alert[data-wine-type="tinto"]    .vote-alert-card { --alert-accent: #7b1e3a; }
+  #vote-alert[data-wine-type="clarete"]  .vote-alert-card { --alert-accent: #b23a5a; }
+  #vote-alert[data-wine-type="blanco"]   .vote-alert-card { --alert-accent: #c9a227; }
+  #vote-alert[data-wine-type="rosado"]   .vote-alert-card { --alert-accent: #e0788c; }
+  #vote-alert[data-wine-type="orange"]   .vote-alert-card { --alert-accent: #c8762e; }
+  #vote-alert[data-wine-type="espumoso"] .vote-alert-card { --alert-accent: #9c8b3a; }
+  #vote-alert.show .vote-alert-card {
+    transform: scale(1);
+    animation: vote-alert-pop 0.6s cubic-bezier(0.34, 1.5, 0.55, 1);
+  }
+  @keyframes vote-alert-pop {
+    0%   { transform: scale(0.82); }
+    55%  { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  #vote-alert .vote-alert-icon {
+    font-size: 12vh;
+    line-height: 1;
+    margin-bottom: 1.5vh;
+    animation: vote-alert-swing 1.2s ease-in-out infinite;
+    transform-origin: 50% 15%;
+  }
+  @keyframes vote-alert-swing {
+    0%, 100% { transform: rotate(-9deg); }
+    50%      { transform: rotate(9deg); }
+  }
+  #vote-alert .vote-alert-headline {
+    font-size: 7vh;
+    font-weight: 700;
+    color: var(--alert-accent);
+    letter-spacing: 0.2vh;
+    line-height: 1.05;
+  }
+  #vote-alert .vote-alert-sub {
+    margin-top: 1.6vh;
+    font-size: 3.6vh;
+    font-weight: 500;
+    color: #5a3a20;
+    font-style: italic;
+  }
+  /* En móvil no se muestra el aviso (es cosa de la TV compartida). */
+  @media (max-width: 1100px) {
+    #vote-alert { display: none; }
+  }
+
   /* Invitados ya registrados (TV grande) */
   .welcome-guests {
     margin-top: 2vh;
