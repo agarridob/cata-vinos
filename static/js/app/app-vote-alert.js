@@ -6,7 +6,9 @@
 // con la pantalla bloqueada).
 // ════════════════════════════════════════════════════════════════════════
 
-const VOTE_ALERT_DURATION_MS = 4500;
+// El aviso NO es un flash momentáneo: se queda un buen rato sobre el vino
+// actual para dar tiempo a catar y votar (la gente mira la TV de vez en cuando).
+const VOTE_ALERT_DURATION_MS = 15000;
 
 // ── Audio: campanita generada con WebAudio (sin fichero externo) ──────────
 // Los navegadores bloquean el autoplay hasta que hay un gesto del usuario.
@@ -90,15 +92,18 @@ function showVoteAlertBanner(wine, index, total) {
 
   const type = (wine && wine.type) || '';
   const num = (typeof index === 'number' ? index + 1 : null);
-  const label = num ? `Vino ${num}${total ? ' / ' + total : ''}` : 'Nuevo vino';
+  const headline = num ? `¡Hora de votar el Vino ${num}!` : '¡Hora de votar!';
   const name = (wine && wine.name) ? escapeHtml(wine.name) : '';
 
   el.dataset.wineType = type;
   el.innerHTML = `
     <div class="vote-alert-card">
       <div class="vote-alert-icon">🍷</div>
-      <div class="vote-alert-headline">¡Hora de votar!</div>
-      <div class="vote-alert-sub">${label}${name ? ' · ' + name : ''}</div>
+      <div class="vote-alert-text">
+        <div class="vote-alert-headline">${headline}</div>
+        ${name ? `<div class="vote-alert-name">${name}</div>` : ''}
+        <div class="vote-alert-sub">📲 Abre la web en tu móvil y no te olvides de votar</div>
+      </div>
     </div>`;
 
   // Reiniciar animación si ya estaba visible
