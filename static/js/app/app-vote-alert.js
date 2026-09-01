@@ -111,11 +111,14 @@ function syncVoteAlert(payload) {
   _alertTotal = payload.total;
 
   // ¿Vino nuevo? Reiniciar (sin banner) y armar el recordatorio de 5 min.
+  // En modo duelo NO se arma el auto-aviso: solo avisos manuales desde el panel.
   if (idx !== _alertWineIdx) {
     _alertWineIdx = idx;
     clearAlertTimers();
     hideVoteAlert();
-    _alertReminderTimer = setTimeout(() => triggerVoteAlert('auto'), VOTE_REMINDER_DELAY_MS);
+    if (payload.mode !== 'duelo') {
+      _alertReminderTimer = setTimeout(() => triggerVoteAlert('auto'), VOTE_REMINDER_DELAY_MS);
+    }
   }
 
   // Botón "lanzar aviso": el servidor incrementa alert_nonce. Al verlo subir,
@@ -163,6 +166,80 @@ function hideVoteAlert() {
   const el = document.getElementById('vote-alert');
   if (el) { el.classList.remove('show'); el.dataset.key = ''; }
   _alertVisible = false;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// AVISO DE PREFERENCIA ¿Viejo o Nuevo? (modo duelo)
+// Lo dispara el anfitrión con "⚔️ Lanzar ¿Viejo o Nuevo?" → sube pref_alert_nonce.
+// En la TV muestra un banner ~30 s con campanita. En el móvil resalta el toggle
+// de preferencia (delega en highlightPairVote de app-voting.js).
+// ════════════════════════════════════════════════════════════════════════
+const PREF_ALERT_HIDE_MS = 30 * 1000;
+let _prefLastNonce = null;
+let _prefLastHideNonce = null;
+let _prefHideTimer = null;
+
+function syncPrefAlert(payload) {
+  if (!payload || payload.mode !== 'duelo') {
+    // Fuera de modo duelo: solo mantener el baseline del nonce (sin disparar).
+    if (payload && typeof payload.pref_alert_nonce === 'number') {
+      _prefLastNonce = payload.pref_alert_nonce;
+    }
+    hidePrefAlert();
+    return;
+  }
+
+  // Botón "quitar popup" también oculta el banner de preferencia en la TV.
+  const hideNonce = payload.alert_hide_nonce;
+  if (typeof hideNonce === 'number') {
+    if (_prefLastHideNonce !== null && hideNonce > _prefLastHideNonce) hidePrefAlert();
+    _prefLastHideNonce = hideNonce;
+  }
+
+  const nonce = payload.pref_alert_nonce;
+  if (typeof nonce !== 'number') return;
+  const bumped = _prefLastNonce !== null && nonce > _prefLastNonce;
+  _prefLastNonce = nonce;
+  if (!bumped) return;
+
+  if (isMobile()) {
+    // En el móvil, el toggle vive en la vista de vino; app-voting lo resalta.
+    if (typeof highlightPairVote === 'function') highlightPairVote();
+    return;
+  }
+
+  showPrefAlert();
+  if (_prefHideTimer) clearTimeout(_prefHideTimer);
+  _prefHideTimer = setTimeout(hidePrefAlert, PREF_ALERT_HIDE_MS);
+}
+
+function showPrefAlert() {
+  let el = document.getElementById('pref-alert');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'pref-alert';
+    el.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `
+    <div class="vote-alert-card pref-alert-card">
+      <div class="vote-alert-icon">⚔️</div>
+      <div class="vote-alert-text">
+        <div class="vote-alert-headline">¡Vota tu favorito!</div>
+        <div class="vote-alert-name">🌍 ¿Viejo o Nuevo Mundo? 🌎</div>
+        <div class="vote-alert-sub">📲 Elige en tu móvil cuál te ha gustado más</div>
+      </div>
+    </div>`;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  playVoteChime();
+}
+
+function hidePrefAlert() {
+  const el = document.getElementById('pref-alert');
+  if (el) el.classList.remove('show');
+  if (_prefHideTimer) { clearTimeout(_prefHideTimer); _prefHideTimer = null; }
 }
 
 // ── Banner visual ───────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **1.9.0**.
+Versión actual: **2.0.1**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -111,3 +111,28 @@ siguientes updates. El sonido es una campanita generada con **WebAudio** (sin fi
 desbloqueada con el primer gesto del usuario en la TV (típicamente el botón de
 pantalla completa). Duraciones y retardo son constantes al principio del archivo
 (`VOTE_REMINDER_DELAY_MS`, `VOTE_AUTO_HIDE_MS`, `VOTE_MANUAL_HIDE_MS`).
+
+## Modo duelo — "Viejo Mundo vs Nuevo Mundo" (`app-duel-view.js`)
+
+Cata temática por **parejas** (una uva = dos vinos, europeo vs nuevo mundo). Se
+activa **por sesión** con `"mode": "duelo"` en `wines.json`; sin ese campo todo
+funciona como siempre (catas normales e histórico intactos). La lista `wines` es
+plana y las parejas van **consecutivas**: pareja k = vinos `2k` (Viejo) y `2k+1`
+(Nuevo). Cada vino añade `world` (`"viejo"`/`"nuevo"`), `duel` (nombre de la uva
+para la cabecera) y opcional `duel_note` (el "qué buscar").
+
+- **TV:** una pantalla por uva (`renderDuel`, solo TV): cabecera con la uva, dos
+  columnas enfrentadas y un **mapamundi** (`buildWorldMapSVG` en `app-maps.js`,
+  entrada `world` en `maps_data.json`) con los dos orígenes unidos por un arco. La
+  TV deriva la pareja del índice (`floor(index/2)`) y resalta el vino actual.
+- **Móvil:** sigue votando **vino a vino** (voto normal). En el 2º vino de cada
+  pareja aparece el toggle **¿Viejo o Nuevo?** (`renderPairVoteBlock`), que llama a
+  `POST /api/pair-vote/<pair_idx>` (`{user_id, choice}`). Los votos de preferencia
+  viven en `votes_state['pair_votes']` y se agregan en `pair_votes_summary()`.
+- **Control:** "Siguiente" avanza vino a vino como siempre; la tarjeta muestra
+  "Uva N/4 · 🌍/🌎". Botón nuevo **⚔️ Lanzar ¿Viejo o Nuevo?** → `POST /api/pref-alert`
+  (sube `pref_alert_nonce`, transitorio): banner en la TV (`syncPrefAlert`) + resalta
+  el toggle en los móviles. En modo duelo el **auto-aviso de 5 min se desactiva**
+  (solo avisos manuales).
+- **Resumen:** marcador global "🌍 Viejo X – Y Nuevo 🌎" + ganador por uva
+  (`duelScoreboardHtml`). Empate en una uva = no suma a ningún bando.

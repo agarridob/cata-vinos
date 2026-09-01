@@ -81,6 +81,10 @@ function onServerUpdate(payload) {
   // Gestiona sus propios temporizadores; se le pasa cada update.
   syncVoteAlert(payload);
 
+  // Aviso de preferencia ¿Viejo o Nuevo? (modo duelo). TV: banner; móvil: resalta
+  // el toggle. Gestiona su propio nonce/baseline.
+  syncPrefAlert(payload);
+
   // Popups de votos en TV (solo en vista de vino)
   if (!isMobile() && !payload.is_summary && !payload.is_welcome && payload.current_wine_votes) {
     detectVoteChanges(payload.index, payload.current_wine_votes, payload.users_public || {});
@@ -184,7 +188,9 @@ function renderCurrent() {
       '|' +
       (serverState.highlights ? serverState.highlights.length : 0) +
       '|' +
-      JSON.stringify(serverState.personal_favorites || {});
+      JSON.stringify(serverState.personal_favorites || {}) +
+      '|' +
+      JSON.stringify(serverState.pair_votes_summary || {});
 
     const sig = `__summary__|${summaryView}|${total}|${votesFingerprint}|${serverState.summary_auto}|${serverState.summary_view}`;
 
@@ -200,6 +206,8 @@ function renderCurrent() {
       highlights: serverState.highlights || [],
       personal_favorites: serverState.personal_favorites || {},
       users_public: serverState.users_public || {},
+      mode: serverState.mode,
+      pair_votes_summary: serverState.pair_votes_summary || null,
     };
 
     if (summaryView === 'journey') {
@@ -215,6 +223,27 @@ function renderCurrent() {
   stopHighlightsRotation();
   const wine = serverState.all_wines[localIndex];
   if (!wine) return;
+
+  // ── Modo duelo (SOLO TV): una pantalla por uva con los dos vinos enfrentados ──
+  // El móvil sigue con la vista de vino individual (voto secuencial), así que
+  // solo desviamos cuando NO es móvil.
+  if (serverState.mode === 'duelo' && !isMobile()) {
+    const pairIdx = Math.floor(localIndex / 2);
+    const prefSig = JSON.stringify(serverState.pair_votes_summary || {});
+    const sig = `__duel__|${pairIdx}|${serverState.index}|${prefSig}`;
+    if (sig === currentSig) return;
+    currentSig = sig;
+    const ok = renderDuel({
+      session: serverState.session,
+      all_wines: serverState.all_wines,
+      index: serverState.index,
+      total: serverState.total,
+      _serverIdx: serverState.is_summary ? serverState.total : serverState.index,
+      pair_votes_summary: serverState.pair_votes_summary,
+    }, pairIdx);
+    if (ok) return;
+    // Si no se pudo (pareja incompleta), caemos a la vista de vino de siempre.
+  }
 
   ensureLayout();
 

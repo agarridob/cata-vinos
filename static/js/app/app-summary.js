@@ -324,6 +324,46 @@ function renderSummaryJourney(payload) {
   });
 }
 
+// Marcador global del modo duelo: "🌍 Viejo X – Y Nuevo 🌎" + detalle por uva.
+function duelScoreboardHtml(payload) {
+  const pvs = payload.pair_votes_summary;
+  if (!pvs) return '';
+  const score = pvs.score || { viejo: 0, nuevo: 0 };
+  const wines = payload.all_wines || [];
+  const nPairs = pvs.n_pairs || Math.floor(wines.length / 2);
+  let lead = '';
+  if (score.viejo > score.nuevo) lead = 'viejo';
+  else if (score.nuevo > score.viejo) lead = 'nuevo';
+
+  let rows = '';
+  for (let k = 0; k < nPairs; k++) {
+    const wA = wines[k * 2];
+    const grape = (wA && wA.duel) || (wA && wA.grape) || `Uva ${k + 1}`;
+    const p = (pvs.pairs && pvs.pairs[String(k)]) || { viejo: 0, nuevo: 0 };
+    let w = '';
+    if (p.viejo > p.nuevo) w = 'viejo';
+    else if (p.nuevo > p.viejo) w = 'nuevo';
+    rows += `<div class="duel-score-uva">
+      <span class="duel-score-grape">${escapeHtml(grape)}</span>
+      <span class="duel-score-nums">
+        <span class="${w === 'viejo' ? 'win' : ''}">🌍 ${p.viejo || 0}</span>
+        <span class="duel-score-dash">–</span>
+        <span class="${w === 'nuevo' ? 'win' : ''}">${p.nuevo || 0} 🌎</span>
+      </span>
+    </div>`;
+  }
+
+  return `
+    <div class="duel-scoreboard">
+      <div class="duel-scoreboard-main">
+        <span class="duel-sb-side viejo ${lead === 'viejo' ? 'lead' : ''}">🌍 Viejo Mundo</span>
+        <span class="duel-sb-score">${score.viejo} – ${score.nuevo}</span>
+        <span class="duel-sb-side nuevo ${lead === 'nuevo' ? 'lead' : ''}">Nuevo Mundo 🌎</span>
+      </div>
+      <div class="duel-scoreboard-uvas">${rows}</div>
+    </div>`;
+}
+
 function renderSummary(payload) {
   const layout = getSummaryLayout(payload.total);
   const wines = payload.all_wines || [];
@@ -498,6 +538,7 @@ function renderSummary(payload) {
         <div class="summary-title-big">Resumen</div>
         <div class="counter">${payload.total} vinos</div>
       </div>
+      ${payload.mode === 'duelo' ? duelScoreboardHtml(payload) : ''}
       <div id="highlights-overlay" class="highlights-overlay empty"></div>
       <div class="summary-rows">${rowsHtml}</div>
       <div class="tv-footer">${dotsHtml.join('')}</div>

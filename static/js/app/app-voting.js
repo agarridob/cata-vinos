@@ -428,6 +428,7 @@ async function fetchMyVotes() {
     myUser.name = data.name;
     myUser.color = data.color;
     myUser._votes = data.votes || {};
+    myUser._pair_votes = data.pair_votes || {};
     saveMyUser();
     loadMyVoteForCurrentWine();
     refreshVoteUI();
@@ -447,6 +448,19 @@ async function sendVote(scoreOrNull, commentOrNull, wineIndexOverride = null) {
   if (scoreOrNull !== null) body.score = scoreOrNull;
   if (commentOrNull !== null) body.comment = commentOrNull;
 
+  // Actualización OPTIMISTA de la cache local del voto (score) ANTES del fetch.
+  // Sin esto hay una carrera: el servidor emite el update por SSE y dispara
+  // loadMyVoteForCurrentWine antes de que la respuesta del fetch actualice la
+  // cache → la estrella recién pulsada se "desmarca" hasta el segundo tap.
+  const key = String(wineIdx);
+  let _prevVote = null;
+  if (scoreOrNull !== null) {
+    myUser._votes = myUser._votes || {};
+    _prevVote = myUser._votes[key] ? { ...myUser._votes[key] } : undefined;
+    myUser._votes[key] = { ...(myUser._votes[key] || {}), score: scoreOrNull };
+    saveMyUser();
+  }
+
   try {
     const r = await fetch('/api/vote/' + wineIdx, {
       method: 'POST',
@@ -454,11 +468,18 @@ async function sendVote(scoreOrNull, commentOrNull, wineIndexOverride = null) {
       body: JSON.stringify(body),
     });
 
-    if (!r.ok) return false;
+    if (!r.ok) {
+      // Revertir la actualización optimista si el servidor la rechaza.
+      if (scoreOrNull !== null) {
+        if (_prevVote === undefined) delete myUser._votes[key];
+        else myUser._votes[key] = _prevVote;
+        saveMyUser();
+      }
+      return false;
+    }
 
-    // Actualizar cache local de mi voto
+    // Confirmar/actualizar cache local de mi voto (score ya aplicado arriba).
     myUser._votes = myUser._votes || {};
-    const key = String(wineIdx);
     const existing = myUser._votes[key] || {};
     if (scoreOrNull !== null) existing.score = scoreOrNull;
     if (commentOrNull !== null) {
@@ -494,6 +515,109 @@ async function deleteMyVote() {
     console.warn('deleteMyVote error', e);
   }
 }
+
+// ── Modo duelo: voto de preferencia ¿Viejo o Nuevo? (SOLO móvil) ─────────────
+// El toggle aparece en el 2º vino de cada pareja ("al cerrar la pareja"). El
+// duelo lado-a-lado es de la TV; en el móvil se vota secuencial + esta preferencia.
+async function sendPairVote(pairIdx, choice) {
+  if (!myUser) return false;
+  try {
+    const r = await fetch('/api/pair-vote/' + pairIdx, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: myUser.user_id, choice }),
+    });
+    if (!r.ok) return false;
+    myUser._pair_votes = myUser._pair_votes || {};
+    myUser._pair_votes[String(pairIdx)] = choice;
+    saveMyUser();
+    return true;
+  } catch (e) {
+    console.warn('sendPairVote error', e);
+    return false;
+  }
+}
+
+// pairIdx del vino actual si toca mostrar el toggle (2º vino de la pareja), o null.
+function currentPairForVote() {
+  if (!serverState || serverState.mode !== 'duelo') return null;
+  if (serverState.is_welcome || serverState.is_summary) return null;
+  if (localIndex % 2 !== 1) return null;   // solo en el 2º vino (índice impar)
+  return Math.floor(localIndex / 2);
+}
+
+// Pinta (o quita) el bloque de preferencia en la vista de vino del móvil.
+function renderPairVoteBlock() {
+  if (!isMobile()) return;
+  const infoArea = document.getElementById('info-area');
+  let block = document.getElementById('pair-vote-block');
+  const pairIdx = currentPairForVote();
+
+  if (pairIdx === null || !infoArea) {
+    if (block) block.remove();
+    return;
+  }
+
+  const wines = serverState.all_wines || [];
+  const wA = wines[pairIdx * 2], wB = wines[pairIdx * 2 + 1];
+  const grape = (wA && wA.duel) || (wB && wB.duel) || (wA && wA.grape) || 'esta uva';
+
+  const summary = serverState.pair_votes_summary
+    && serverState.pair_votes_summary.pairs
+    && serverState.pair_votes_summary.pairs[String(pairIdx)];
+  const v = (summary && summary.viejo) || 0;
+  const n = (summary && summary.nuevo) || 0;
+  const mine = (myUser && myUser._pair_votes && myUser._pair_votes[String(pairIdx)]) || null;
+
+  if (!block) {
+    block = document.createElement('div');
+    block.id = 'pair-vote-block';
+    block.className = 'pair-vote-block';
+    const mapC = infoArea.querySelector('.map-container');
+    if (mapC) infoArea.insertBefore(block, mapC);
+    else infoArea.appendChild(block);
+  }
+  block.dataset.pair = String(pairIdx);
+  block.innerHTML = `
+    <div class="pair-vote-title">⚔️ ${escapeHtml(grape)} · ¿cuál te gusta más?</div>
+    <div class="pair-vote-btns">
+      <button type="button" class="pair-vote-btn viejo ${mine === 'viejo' ? 'chosen' : ''}" data-choice="viejo">
+        <span class="pair-vote-flag">🌍 Viejo Mundo</span>
+        <span class="pair-vote-count">${v}</span>
+      </button>
+      <button type="button" class="pair-vote-btn nuevo ${mine === 'nuevo' ? 'chosen' : ''}" data-choice="nuevo">
+        <span class="pair-vote-flag">🌎 Nuevo Mundo</span>
+        <span class="pair-vote-count">${n}</span>
+      </button>
+    </div>`;
+}
+
+// Trae el bloque a la vista + flash (cuando el anfitrión lanza el aviso de voto).
+function highlightPairVote() {
+  const block = document.getElementById('pair-vote-block');
+  if (!block) return;
+  block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  block.classList.remove('flash');
+  void block.offsetWidth;
+  block.classList.add('flash');
+  setTimeout(() => block.classList.remove('flash'), 2000);
+}
+
+// Click en los botones de preferencia
+document.body.addEventListener('click', (e) => {
+  const btn = e.target.closest('.pair-vote-btn');
+  if (!btn) return;
+  const block = document.getElementById('pair-vote-block');
+  if (!block) return;
+  const pairIdx = parseInt(block.dataset.pair, 10);
+  const choice = btn.dataset.choice;
+  if (Number.isNaN(pairIdx)) return;
+  if (!myUser) {
+    showOnboarding('first', () => sendPairVote(pairIdx, choice).then(renderPairVoteBlock));
+    return;
+  }
+  sendPairVote(pairIdx, choice).then(renderPairVoteBlock);
+});
 
 // Click en estrella
 document.body.addEventListener('click', (e) => {
@@ -628,6 +752,7 @@ const _origRenderCurrent = renderCurrent;
 window._afterRender = function() {
   loadMyVoteForCurrentWine();
   refreshVoteUI();
+  renderPairVoteBlock();
 };
 // Wrap renderCurrent para llamar al hook después
 renderCurrent = function() {
