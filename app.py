@@ -906,6 +906,27 @@ def api_pref_alert():
     return jsonify(current_payload())
 
 
+@app.route('/api/mode', methods=['POST'])
+@admin_required
+def api_set_mode():
+    """Activa/desactiva el modo duelo en vivo desde el control.
+
+    Body: { "duelo": true|false }  (o { "mode": "duelo"|null }).
+    Es un override de sesión: la carta (wines.json 'mode') marca el valor por
+    defecto al arrancar o al cargar carta; este endpoint lo cambia sobre la marcha
+    (no se persiste; un reinicio vuelve a lo que diga el wines.json).
+    """
+    data = request.get_json(silent=True) or {}
+    if 'duelo' in data:
+        new_mode = 'duelo' if data.get('duelo') else None
+    else:
+        new_mode = 'duelo' if data.get('mode') == 'duelo' else None
+    with state_lock:
+        state['mode'] = new_mode
+    broadcast_update()
+    return jsonify({'status': 'ok', 'mode': new_mode})
+
+
 @app.route('/api/reload', methods=['POST'])
 @admin_required
 def api_reload():

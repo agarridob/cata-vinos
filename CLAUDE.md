@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **2.0.1**.
+Versión actual: **2.1.0**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -130,7 +130,11 @@ para la cabecera) y opcional `duel_note` (el "qué buscar").
   `POST /api/pair-vote/<pair_idx>` (`{user_id, choice}`). Los votos de preferencia
   viven en `votes_state['pair_votes']` y se agregan en `pair_votes_summary()`.
 - **Control:** "Siguiente" avanza vino a vino como siempre; la tarjeta muestra
-  "Uva N/4 · 🌍/🌎". Botón nuevo **⚔️ Lanzar ¿Viejo o Nuevo?** → `POST /api/pref-alert`
+  "Uva N/4 · 🌍/🌎". Interruptor **Modo Duelo** (`POST /api/mode` con `{duelo}`) que
+  hace de indicador (verde/burdeos "ACTIVO") y permite activarlo/desactivarlo en
+  vivo; es un override de sesión (no se persiste), la carta `wines.json` marca el
+  valor por defecto al arrancar o al cargar carta. Botón nuevo **⚔️ Lanzar ¿Viejo o
+  Nuevo?** → `POST /api/pref-alert`
   (sube `pref_alert_nonce`, transitorio): banner en la TV (`syncPrefAlert`) + resalta
   el toggle en los móviles. En modo duelo el **auto-aviso de 5 min se desactiva**
   (solo avisos manuales).
