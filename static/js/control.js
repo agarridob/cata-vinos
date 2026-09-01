@@ -179,6 +179,19 @@ function syncAdminButtons() {
     }
   });
 
+  // Interruptor + indicador de Modo Duelo.
+  const modeBtn = document.getElementById('btn-mode-toggle');
+  if (modeBtn && state) {
+    const on = state.mode === 'duelo';
+    modeBtn.classList.toggle('is-on', on);
+    const lbl = document.getElementById('mode-toggle-label');
+    const sub = document.getElementById('mode-toggle-sub');
+    if (lbl) lbl.textContent = on ? '⚔️ Modo Duelo: ACTIVO' : 'Modo Duelo: desactivado';
+    if (sub) sub.textContent = on
+      ? 'Viejo vs Nuevo — pulsa para pasar a cata normal'
+      : 'Cata normal — pulsa para activar el duelo';
+  }
+
   // Botón "¿Viejo o Nuevo?" (modo duelo): visible solo en duelo, y activo solo
   // cuando la pareja está servida (anfitrión en el 2º vino, índice impar).
   const prefBtn = document.getElementById('btn-pref-alert');
@@ -776,6 +789,26 @@ async function handlePrefAlert() {
   }
 }
 
+async function handleModeToggle() {
+  if (busy || !state) return;
+  busy = true;
+  const turnOn = state.mode !== 'duelo';
+  try {
+    const r = await fetch('/api/mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ duelo: turnOn }),
+    });
+    const d = await r.json().catch(() => ({}));
+    showToast(r.ok ? (turnOn ? '⚔️ Modo Duelo activado' : 'Modo Duelo desactivado') : (d.error || 'No se pudo cambiar el modo'), !r.ok);
+    await fetchState();
+  } catch (e) {
+    showToast('Error de red al cambiar el modo', true);
+  } finally {
+    busy = false;
+  }
+}
+
 async function handleWelcomeBack() {
   if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen. La pantalla TV mostrará el QR otra vez.')) return;
   try {
@@ -826,6 +859,8 @@ archiveConfirmBtn.onclick = async () => {
 archiveModal.onclick = (e) => { if (e.target === archiveModal) archiveModal.classList.remove('visible'); };
 
 function bindAdminControls() {
+  const modeBtn = document.getElementById('btn-mode-toggle');
+  if (modeBtn) modeBtn.onclick = handleModeToggle;
   document.getElementById('btn-vote-alert').onclick = handleVoteAlert;
   document.getElementById('btn-vote-alert-hide').onclick = handleVoteAlertHide;
   const prefBtn = document.getElementById('btn-pref-alert');

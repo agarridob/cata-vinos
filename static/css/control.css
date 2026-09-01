@@ -210,6 +210,13 @@ input, textarea { user-select: text; }
 .admin-btn-danger:active { background: rgba(160, 40, 24, 0.10); }
 .admin-btn-test { border-color: #7a3a6e !important; color: #7a3a6e !important; background: rgba(122, 58, 110, 0.05); }
 .admin-btn-test:active { background: rgba(122, 58, 110, 0.15); }
+.admin-btn-duel { border-color: #6e0f2a; color: #6e0f2a; }
+.admin-btn-duel:active { background: rgba(110, 15, 42, 0.10); }
+/* Interruptor de Modo Duelo: apagado = contorno; encendido = relleno burdeos */
+.admin-btn-mode { border-color: #6e0f2a; color: #6e0f2a; }
+.admin-btn-mode:active { background: rgba(110, 15, 42, 0.10); }
+.admin-btn-mode.is-on { background: #6e0f2a; color: #f5ecd5; border-color: #6e0f2a; }
+.admin-btn-mode.is-on .admin-btn-sub { color: rgba(245, 236, 213, 0.85); }
 .admin-btn-label { font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
 .admin-btn-sub { font-size: 11px; font-weight: 400; color: #8a5a2a; text-transform: none; letter-spacing: 0.3px; }
 .user-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
