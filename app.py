@@ -199,6 +199,9 @@ state = {
     'current_index': 0,
     'wines': [],
     'wifi': None,
+    # Modo de la cata: None = normal (vino a vino); 'duelo' = Viejo vs Nuevo Mundo
+    # (parejas por uva). Viene de wines.json ("mode"). Ver enrich/current_payload.
+    'mode': None,
     # Presentación del resumen en TV
     # summary_auto=True: la TV alterna localmente cada 15s entre tarjetas y viaje.
     # summary_auto=False: la TV fija summary_view ('cards' o 'journey').
@@ -209,6 +212,8 @@ state = {
     # el banner al ver un valor mayor al último. Transitorios: no se persisten.
     'alert_nonce': 0,
     'alert_hide_nonce': 0,
+    # Aviso one-shot del voto de preferencia (solo modo duelo). Transitorio.
+    'pref_alert_nonce': 0,
 }
 
 # Lista de queues, una por cada cliente SSE conectado
@@ -220,14 +225,18 @@ def load_wines():
     try:
         with open(WINES_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
+        mode = data.get('mode')
+        if mode not in ('duelo',):
+            mode = None
         return (
             data.get('session', state['session_name']),
             data.get('wines', []),
             data.get('wifi'),
+            mode,
         )
     except Exception as e:
         print(f"[load_wines] Error: {e}")
-        return state['session_name'], [], None
+        return state['session_name'], [], None, None
 
 
 def save_persisted_state():
@@ -294,6 +303,9 @@ def current_payload():
             summary_view = 'cards'
         alert_nonce = state.get('alert_nonce', 0)
         alert_hide_nonce = state.get('alert_hide_nonce', 0)
+        mode = state.get('mode')
+        pref_alert_nonce = state.get('pref_alert_nonce', 0)
+    pair_summary = pair_votes_summary() if mode == 'duelo' else None
     # Info pública de usuarios (para mostrar nombres+colores en destacados/comentarios)
     with votes_lock:
         users_public = {
@@ -316,6 +328,8 @@ def current_payload():
             'users_public': users_public,
             'summary_auto': summary_auto,
             'summary_view': summary_view,
+            'mode': mode,
+            'pair_votes_summary': pair_summary,
         }
 
     # Índice -1: pantalla de bienvenida (antes de empezar la cata)
@@ -337,6 +351,9 @@ def current_payload():
             'summary_auto': summary_auto,
             'summary_view': summary_view,
             'wifi_config': wifi_cfg,
+            'mode': mode,
+            'pair_votes_summary': pair_summary,
+            'pref_alert_nonce': pref_alert_nonce,
         }
     # Índice especial: idx == len(wines) significa "pantalla resumen"
     if idx >= len(wines):
@@ -359,6 +376,9 @@ def current_payload():
             'summary_view': summary_view,
             'highlights': calculate_highlights(wines),
             'personal_favorites': calculate_personal_favorites(),
+            'mode': mode,
+            'pair_votes_summary': pair_summary,
+            'pref_alert_nonce': pref_alert_nonce,
         }
     idx = max(0, idx)
     # Votos individuales del vino actual (para los popups en TV)
@@ -391,6 +411,9 @@ def current_payload():
         'current_wine_votes': current_wine_votes,
         'alert_nonce': alert_nonce,
         'alert_hide_nonce': alert_hide_nonce,
+        'mode': mode,
+        'pair_votes_summary': pair_summary,
+        'pref_alert_nonce': pref_alert_nonce,
     }
 
 
@@ -453,7 +476,7 @@ GRAPE_NAMES = [
     "Tinta de Toro", "Brancellao", "Sousón", "Maturana", "Malvasía",
 ]
 
-votes_state = {'users': {}, 'votes': {}}
+votes_state = {'users': {}, 'votes': {}, 'pair_votes': {}}
 votes_lock = threading.Lock()
 
 
@@ -465,6 +488,8 @@ def load_votes():
                 loaded = json.load(f)
                 votes_state['users'] = loaded.get('users', {})
                 votes_state['votes'] = loaded.get('votes', {})
+                # pair_votes[user_id][str(pair_idx)] = 'viejo' | 'nuevo' (modo duelo)
+                votes_state['pair_votes'] = loaded.get('pair_votes', {})
         except Exception as e:
             print(f"[votes] error al cargar: {e}")
 
@@ -533,6 +558,36 @@ def votes_summary():
             'count': data['count'],
         }
     return result
+
+
+def pair_votes_summary():
+    """Modo duelo: agrega los votos de preferencia ¿Viejo o Nuevo? por pareja/uva.
+
+    La pareja k son los vinos 2k (Viejo) y 2k+1 (Nuevo). Devuelve:
+      {
+        'pairs': { "k": {'viejo': n, 'nuevo': m, 'count': n+m} },
+        'score': {'viejo': X, 'nuevo': Y},  # uvas ganadas (mayoría; empate = nadie)
+        'n_pairs': N,
+      }
+    """
+    with state_lock:
+        n_pairs = len(state['wines']) // 2
+    pairs = {}
+    with votes_lock:
+        for _uid, uv in votes_state.get('pair_votes', {}).items():
+            for pair_idx_str, choice in uv.items():
+                if choice not in ('viejo', 'nuevo'):
+                    continue
+                d = pairs.setdefault(pair_idx_str, {'viejo': 0, 'nuevo': 0, 'count': 0})
+                d[choice] += 1
+                d['count'] += 1
+    score = {'viejo': 0, 'nuevo': 0}
+    for d in pairs.values():
+        if d['viejo'] > d['nuevo']:
+            score['viejo'] += 1
+        elif d['nuevo'] > d['viejo']:
+            score['nuevo'] += 1
+    return {'pairs': pairs, 'score': score, 'n_pairs': n_pairs}
 
 
 def calculate_personal_favorites():
@@ -829,15 +884,38 @@ def api_vote_alert_hide():
     return jsonify(current_payload())
 
 
+@app.route('/api/pref-alert', methods=['POST'])
+@admin_required
+def api_pref_alert():
+    """Modo duelo: lanza el popup one-shot del voto ¿Viejo o Nuevo? (TV + móviles).
+
+    Solo si la pareja actual está servida (el anfitrión está en el 2º vino, 2k+1).
+    """
+    changed = False
+    with state_lock:
+        if state.get('mode') == 'duelo':
+            idx = state['current_index']
+            n_wines = len(state['wines'])
+            pair_idx = idx // 2 if idx >= 0 else -1
+            served = 0 <= idx < n_wines and (2 * pair_idx + 1) <= idx
+            if served:
+                state['pref_alert_nonce'] = state.get('pref_alert_nonce', 0) + 1
+                changed = True
+    if changed:
+        broadcast_update()
+    return jsonify(current_payload())
+
+
 @app.route('/api/reload', methods=['POST'])
 @admin_required
 def api_reload():
     """Recarga wines.json sin reiniciar el servicio."""
-    session_name, wines, wifi = load_wines()
+    session_name, wines, wifi, mode = load_wines()
     with state_lock:
         state['session_name'] = session_name
         state['wines'] = wines
         state['wifi'] = wifi
+        state['mode'] = mode
         # Recortar al rango válido (0..len, donde len = pantalla resumen)
         if state['current_index'] > len(wines):
             state['current_index'] = max(0, len(wines))
@@ -874,11 +952,12 @@ def api_wines_config_load_sample():
             json.dump(sample, f, ensure_ascii=False, indent=2)
         os.replace(tmp, WINES_FILE)
 
-        session_name, wines, wifi = load_wines()
+        session_name, wines, wifi, mode = load_wines()
         with state_lock:
             state['session_name'] = session_name
             state['wines'] = wines
             state['wifi'] = wifi
+            state['mode'] = mode
             if state['current_index'] > len(wines):
                 state['current_index'] = max(0, len(wines))
 
@@ -1013,6 +1092,9 @@ def api_wines_config_save():
     session_name = (data.get('session') or state.get('session_name') or 'Cata').strip()
     wines = data.get('wines', [])
     wifi = data.get('wifi', None)
+    mode = data.get('mode')
+    if mode not in ('duelo',):
+        mode = None
 
     if not isinstance(wines, list):
         return jsonify({'error': 'wines_must_be_list'}), 400
@@ -1063,6 +1145,16 @@ def api_wines_config_save():
         if wine_type in WINE_TYPES:
             cleaned['type'] = wine_type
 
+        # Campos del modo duelo (no editables en el editor, pero se conservan para
+        # no romper una cata de duelo si se guarda desde el editor).
+        world = str(wine.get('world', '')).strip().lower()
+        if world in ('viejo', 'nuevo'):
+            cleaned['world'] = world
+        for dfield in ('duel', 'duel_note'):
+            dval = wine.get(dfield)
+            if dval not in (None, ''):
+                cleaned[dfield] = str(dval).strip()
+
         # coords opcional: [lat, lon]
         coords = wine.get('coords')
         if coords in (None, '', []):
@@ -1089,6 +1181,9 @@ def api_wines_config_save():
         'wines': cleaned_wines,
     }
 
+    if mode:
+        out['mode'] = mode
+
     if wifi is not None:
         out['wifi'] = wifi
 
@@ -1102,12 +1197,13 @@ def api_wines_config_save():
         os.replace(tmp, WINES_FILE)
 
         # Recargar estado en memoria
-        new_session_name, new_wines, new_wifi = load_wines()
+        new_session_name, new_wines, new_wifi, new_mode = load_wines()
 
         with state_lock:
             state['session_name'] = new_session_name
             state['wines'] = new_wines
             state['wifi'] = new_wifi
+            state['mode'] = new_mode
 
             if state['current_index'] > len(new_wines):
                 state['current_index'] = max(0, len(new_wines))
@@ -1187,7 +1283,8 @@ def api_me_get(user_id):
         if not user:
             return jsonify({'error': 'not_found'}), 404
         my_votes = dict(votes_state['votes'].get(user_id, {}))
-    return jsonify({'user_id': user_id, **user, 'votes': my_votes})
+        my_pair_votes = dict(votes_state.get('pair_votes', {}).get(user_id, {}))
+    return jsonify({'user_id': user_id, **user, 'votes': my_votes, 'pair_votes': my_pair_votes})
 
 
 @app.route('/api/me/<user_id>', methods=['PATCH'])
@@ -1222,6 +1319,7 @@ def api_me_delete(user_id):
         existed = user_id in votes_state['users']
         votes_state['users'].pop(user_id, None)
         votes_state['votes'].pop(user_id, None)   # nos llevamos sus votos también
+        votes_state.get('pair_votes', {}).pop(user_id, None)
         if existed:
             save_votes()
     if not existed:
@@ -1297,6 +1395,60 @@ def api_vote_delete(wine_idx):
     return jsonify({'status': 'ok'})
 
 
+@app.route('/api/pair-vote/<int:pair_idx>', methods=['POST'])
+def api_pair_vote(pair_idx):
+    """Modo duelo: voto de preferencia de una pareja/uva.
+
+    Body: { user_id, choice: 'viejo' | 'nuevo' }
+    La pareja k son los vinos 2k (Viejo) y 2k+1 (Nuevo).
+    """
+    data = request.get_json(silent=True) or {}
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'missing_user_id'}), 400
+    choice = data.get('choice')
+    if choice not in ('viejo', 'nuevo'):
+        return jsonify({'error': 'invalid_choice'}), 400
+
+    with state_lock:
+        mode = state.get('mode')
+        n_wines = len(state['wines'])
+        server_idx = state['current_index']
+    if mode != 'duelo':
+        return jsonify({'error': 'not_duel_mode'}), 400
+    n_pairs = n_wines // 2
+    if pair_idx < 0 or pair_idx >= n_pairs:
+        return jsonify({'error': 'pair_idx_invalid'}), 400
+    # La pareja debe estar servida (ambos vinos): el 2º vino (2k+1) ya alcanzado.
+    if 2 * pair_idx + 1 > server_idx:
+        return jsonify({'error': 'pair_not_served'}), 403
+
+    with votes_lock:
+        if user_id not in votes_state['users']:
+            return jsonify({'error': 'user_unknown'}), 404
+        user_pairs = votes_state['pair_votes'].setdefault(user_id, {})
+        user_pairs[str(pair_idx)] = choice
+        save_votes()
+
+    broadcast_update()
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/pair-vote/<int:pair_idx>', methods=['DELETE'])
+def api_pair_vote_delete(pair_idx):
+    """Elimina el voto de preferencia del usuario sobre una pareja."""
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'missing_user_id'}), 400
+    with votes_lock:
+        user_pairs = votes_state['pair_votes'].get(user_id)
+        if user_pairs and str(pair_idx) in user_pairs:
+            del user_pairs[str(pair_idx)]
+            save_votes()
+    broadcast_update()
+    return jsonify({'status': 'ok'})
+
+
 @app.route('/api/votes', methods=['GET'])
 def api_votes_summary():
     """Devuelve el agregado de votos por vino + destacados (si corresponde)."""
@@ -1315,6 +1467,7 @@ def api_votes_clear():
         votes_count = sum(len(uv) for uv in votes_state['votes'].values())
         users_count = len(votes_state['users'])
         votes_state['votes'] = {}
+        votes_state['pair_votes'] = {}
         save_votes()
     broadcast_update()
     return jsonify({
@@ -1349,13 +1502,19 @@ def api_votes_archive():
     with votes_lock:
         users_snapshot = {uid: dict(u) for uid, u in votes_state['users'].items()}
         votes_snapshot = {uid: dict(uv) for uid, uv in votes_state['votes'].items()}
+        pair_votes_snapshot = {uid: dict(uv) for uid, uv in votes_state.get('pair_votes', {}).items()}
+
+    with state_lock:
+        mode_snapshot = state.get('mode')
 
     archive_data = {
         'archived_at': datetime.now().isoformat(timespec='seconds'),
         'session_name': session_name,
+        'mode': mode_snapshot,
         'wines': wines_snapshot,
         'users': users_snapshot,
         'votes': votes_snapshot,
+        'pair_votes': pair_votes_snapshot,
     }
 
     date_str = datetime.now().strftime('%Y-%m-%d')
@@ -1382,6 +1541,7 @@ def api_votes_archive():
     with votes_lock:
         votes_state['users'] = {}
         votes_state['votes'] = {}
+        votes_state['pair_votes'] = {}
         save_votes()
     # Volver a la pantalla de bienvenida
     with state_lock:
@@ -1616,6 +1776,7 @@ def api_votes_wipe():
     with votes_lock:
         votes_state['users'] = {}
         votes_state['votes'] = {}
+        votes_state['pair_votes'] = {}
         save_votes()
     with state_lock:
         state['current_index'] = -1
@@ -1717,11 +1878,12 @@ def stream():
 # Init
 # ─────────────────────────────────────────────────────────────────────────────
 def init():
-    session_name, wines, wifi = load_wines()
+    session_name, wines, wifi, mode = load_wines()
     with state_lock:
         state['session_name'] = session_name
         state['wines'] = wines
         state['wifi'] = wifi
+        state['mode'] = mode
         persisted_state = load_persisted_state()
         state['current_index'] = persisted_state.get('current_index', 0)
         state['summary_auto'] = persisted_state.get('summary_auto', True)

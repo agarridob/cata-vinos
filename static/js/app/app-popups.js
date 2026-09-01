@@ -96,6 +96,9 @@ function appendPopup({ user, action, extra, typeClass, extended }) {
   const hex = getColorHex(user.color);
   const popup = document.createElement('div');
   popup.className = `vote-popup ${typeClass}`;
+  // El acento (borde izquierdo) es SIEMPRE el color del usuario, para que todas
+  // las notificaciones de una misma persona se lean como suyas (no cambia por nota).
+  popup.style.borderLeftColor = hex;
   popup.innerHTML = `
     <span class="vote-popup-dot" style="background:${hex}"></span>
     <div class="vote-popup-body">

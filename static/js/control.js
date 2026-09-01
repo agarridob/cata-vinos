@@ -98,9 +98,18 @@ function render() {
       ).join('<span class="current-meta-sep">·</span>');
       metaHtml = `<div class="current-meta">${inner}</div>`;
     }
+    let duelBadge = '';
+    if (state.mode === 'duelo') {
+      const pairIdx = Math.floor(state.index / 2);
+      const nPairs = Math.floor(state.total / 2);
+      const side = state.wine.world === 'nuevo' ? '🌎 Nuevo Mundo' : '🌍 Viejo Mundo';
+      const grape = state.wine.duel ? ' · ' + escapeHtml(state.wine.duel) : '';
+      duelBadge = `<div class="current-duel">Uva ${pairIdx + 1} de ${nPairs}${grape} · ${side}</div>`;
+    }
     cardHtml = `
       <div class="current-card">
         <div class="current-label">Sirviendo ahora</div>
+        ${duelBadge}
         <div class="current-name">${escapeHtml(state.wine.name || '—')}</div>
         <div class="current-winery">${escapeHtml(state.wine.winery || '—')}</div>
         ${metaHtml}
@@ -169,6 +178,17 @@ function syncAdminButtons() {
       btn.style.opacity = noWine ? '0.4' : '';
     }
   });
+
+  // Botón "¿Viejo o Nuevo?" (modo duelo): visible solo en duelo, y activo solo
+  // cuando la pareja está servida (anfitrión en el 2º vino, índice impar).
+  const prefBtn = document.getElementById('btn-pref-alert');
+  if (prefBtn && state) {
+    const isDuel = state.mode === 'duelo';
+    prefBtn.style.display = isDuel ? '' : 'none';
+    const pairServed = isDuel && !noWine && (state.index % 2 === 1);
+    prefBtn.disabled = !pairServed;
+    prefBtn.style.opacity = pairServed ? '' : '0.4';
+  }
 }
 
 // ──────────────────────────────────────────
@@ -352,6 +372,11 @@ function normalizeWineForEditor(w) {
   if (w && Array.isArray(w.coords) && w.coords.length === 2) {
     out.coords = [w.coords[0] != null ? String(w.coords[0]) : '', w.coords[1] != null ? String(w.coords[1]) : ''];
   }
+  // Campos del modo duelo: no se editan aquí, pero se conservan para no perder
+  // la configuración de una cata de duelo al guardar desde el editor.
+  if (w && (w.world === 'viejo' || w.world === 'nuevo')) out.world = w.world;
+  if (w && w.duel != null && String(w.duel).trim()) out.duel = String(w.duel);
+  if (w && w.duel_note != null && String(w.duel_note).trim()) out.duel_note = String(w.duel_note);
   return out;
 }
 
@@ -362,6 +387,7 @@ async function loadWinesEditor() {
     winesEditorData = {
       session: data.session || '',
       wifi: data.wifi || null,
+      mode: data.mode || null,
       wines: Array.isArray(data.wines) ? data.wines.map(normalizeWineForEditor) : [],
     };
     winesEditorLoaded = true;
@@ -480,6 +506,7 @@ function buildWinesEditorPayload() {
   return {
     session: winesEditorData.session,
     wifi: winesEditorData.wifi,
+    ...(winesEditorData.mode ? { mode: winesEditorData.mode } : {}),
     wines: winesEditorData.wines.map(w => {
       const out = { name: w.name || '', winery: w.winery || '', vintage: w.vintage || '', do: w.do || '', grape: w.grape || '', region: w.region || '', curiosity: w.curiosity || '', photo: w.photo || '', type: w.type || '' };
       const ratings = (Array.isArray(w.ratings) ? w.ratings : [])
@@ -489,6 +516,10 @@ function buildWinesEditorPayload() {
       const lat = String(w.coords?.[0] || '').trim();
       const lon = String(w.coords?.[1] || '').trim();
       if (lat !== '' && lon !== '') out.coords = [Number(lat), Number(lon)];
+      // Conservar campos de duelo (no editables aquí).
+      if (w.world === 'viejo' || w.world === 'nuevo') out.world = w.world;
+      if (w.duel != null && String(w.duel).trim()) out.duel = String(w.duel).trim();
+      if (w.duel_note != null && String(w.duel_note).trim()) out.duel_note = String(w.duel_note).trim();
       return out;
     }),
   };
@@ -731,6 +762,20 @@ async function handleVoteAlertHide() {
   }
 }
 
+async function handlePrefAlert() {
+  if (busy) return;
+  busy = true;
+  try {
+    const r = await fetch('/api/pref-alert', { method: 'POST' });
+    const data = await r.json().catch(() => ({}));
+    showToast(r.ok ? 'Votación ¿Viejo o Nuevo? lanzada' : (data.error || 'No se pudo lanzar la votación'), !r.ok);
+  } catch (e) {
+    showToast('Error de red al lanzar la votación', true);
+  } finally {
+    busy = false;
+  }
+}
+
 async function handleWelcomeBack() {
   if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen. La pantalla TV mostrará el QR otra vez.')) return;
   try {
@@ -783,6 +828,8 @@ archiveModal.onclick = (e) => { if (e.target === archiveModal) archiveModal.clas
 function bindAdminControls() {
   document.getElementById('btn-vote-alert').onclick = handleVoteAlert;
   document.getElementById('btn-vote-alert-hide').onclick = handleVoteAlertHide;
+  const prefBtn = document.getElementById('btn-pref-alert');
+  if (prefBtn) prefBtn.onclick = handlePrefAlert;
   document.getElementById('btn-welcome-back').onclick = handleWelcomeBack;
   document.getElementById('btn-clear-votes').onclick = handleClearVotes;
   document.getElementById('btn-archive').onclick = openArchiveModal;

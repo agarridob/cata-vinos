@@ -197,3 +197,85 @@ function renderMap(lat, lon) {
 
   return key;
 }
+
+// ── Mapamundi del modo duelo (solo TV) ──────────────────────────────────────
+// Devuelve el markup SVG de un mapamundi (equirectangular) con dos pines —el
+// origen del Viejo Mundo y el del Nuevo— unidos por un arco. Proyección lineal
+// idéntica a renderMap. Se inyecta en la vista duelo (app-duel-view.js).
+function buildWorldMapSVG(coordsViejo, coordsNuevo) {
+  if (!MAPS_DATA || !MAPS_DATA.world) return '';
+  const m = MAPS_DATA.world;
+  const [lonMin, lonMax, latMin, latMax] = m.bbox;
+  const [W, H] = m.size;
+  const ASPECT = W / H;   // 2:1, igual que el marco .duel-map
+  const project = (lat, lon) => [
+    (lon - lonMin) / (lonMax - lonMin) * W,
+    (latMax - lat) / (latMax - latMin) * H,
+  ];
+
+  const hasV = Array.isArray(coordsViejo) && coordsViejo.length === 2;
+  const hasN = Array.isArray(coordsNuevo) && coordsNuevo.length === 2;
+  const pv = hasV ? project(coordsViejo[0], coordsViejo[1]) : null;
+  const pn = hasN ? project(coordsNuevo[0], coordsNuevo[1]) : null;
+
+  // ── viewBox: por defecto el mundo entero; con dos puntos, hacemos "zoom"
+  // recortando a la caja que los contiene (con margen) y respetando el aspecto
+  // 2:1 del marco para no reintroducir huecos a los lados. ──
+  let vx = 0, vy = 0, vw = W, vh = H;
+  if (pv && pn) {
+    let minX = Math.min(pv[0], pn[0]), maxX = Math.max(pv[0], pn[0]);
+    let minY = Math.min(pv[1], pn[1]), maxY = Math.max(pv[1], pn[1]);
+    const spanX = maxX - minX, spanY = maxY - minY;
+    const span = Math.max(spanX, spanY);
+    const pad = span * 0.18 + 25;
+    const topExtra = spanX * 0.28 + 30;   // hueco arriba para el arco
+    minX -= pad; maxX += pad;
+    minY -= pad + topExtra;
+    maxY += pad;
+    let w = maxX - minX, h = maxY - minY;
+    // Ajustar al aspecto 2:1 expandiendo la dimensión que falte.
+    if (w / h < ASPECT) { const nw = h * ASPECT; minX -= (nw - w) / 2; w = nw; }
+    else { const nh = w / ASPECT; minY -= (nh - h) / 2; h = nh; }
+    // Mínimo para no sobre-ampliar en parejas muy próximas.
+    const MINW = 430;
+    if (w < MINW) { const nh = MINW / ASPECT; minX -= (MINW - w) / 2; minY -= (nh - h) / 2; w = MINW; h = nh; }
+    // Recortar al mundo conservando el tamaño de la caja.
+    if (w > W) w = W;
+    if (h > H) h = H;
+    if (minX < 0) minX = 0;
+    if (minY < 0) minY = 0;
+    if (minX + w > W) minX = W - w;
+    if (minY + h > H) minY = H - h;
+    vx = minX; vy = minY; vw = w; vh = h;
+  }
+
+  // Escala relativa al mundo completo: pines y trazos se dimensionan con ella
+  // para que el tamaño APARENTE sea parecido en cualquier nivel de zoom.
+  const s = vw / W;
+  const r = (base) => (base * s).toFixed(1);
+
+  const pin = (x, y, cls) => `
+    <g class="wpin ${cls}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+      <circle class="wpin-glow" r="${r(30)}"></circle>
+      <circle class="wpin-pulse" r="${r(13)}"></circle>
+      <circle class="wpin-dot" r="${r(8)}" style="stroke-width:${r(2)}"></circle>
+    </g>`;
+
+  let arc = '';
+  if (pv && pn) {
+    const cx = (pv[0] + pn[0]) / 2;
+    const cy = Math.min(pv[1], pn[1]) - Math.abs(pn[0] - pv[0]) * 0.28 - 50 * s;
+    arc = `<path class="wpin-arc" d="M${pv[0].toFixed(1)},${pv[1].toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${pn[0].toFixed(1)},${pn[1].toFixed(1)}" style="stroke-width:${r(3)};stroke-dasharray:${r(10)} ${r(8)}"></path>`;
+  }
+  let pins = '';
+  if (pv) pins += pin(pv[0], pv[1], 'wpin-viejo');
+  if (pn) pins += pin(pn[0], pn[1], 'wpin-nuevo');
+
+  return `
+    <svg class="world-map-svg" viewBox="${vx.toFixed(1)} ${vy.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <rect class="world-sea" x="0" y="0" width="${W}" height="${H}"></rect>
+      <path class="world-land" d="${m.path}" style="stroke-width:${r(1)}"></path>
+      ${arc}
+      ${pins}
+    </svg>`;
+}
