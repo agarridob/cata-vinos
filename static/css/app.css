@@ -2629,10 +2629,48 @@
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 .duel-col.duel-nuevo { --side: var(--duel-nuevo); }
+
+/* ── Vino que se está bebiendo AHORA (TV, modo duelo) ──
+   Muy evidente desde lejos: halo grueso en el color del lado + fondo vivo +
+   escalado + badge con pulso. La otra copa se atenúa para dirigir la mirada. */
 .duel-col.is-current {
-  box-shadow: 0 0 0 0.4vh rgba(110, 15, 42, 0.18), 0 1.5vh 4vh rgba(80, 40, 20, 0.22);
-  transform: translateY(-0.4vh);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: var(--side);
+  box-shadow: 0 0 0 0.5vh var(--side), 0 0 5vh -0.5vh var(--side), 0 1.5vh 4vh rgba(80, 40, 20, 0.30);
+  transform: translateY(-0.6vh) scale(1.035);
+  z-index: 1;
 }
+/* La copa que NO se bebe ahora pasa a segundo plano (solo si hay una activa). */
+.duel-cols:has(.is-current) .duel-col:not(.is-current) {
+  opacity: 0.5;
+  filter: saturate(0.65);
+  transform: scale(0.97);
+}
+
+/* Badge "En tu copa ahora": oculto por defecto, visible en la copa actual. */
+.duel-now {
+  display: none;
+  align-self: stretch;
+  margin: -1.6vh -2vw 1vh;   /* sangra al borde de la tarjeta (anula el padding) */
+  padding: 0.9vh 1vw;
+  background: var(--side);
+  color: #fff;
+  font-size: 1.9vh;
+  font-weight: 800;
+  letter-spacing: 0.25vh;
+  text-transform: uppercase;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 0.4vh 1.2vh rgba(80, 40, 20, 0.28);
+}
+.duel-col.is-current .duel-now {
+  display: block;
+  animation: duel-now-pulse 1.6s ease-in-out infinite;
+}
+@keyframes duel-now-pulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.18); }
+}
+
 .duel-flag {
   font-size: 2vh;
   font-weight: 800;
