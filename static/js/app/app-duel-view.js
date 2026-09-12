@@ -41,6 +41,7 @@ function duelColumnHtml(wine, side, isCurrent) {
 
   return `
     <div class="duel-col duel-${side} ${isCurrent ? 'is-current' : ''}" data-wine-type="${typeLabel ? escapeHtml(wine.type) : ''}">
+      <div class="duel-now">🍷 En tu copa ahora</div>
       <div class="duel-flag">${DUEL_WORLD_LABEL[side]}</div>
       <div class="duel-bottle">${photoHtml}</div>
       <h2 class="duel-name">${escapeHtml(wine.name || '—')}</h2>
