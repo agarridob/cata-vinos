@@ -560,8 +560,12 @@ function renderSummary(payload) {
 }
 
 // ── Rotación de destacados ──
+// TV: carrusel automático cada 6 s. Móvil: además se puede pasar a mano (flechas,
+// swipe o dots); al primer gesto manual se pausa el automático para ir "a tu gusto".
 let highlightsRotationTimer = null;
 let highlightsCurrentIdx = 0;
+let highlightsData = [];
+let highlightsManual = false;
 
 function stopHighlightsRotation() {
   if (highlightsRotationTimer) {
@@ -574,15 +578,18 @@ function startHighlightsRotation(highlights) {
   stopHighlightsRotation();
   const el = document.getElementById('highlights-overlay');
   if (!el) return;
-  if (!highlights || highlights.length === 0) {
+  highlightsData = highlights || [];
+  highlightsManual = false;
+  if (highlightsData.length === 0) {
     el.classList.add('empty');
     return;
   }
   el.classList.remove('empty');
   highlightsCurrentIdx = 0;
-  renderHighlight(el, highlights, 0);
-  if (highlights.length > 1) {
-    scheduleNextHighlight(el, highlights);
+  renderHighlight(el, highlightsData, 0);
+  bindHighlightControls(el);
+  if (highlightsData.length > 1) {
+    scheduleNextHighlight(el, highlightsData);
   }
 }
 
@@ -597,6 +604,47 @@ function scheduleNextHighlight(el, highlights) {
       scheduleNextHighlight(el, highlights);
     }, 400);
   }, 6000);
+}
+
+// Salta a un destacado concreto por gesto manual (solo móvil): pausa el auto y
+// renderiza al instante (sin esperar los 6 s ni el fade largo).
+function goToHighlight(idx) {
+  const n = highlightsData.length;
+  if (n < 2) return;
+  stopHighlightsRotation();
+  highlightsManual = true;
+  highlightsCurrentIdx = ((idx % n) + n) % n;   // wrap circular
+  const el = document.getElementById('highlights-overlay');
+  if (el) {
+    el.classList.remove('fading');
+    el.classList.add('manual');   // muestra flechas siempre tras el 1er gesto
+    renderHighlight(el, highlightsData, highlightsCurrentIdx);
+  }
+}
+
+// Conecta controles manuales (flechas, dots, swipe). Solo móvil y una sola vez
+// por elemento (delegación de eventos, sobrevive a los re-render de renderHighlight).
+function bindHighlightControls(el) {
+  if (!isMobile()) return;
+  if (el.dataset.navBound === '1') return;
+  el.dataset.navBound = '1';
+
+  el.addEventListener('click', (e) => {
+    const nav = e.target.closest('.highlights-nav');
+    if (nav) { goToHighlight(highlightsCurrentIdx + (nav.dataset.dir === 'next' ? 1 : -1)); return; }
+    const dot = e.target.closest('.highlights-dot');
+    if (dot && dot.dataset.idx !== undefined) { goToHighlight(parseInt(dot.dataset.idx, 10)); }
+  });
+
+  let touchX = null;
+  el.addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) < 40) return;
+    goToHighlight(highlightsCurrentIdx + (dx < 0 ? 1 : -1));  // swipe izq = siguiente
+  }, { passive: true });
 }
 
 function getColorHexFromKey(key) {
@@ -616,11 +664,17 @@ function renderHighlight(el, highlights, idx) {
   // para ubicarlo de un vistazo (p. ej. "3. Roselito").
   const winePrefix = typeof h.wine_idx === 'number' ? `${h.wine_idx + 1}. ` : '';
 
-  // Indicadores de rotación (solo si hay >1 destacado)
+  // Indicadores de rotación (solo si hay >1 destacado). En móvil son tocables.
   const dotsHtml = highlights.length > 1
     ? highlights.map((_, i) =>
-        `<div class="highlights-dot${i === idx ? ' active' : ''}"></div>`
+        `<div class="highlights-dot${i === idx ? ' active' : ''}" data-idx="${i}"></div>`
       ).join('')
+    : '';
+
+  // Flechas de navegación manual (solo móvil y si hay >1 destacado).
+  const navHtml = (isMobile() && highlights.length > 1)
+    ? `<button type="button" class="highlights-nav prev" data-dir="prev" aria-label="Anterior">‹</button>
+       <button type="button" class="highlights-nav next" data-dir="next" aria-label="Siguiente">›</button>`
     : '';
 
   let iconChar = '✦';
@@ -669,5 +723,6 @@ function renderHighlight(el, highlights, idx) {
       <span class="highlights-icon">${iconChar}</span>
       <span>${escapeHtml(h.label || '')}</span>
     </div>
-    ${bodyHtml}`;
+    ${bodyHtml}
+    ${navHtml}`;
 }
