@@ -425,14 +425,13 @@ function renderSummary(payload) {
       const doHtml = doText ? `<div class="summary-card-do">${escapeHtml(doText)}</div>` : '';
 
       // Puntuaciones: "La mesa" (agregado) + "Mi puntuación" (voto propio, móvil)
-      const stars = n => { let s = ''; for (let i = 0; i < 5; i++) s += (i < n ? '★' : '☆'); return s; };
       let scoreRows = '';
       const agg = votesSummary[String(thisIdx)];
       if (agg && agg.count > 0) {
         const plural = agg.count === 1 ? 'voto' : 'votos';
         scoreRows += `<div class="summary-card-score-row">
           <span class="summary-card-score-label">La mesa</span>
-          <span class="summary-card-agg-stars">${stars(Math.round(agg.avg))}</span>
+          <span class="summary-card-agg-stars">${starsHtml(agg.avg)}</span>
           <span class="summary-card-agg-value">${agg.avg.toFixed(1)}</span>
           <span class="summary-card-agg-count">· ${agg.count} ${plural}</span>
         </div>`;
@@ -442,7 +441,7 @@ function renderSummary(payload) {
         if (mv && typeof mv.score === 'number') {
           scoreRows += `<div class="summary-card-score-row">
             <span class="summary-card-score-label">Mi puntuación</span>
-            <span class="summary-card-agg-stars">${stars(mv.score)}</span>
+            <span class="summary-card-agg-stars">${starsHtml(mv.score)}</span>
             <span class="summary-card-agg-value">${mv.score}</span>
           </div>`;
         }
@@ -629,14 +628,11 @@ function renderHighlight(el, highlights, idx) {
 
   if (h.type === 'favorite') {
     iconChar = '🏆';
-    const filled = Math.round(h.avg || 0);
-    let starStr = '';
-    for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
     const plural = h.count === 1 ? 'voto' : 'votos';
     bodyHtml = `
       <div class="highlights-title">${escapeHtml(winePrefix + (h.wine_name || ''))}</div>
       <div class="highlights-meta">
-        <span class="highlights-stars">${starStr}</span>
+        <span class="highlights-stars">${starsHtml(h.avg || 0)}</span>
         <span class="highlights-avg">${(h.avg || 0).toFixed(1)}</span>
         <span class="highlights-extra">· ${h.count} ${plural} · ${escapeHtml(h.winery || '')}</span>
       </div>`;
@@ -649,13 +645,10 @@ function renderHighlight(el, highlights, idx) {
       </div>`;
   } else if (h.type === 'unanimous') {
     iconChar = '🤝';
-    const filled = Math.round(h.avg || 0);
-    let starStr = '';
-    for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
     bodyHtml = `
       <div class="highlights-title">${escapeHtml(winePrefix + (h.wine_name || ''))}</div>
       <div class="highlights-meta">
-        <span class="highlights-stars">${starStr}</span>
+        <span class="highlights-stars">${starsHtml(h.avg || 0)}</span>
         <span class="highlights-avg">${(h.avg || 0).toFixed(1)}</span>
         <span class="highlights-extra">· todos de acuerdo</span>
       </div>`;

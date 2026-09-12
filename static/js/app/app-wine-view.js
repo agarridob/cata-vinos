@@ -43,11 +43,11 @@ function ensureLayout() {
             <button class="vote-edit-btn" id="vote-edit-btn" style="display:none">Editar perfil</button>
           </div>
           <div class="vote-stars" id="vote-stars">
-            <span class="vote-star" data-score="1">★</span>
-            <span class="vote-star" data-score="2">★</span>
-            <span class="vote-star" data-score="3">★</span>
-            <span class="vote-star" data-score="4">★</span>
-            <span class="vote-star" data-score="5">★</span>
+            <span class="vote-star" data-score="1">★<span class="vote-star-fill">★</span></span>
+            <span class="vote-star" data-score="2">★<span class="vote-star-fill">★</span></span>
+            <span class="vote-star" data-score="3">★<span class="vote-star-fill">★</span></span>
+            <span class="vote-star" data-score="4">★<span class="vote-star-fill">★</span></span>
+            <span class="vote-star" data-score="5">★<span class="vote-star-fill">★</span></span>
           </div>
           <div class="vote-comment-wrap">
             <textarea class="vote-comment" id="vote-comment"

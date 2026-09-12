@@ -1048,12 +1048,19 @@
       margin-bottom: 12px; user-select: none;
     }
     .vote-star {
+      position: relative; display: inline-block;
       font-size: 36px; line-height: 1; cursor: pointer;
-      color: #d8c094;
-      transition: color 0.15s, transform 0.1s;
+      color: #d8c094;                 /* estrella vacía (base) */
+      transition: transform 0.1s;
     }
     .vote-star:active { transform: scale(0.92); }
-    .vote-star.filled { color: #a8771a; }
+    /* Capa dorada recortada por ancho (0/50/100%) para media estrella */
+    .vote-star-fill {
+      position: absolute; left: 0; top: 0; width: 0;
+      overflow: hidden; white-space: nowrap;
+      color: #a8771a; pointer-events: none;
+      transition: width 0.1s;
+    }
     .vote-comment-wrap {
       display: flex;
       flex-direction: column;
@@ -1335,6 +1342,7 @@
     font-style: italic;
   }
   .vote-popup-stars {
+    --star-on: #a8771a; --star-off: rgba(168, 119, 26, 0.35);
     color: #a8771a;
     font-weight: 700;
     letter-spacing: 0.2vh;
@@ -1734,7 +1742,23 @@
   .tv-vote-pill.bump {
     animation: vote-glow 1s ease-out;
   }
+  /* ── Estrellas con relleno parcial (helper starsHtml, admite medias) ──
+     Cada .star es un ★ base en color "vacío" (--star-off) con una capa ★
+     dorada (--star-on) recortada por ancho. Se usa en agregados, resumen,
+     highlights y pill TV. El contenedor puede sobreescribir los colores. */
+  .star {
+    position: relative; display: inline-block; white-space: nowrap;
+    letter-spacing: 0;              /* recorte exacto de la media estrella */
+    color: var(--star-off, #e0cfa8);
+  }
+  .star .star-fill {
+    position: absolute; left: 0; top: 0; width: 0;
+    overflow: hidden; white-space: nowrap;
+    color: var(--star-on, #a8771a);
+  }
+
   .tv-vote-stars {
+    --star-on: #a8771a; --star-off: #c8a878;
     color: #a8771a;
     font-size: 2.4vh;
     letter-spacing: 0.2vh;
@@ -1967,6 +1991,7 @@
     flex-wrap: wrap;
   }
   .highlights-stars {
+    --star-on: #f5d6a0; --star-off: rgba(245, 214, 160, 0.30);
     color: #f5d6a0;
     font-size: 16px;
     letter-spacing: 1px;
