@@ -67,14 +67,12 @@ function onServerUpdate(payload) {
     initialized = true;
   } else if (prevServerIdx !== serverIdx) {
     // El anfitrión cambió de vino. Si el invitado está escribiendo un comentario
-    // en el móvil, NO le arrancamos de la pantalla: le dejamos terminar y le
-    // mostramos un aviso para saltar al vino actual cuando quiera (al enviar el
-    // comentario o al tocar el aviso, salta solo). Evita perder lo que escribía.
+    // en el móvil, NO le arrancamos de la pantalla: le dejamos terminar. En
+    // cualquier otro caso, seguimos al anfitrión.
     if (isMobile() && isComposingComment()) {
-      showCatchupBanner(serverIdx);
+      // no tocamos localIndex: se queda donde escribe (updateCatchupBanner avisa)
     } else {
       localIndex = serverIdx;
-      hideCatchupBanner();
     }
   } else if (isMobile() && localIndex > serverIdx) {
     // Por si acaso: no permitir quedar adelantado
@@ -83,6 +81,11 @@ function onServerUpdate(payload) {
   // Si el server NO cambió, respetar la navegación manual local (móvil)
 
   renderCurrent();
+
+  // Aviso "ponte al día": se muestra siempre que el móvil vaya por detrás del
+  // anfitrión (escribiendo comentario, navegación manual hacia atrás, o SSE que
+  // se quedó atrás tras bloquear/reabrir). Un toque y salta al vino actual.
+  updateCatchupBanner();
 
   // Aviso de voto en la TV (recordatorio a los 5 min + última llamada de 30 s).
   // Gestiona sus propios temporizadores; se le pasa cada update.
@@ -164,19 +167,33 @@ function navigateTo(idx) {
   localIndex = idx;
   currentSig = null;  // forzar rerender (sin animación)
   renderCurrent();
+  updateCatchupBanner();   // navegación manual hacia atrás → avisa que vas por detrás
 }
 window.navigateTo = navigateTo;
 
 // ── Aviso "ponte al día" (móvil) ─────────────────────────────────────────────
-// Cuando el anfitrión pasa de vino mientras el invitado escribe un comentario,
-// no le cambiamos la pantalla; en su lugar mostramos este aviso para que salte
-// al vino actual cuando termine. catchupIdx = índice del server pendiente (o null).
+// Se muestra siempre que el móvil va por DETRÁS del anfitrión: escribiendo un
+// comentario (no le cambiamos la pantalla), navegando manualmente hacia atrás, o
+// tras bloquear/reabrir el navegador y quedarse en un vino anterior. Un toque en
+// el aviso salta al vino actual. catchupIdx = índice pendiente del server (o null).
 let catchupIdx = null;
 
 // ¿El invitado está redactando un comentario ahora mismo? (textarea con foco)
 function isComposingComment() {
   const el = document.getElementById('vote-comment');
   return !!el && document.activeElement === el;
+}
+
+// Muestra u oculta el aviso según si el móvil va por detrás del anfitrión.
+// Fuente única de verdad: se llama tras cada update del server y cada navegación.
+function updateCatchupBanner() {
+  if (!serverState || !isMobile() || serverState.is_welcome || localIndex === null) {
+    hideCatchupBanner();
+    return;
+  }
+  const serverIdx = serverState.is_summary ? serverState.total : serverState.index;
+  if (localIndex < serverIdx) showCatchupBanner(serverIdx);
+  else hideCatchupBanner();
 }
 
 function showCatchupBanner(idx) {
@@ -191,9 +208,10 @@ function showCatchupBanner(idx) {
     document.body.appendChild(b);
   }
   const isSummary = serverState && serverState.is_summary && idx === serverState.total;
-  b.innerHTML = isSummary
+  const html = isSummary
     ? '📊 El anfitrión ha pasado al <strong>resumen</strong> · toca para verlo'
     : `🍷 El anfitrión ya sirve el <strong>Vino ${idx + 1}</strong> · toca para ir`;
+  if (b.innerHTML !== html) b.innerHTML = html;   // evita repintar en cada SSE
   b.classList.add('visible');
 }
 
