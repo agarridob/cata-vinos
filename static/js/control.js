@@ -192,6 +192,19 @@ function syncAdminButtons() {
       : 'Cata normal — pulsa para activar el duelo';
   }
 
+  // Interruptor + indicador del QR en la TV.
+  const qrBtn = document.getElementById('btn-qr-toggle');
+  if (qrBtn && state) {
+    const on = !!state.show_qr;
+    qrBtn.classList.toggle('is-on', on);
+    const lbl = document.getElementById('qr-toggle-label');
+    const sub = document.getElementById('qr-toggle-sub');
+    if (lbl) lbl.textContent = on ? '📱 QR en la TV: ACTIVO' : 'QR en la TV: oculto';
+    if (sub) sub.textContent = on
+      ? 'Se ve abajo a la izquierda — pulsa para ocultarlo'
+      : 'Oculto — pulsa para mostrarlo en la TV';
+  }
+
   // Botón "¿Viejo o Nuevo?" (modo duelo): visible solo en duelo, y activo solo
   // cuando la pareja está servida (anfitrión en el 2º vino, índice impar).
   const prefBtn = document.getElementById('btn-pref-alert');
@@ -809,8 +822,28 @@ async function handleModeToggle() {
   }
 }
 
+async function handleQrToggle() {
+  if (busy || !state) return;
+  busy = true;
+  const turnOn = !state.show_qr;
+  try {
+    const r = await fetch('/api/qr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ on: turnOn }),
+    });
+    const d = await r.json().catch(() => ({}));
+    showToast(r.ok ? (turnOn ? '📱 QR visible en la TV' : 'QR oculto en la TV') : (d.error || 'No se pudo cambiar el QR'), !r.ok);
+    await fetchState();
+  } catch (e) {
+    showToast('Error de red al cambiar el QR', true);
+  } finally {
+    busy = false;
+  }
+}
+
 async function handleWelcomeBack() {
-  if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen. La pantalla TV mostrará el QR otra vez.')) return;
+  if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen.')) return;
   try {
     const r = await fetch('/api/welcome', { method: 'POST' });
     const data = await r.json();
@@ -861,6 +894,8 @@ archiveModal.onclick = (e) => { if (e.target === archiveModal) archiveModal.clas
 function bindAdminControls() {
   const modeBtn = document.getElementById('btn-mode-toggle');
   if (modeBtn) modeBtn.onclick = handleModeToggle;
+  const qrBtn = document.getElementById('btn-qr-toggle');
+  if (qrBtn) qrBtn.onclick = handleQrToggle;
   document.getElementById('btn-vote-alert').onclick = handleVoteAlert;
   document.getElementById('btn-vote-alert-hide').onclick = handleVoteAlertHide;
   const prefBtn = document.getElementById('btn-pref-alert');

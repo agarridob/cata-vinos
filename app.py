@@ -207,6 +207,9 @@ state = {
     # summary_auto=False: la TV fija summary_view ('cards' o 'journey').
     'summary_auto': True,
     'summary_view': 'cards',
+    # QR de "escanea para ver en tu móvil" en la TV (abajo izq). Por defecto OFF:
+    # solo se muestra si el anfitrión lo activa desde el control. Se persiste.
+    'show_qr': False,
     # Contadores para el aviso de voto manual (botones del panel). Cada pulsación
     # incrementa el suyo; la TV muestra ('alert_nonce') u oculta ('alert_hide_nonce')
     # el banner al ver un valor mayor al último. Transitorios: no se persisten.
@@ -246,6 +249,7 @@ def save_persisted_state():
             'current_index': state['current_index'],
             'summary_auto': state.get('summary_auto', True),
             'summary_view': state.get('summary_view', 'cards'),
+            'show_qr': state.get('show_qr', False),
         }
         with open(STATE_FILE, 'w') as f:
             json.dump(payload, f)
@@ -264,18 +268,21 @@ def load_persisted_state():
                 'current_index': data,
                 'summary_auto': True,
                 'summary_view': 'cards',
+                'show_qr': False,
             }
 
         return {
             'current_index': int(data.get('current_index', 0)),
             'summary_auto': bool(data.get('summary_auto', True)),
             'summary_view': data.get('summary_view') if data.get('summary_view') in ('cards', 'journey') else 'cards',
+            'show_qr': bool(data.get('show_qr', False)),
         }
     except Exception:
         return {
             'current_index': 0,
             'summary_auto': True,
             'summary_view': 'cards',
+            'show_qr': False,
         }
 
 
@@ -305,6 +312,7 @@ def current_payload():
         alert_hide_nonce = state.get('alert_hide_nonce', 0)
         mode = state.get('mode')
         pref_alert_nonce = state.get('pref_alert_nonce', 0)
+        show_qr = state.get('show_qr', False)
     pair_summary = pair_votes_summary() if mode == 'duelo' else None
     # Info pública de usuarios (para mostrar nombres+colores en destacados/comentarios)
     with votes_lock:
@@ -328,6 +336,7 @@ def current_payload():
             'users_public': users_public,
             'summary_auto': summary_auto,
             'summary_view': summary_view,
+            'show_qr': show_qr,
             'mode': mode,
             'pair_votes_summary': pair_summary,
         }
@@ -351,6 +360,7 @@ def current_payload():
             'summary_auto': summary_auto,
             'summary_view': summary_view,
             'wifi_config': wifi_cfg,
+            'show_qr': show_qr,
             'mode': mode,
             'pair_votes_summary': pair_summary,
             'pref_alert_nonce': pref_alert_nonce,
@@ -376,6 +386,7 @@ def current_payload():
             'summary_view': summary_view,
             'highlights': calculate_highlights(wines),
             'personal_favorites': calculate_personal_favorites(),
+            'show_qr': show_qr,
             'mode': mode,
             'pair_votes_summary': pair_summary,
             'pref_alert_nonce': pref_alert_nonce,
@@ -411,6 +422,7 @@ def current_payload():
         'current_wine_votes': current_wine_votes,
         'alert_nonce': alert_nonce,
         'alert_hide_nonce': alert_hide_nonce,
+        'show_qr': show_qr,
         'mode': mode,
         'pair_votes_summary': pair_summary,
         'pref_alert_nonce': pref_alert_nonce,
@@ -925,6 +937,23 @@ def api_set_mode():
         state['mode'] = new_mode
     broadcast_update()
     return jsonify({'status': 'ok', 'mode': new_mode})
+
+
+@app.route('/api/qr', methods=['POST'])
+@admin_required
+def api_set_qr():
+    """Muestra/oculta el QR "escanea para ver en tu móvil" en la TV.
+
+    Body: { "on": true|false }. Por defecto OFF; solo aparece si el anfitrión lo
+    activa desde el control. Se persiste (sobrevive a un reinicio del servicio).
+    """
+    data = request.get_json(silent=True) or {}
+    on = bool(data.get('on'))
+    with state_lock:
+        state['show_qr'] = on
+    save_persisted_state()
+    broadcast_update()
+    return jsonify({'status': 'ok', 'show_qr': on})
 
 
 @app.route('/api/reload', methods=['POST'])
@@ -1915,6 +1944,7 @@ def init():
         state['current_index'] = persisted_state.get('current_index', 0)
         state['summary_auto'] = persisted_state.get('summary_auto', True)
         state['summary_view'] = persisted_state.get('summary_view', 'cards')
+        state['show_qr'] = persisted_state.get('show_qr', False)
         if state['summary_view'] not in ('cards', 'journey'):
             state['summary_view'] = 'cards'
         if state['current_index'] > len(wines):
