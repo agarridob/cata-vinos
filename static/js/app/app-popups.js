@@ -52,12 +52,13 @@ function showVotePopup(user, score, isUpdate) {
     2: isUpdate ? 'lo ha bajado a' : 'no le ha convencido',
     1: isUpdate ? 'ha rebajado a' : 'lo ha sufrido',
   };
-  const stars = '★'.repeat(score) + '☆'.repeat(5 - score);
+  // El texto/typeClass van por nota redondeada (5 tramos); la visual admite media.
+  const bucket = Math.max(1, Math.min(5, Math.round(score)));
   appendPopup({
     user: user,
-    action: actions[score] || 'ha votado',
-    extra: `<span class="vote-popup-stars">${stars}</span>`,
-    typeClass: `score-${score}`,
+    action: actions[bucket] || 'ha votado',
+    extra: `<span class="vote-popup-stars">${starsHtml(score)}</span>`,
+    typeClass: `score-${bucket}`,
   });
 }
 

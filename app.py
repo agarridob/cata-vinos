@@ -1352,7 +1352,7 @@ def api_me_delete(user_id):
 def api_vote(wine_idx):
     """Vota o actualiza el voto de un usuario sobre un vino.
 
-    Body: { user_id, score?: 1-5, comment?: str }
+    Body: { user_id, score?: 0.5-5 (medias estrellas, múltiplos de 0.5), comment?: str }
     """
     data = request.get_json(silent=True) or {}
     user_id = data.get('user_id')
@@ -1362,11 +1362,17 @@ def api_vote(wine_idx):
     score = data.get('score')
     if score is not None:
         try:
-            score = int(score)
+            score = float(score)
         except (TypeError, ValueError):
             return jsonify({'error': 'invalid_score'}), 400
-        if score < 1 or score > 5:
+        if score < 0.5 or score > 5:
             return jsonify({'error': 'score_out_of_range'}), 400
+        # Solo se permiten medias estrellas: múltiplos de 0.5 (0.5, 1, 1.5, … 5).
+        if (score * 2) % 1 != 0:
+            return jsonify({'error': 'score_not_half_step'}), 400
+        # Normaliza a int cuando es entero (2.0 → 2) para no ensuciar el JSON.
+        if score.is_integer():
+            score = int(score)
 
     has_comment = 'comment' in data
     comment = (data.get('comment') or '').strip()[:140] if has_comment else None

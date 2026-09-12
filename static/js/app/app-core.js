@@ -95,6 +95,20 @@ function onServerUpdate(payload) {
   }
 }
 
+// Renderiza una puntuación 0..5 (admite medias, p.ej. 3.5) como 5 estrellas con
+// relleno parcial. Devuelve HTML: cada estrella es un glyph ★ en color "vacío"
+// con una capa ★ dorada recortada por ancho (0–100%). Así una nota de 3.5 pinta
+// 3 estrellas llenas y media. Sustituye a los bucles antiguos de '★'/'☆'.
+function starsHtml(value) {
+  const v = Math.max(0, Math.min(5, Number(value) || 0));
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    const pct = Math.max(0, Math.min(1, v - i)) * 100;
+    html += '<span class="star">★<span class="star-fill" style="width:' + pct + '%">★</span></span>';
+  }
+  return html;
+}
+
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

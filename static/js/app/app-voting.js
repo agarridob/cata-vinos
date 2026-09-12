@@ -309,7 +309,12 @@ function refreshVoteUI() {
 
 function applyVoteToStars() {
   document.querySelectorAll('.vote-star').forEach((star, i) => {
-    star.classList.toggle('filled', myVoteScore !== null && i < myVoteScore);
+    // Relleno parcial: la estrella i se llena hasta (myVoteScore - i), recortado
+    // a 0..1. Así una nota de 3.5 llena las 3 primeras al 100% y la 4ª al 50%.
+    const fill = star.querySelector('.vote-star-fill');
+    const pct = myVoteScore === null ? 0 : Math.max(0, Math.min(1, myVoteScore - i)) * 100;
+    if (fill) fill.style.width = pct + '%';
+    star.classList.toggle('filled', pct > 0);
   });
 }
 
@@ -333,12 +338,9 @@ function applyAggregate() {
     if (!hasVotes) {
       valEl.innerHTML = '<span class="vote-agg-empty">Aún sin votos</span>';
     } else {
-      const filled = Math.round(agg.avg);
-      let starStr = '';
-      for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
       const plural = agg.count === 1 ? 'voto' : 'votos';
       valEl.innerHTML =
-        '<span class="vote-agg-stars">' + starStr + '</span>' +
+        '<span class="vote-agg-stars">' + starsHtml(agg.avg) + '</span>' +
         '<span class="vote-agg-value">' + agg.avg.toFixed(1) + '</span>' +
         '<span class="vote-agg-count">· ' + agg.count + ' ' + plural + '</span>';
     }
@@ -355,11 +357,8 @@ function applyAggregate() {
     } else {
       pillEl.classList.remove('empty');
       pillEl.classList.add('has-votes');
-      const filled = Math.round(agg.avg);
-      let starStr = '';
-      for (let i = 0; i < 5; i++) starStr += (i < filled ? '★' : '☆');
       const plural = agg.count === 1 ? 'voto' : 'votos';
-      pillStarsEl.textContent = starStr;
+      pillStarsEl.innerHTML = starsHtml(agg.avg);
       pillValueEl.textContent = agg.avg.toFixed(1);
       pillCountEl.textContent = agg.count + ' ' + plural;
     }
@@ -619,12 +618,21 @@ document.body.addEventListener('click', (e) => {
   sendPairVote(pairIdx, choice).then(renderPairVoteBlock);
 });
 
+// Devuelve la nota (admite media) según en qué mitad de la estrella se toca:
+// mitad izquierda = base - 0.5, mitad derecha = base. base = 1..5 (data-score).
+function scoreFromStarTap(star, clientX) {
+  const base = parseInt(star.dataset.score, 10);
+  const rect = star.getBoundingClientRect();
+  const leftHalf = rect.width > 0 && (clientX - rect.left) < rect.width / 2;
+  return leftHalf ? base - 0.5 : base;
+}
+
 // Click en estrella
 document.body.addEventListener('click', (e) => {
   const star = e.target.closest('.vote-star');
   if (!star) return;
   if (!isMobile()) return;  // solo móvil
-  const newScore = parseInt(star.dataset.score, 10);
+  const newScore = scoreFromStarTap(star, e.clientX);
   if (!myUser) {
     // Pre-rellenamos visualmente para feedback inmediato
     myVoteScore = newScore;
