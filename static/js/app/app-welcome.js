@@ -136,15 +136,27 @@ function renderWelcome(payload) {
     <div class="welcome-qr-row">
       ${qrWifiHtml ? `
         <div class="welcome-qr-block">
-          <div class="welcome-qr-title">Conéctate al WiFi primero</div>
+          <div class="welcome-qr-title">WiFi</div>
           <div class="welcome-qr">${qrWifiHtml}</div>
           ${wifiCredsHtml}
         </div>` : ''}
       ${qrCataHtml ? `
         <div class="welcome-qr-block">
-          <div class="welcome-qr-title">Entra a la cata</div>
+          <div class="welcome-qr-title">Entrar a la cata</div>
           <div class="welcome-qr">${qrCataHtml}</div>
         </div>` : ''}
+    </div>` : '';
+
+  // Bloque de acceso (solo TV): URL EN GRANDE (para teclear, no escanear) y, más
+  // pequeño debajo, el/los QR. Escanear abre un navegador in-app raro donde al
+  // volver se pierde la sesión; teclear la dirección lo evita.
+  const displayUrl = window.location.host;   // p.ej. "catas.hinojal.app" (sin https://)
+  const accessBlockHtml = !mobile ? `
+    <div class="welcome-access">
+      <div class="welcome-access-label">Entra desde tu móvil</div>
+      <div class="welcome-url">${escapeHtml(displayUrl)}</div>
+      <div class="welcome-access-sub">Escríbela en tu navegador (Safari/Chrome) para no perder tu sesión al volver</div>
+      ${qrRowHtml ? `<div class="welcome-qr-hint">o escanea el código</div>${qrRowHtml}` : ''}
     </div>` : '';
 
   root.innerHTML = `
@@ -152,8 +164,7 @@ function renderWelcome(payload) {
       <div class="welcome-eyebrow">Bienvenidos a la cata</div>
       <div class="welcome-title">In Vino Veritas</div>
       <div class="welcome-session">${escapeHtml(payload.session || 'Cata')}</div>
-      ${qrRowHtml}
-      ${!mobile ? '<div class="welcome-cta">Escanea con tu móvil para unirte</div>' : ''}
+      ${accessBlockHtml}
       ${mobileBlockHtml}
       ${guestsHtml}
       <div class="welcome-host-info">${payload.total} ${payload.total === 1 ? 'vino' : 'vinos'} en cata${winesTypeBreakdownHtml(payload.all_wines)}</div>

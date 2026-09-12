@@ -1564,23 +1564,65 @@
     letter-spacing: -0.05vh;
     margin-bottom: 1.5vh;
   }
+  /* Bloque de acceso: URL en grande (teclear) + QR pequeño debajo (escanear) */
+  .welcome-access {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.4vh;
+  }
+  .welcome-access-label {
+    font-size: 2vh;
+    letter-spacing: 0.35vh;
+    color: #6e0f2a;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .welcome-url {
+    font-size: 6.5vh;
+    line-height: 1.05;
+    font-weight: 800;
+    color: #a8771a;
+    letter-spacing: 0.1vh;
+    background: #fff;
+    border: 0.3vh solid #c8a878;
+    border-radius: 1.4vh;
+    padding: 1.4vh 3vh;
+    box-shadow: 0 1vh 3vh rgba(80, 40, 20, 0.15);
+    word-break: break-word;
+    max-width: 92vw;
+  }
+  .welcome-access-sub {
+    font-size: 1.9vh;
+    color: #8a5a2a;
+    letter-spacing: 0.1vh;
+    max-width: 60vw;
+  }
+  .welcome-qr-hint {
+    font-size: 1.6vh;
+    color: #8a5a2a;
+    letter-spacing: 0.25vh;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-top: 0.8vh;
+  }
   .welcome-qr-row {
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    gap: 5vh;
+    gap: 4vh;
   }
   .welcome-qr-block {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5vh;
+    gap: 1vh;
   }
   .welcome-qr-title {
-    font-size: 2.2vh;
+    font-size: 1.6vh;
     color: #6e0f2a;
     font-weight: 700;
-    letter-spacing: 0.28vh;
+    letter-spacing: 0.2vh;
     text-transform: uppercase;
     text-align: center;
   }
@@ -1614,15 +1656,15 @@
   }
   .welcome-qr {
     background: #fff;
-    padding: 2.5vh;
+    padding: 1.2vh;
     border-radius: 8px;
-    box-shadow: 0 1vh 3vh rgba(80, 40, 20, 0.18);
+    box-shadow: 0 0.6vh 2vh rgba(80, 40, 20, 0.16);
   }
   .welcome-qr img,
   .welcome-qr svg {
     display: block;
-    width: 28vh;
-    height: 28vh;
+    width: 15vh;
+    height: 15vh;
   }
   .welcome-cta {
     font-size: 2.4vh;
