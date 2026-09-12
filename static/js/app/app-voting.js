@@ -781,6 +781,7 @@ const _origOnServerUpdate = onServerUpdate;
 onServerUpdate = function(payload) {
   _origOnServerUpdate(payload);
   applyAggregate();
+  syncQr(payload);
 };
 
 // Al cargar la página, si ya hay user, sincronizar con server (validar y traer votos)
@@ -804,15 +805,26 @@ document.getElementById('fs-btn').addEventListener('click', () => {
   if (req) req.call(el);
 });
 
-// QR con la URL actual (root del sitio)
+// QR con la URL actual (root del sitio). Se genera una vez; su visibilidad la
+// decide el anfitrión desde el control (payload.show_qr). Por defecto OFF.
+let qrReady = false;
 try {
   const qr = qrcode(0, 'M');
   qr.addData(window.location.origin + '/');
   qr.make();
   document.getElementById('qr-img').innerHTML = qr.createSvgTag({ scalable: true, margin: 2 });
+  qrReady = true;
 } catch (err) {
   console.warn('QR fallo:', err);
-  document.getElementById('qr-widget').style.display = 'none';
+}
+
+// Muestra/oculta el QR (solo TV) según lo active el anfitrión. Se llama en cada
+// update del servidor. Nunca en móvil ni en la pantalla de bienvenida.
+function syncQr(payload) {
+  const widget = document.getElementById('qr-widget');
+  if (!widget) return;
+  const show = qrReady && !!(payload && payload.show_qr) && !isMobile() && !(payload && payload.is_welcome);
+  widget.style.display = show ? 'flex' : 'none';
 }
 
 // ── Overlay de foto ampliada (móvil) ──
