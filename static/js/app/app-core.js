@@ -66,9 +66,16 @@ function onServerUpdate(payload) {
     localIndex = serverIdx;
     initialized = true;
   } else if (prevServerIdx !== serverIdx) {
-    // El anfitrión cambió de vino → no enviamos comentarios automáticamente.
-    // Si el usuario estaba escribiendo, el borrador queda guardado localmente.
-    localIndex = serverIdx;
+    // El anfitrión cambió de vino. Si el invitado está escribiendo un comentario
+    // en el móvil, NO le arrancamos de la pantalla: le dejamos terminar y le
+    // mostramos un aviso para saltar al vino actual cuando quiera (al enviar el
+    // comentario o al tocar el aviso, salta solo). Evita perder lo que escribía.
+    if (isMobile() && isComposingComment()) {
+      showCatchupBanner(serverIdx);
+    } else {
+      localIndex = serverIdx;
+      hideCatchupBanner();
+    }
   } else if (isMobile() && localIndex > serverIdx) {
     // Por si acaso: no permitir quedar adelantado
     localIndex = serverIdx;
@@ -159,6 +166,53 @@ function navigateTo(idx) {
   renderCurrent();
 }
 window.navigateTo = navigateTo;
+
+// ── Aviso "ponte al día" (móvil) ─────────────────────────────────────────────
+// Cuando el anfitrión pasa de vino mientras el invitado escribe un comentario,
+// no le cambiamos la pantalla; en su lugar mostramos este aviso para que salte
+// al vino actual cuando termine. catchupIdx = índice del server pendiente (o null).
+let catchupIdx = null;
+
+// ¿El invitado está redactando un comentario ahora mismo? (textarea con foco)
+function isComposingComment() {
+  const el = document.getElementById('vote-comment');
+  return !!el && document.activeElement === el;
+}
+
+function showCatchupBanner(idx) {
+  catchupIdx = idx;
+  let b = document.getElementById('catchup-banner');
+  if (!b) {
+    b = document.createElement('button');
+    b.id = 'catchup-banner';
+    b.type = 'button';
+    b.className = 'catchup-banner';
+    b.addEventListener('click', catchUpToServer);
+    document.body.appendChild(b);
+  }
+  const isSummary = serverState && serverState.is_summary && idx === serverState.total;
+  b.innerHTML = isSummary
+    ? '📊 El anfitrión ha pasado al <strong>resumen</strong> · toca para verlo'
+    : `🍷 El anfitrión ya sirve el <strong>Vino ${idx + 1}</strong> · toca para ir`;
+  b.classList.add('visible');
+}
+
+function hideCatchupBanner() {
+  catchupIdx = null;
+  const b = document.getElementById('catchup-banner');
+  if (b) b.classList.remove('visible');
+}
+
+// Salta al vino que sirve ahora el anfitrión y cierra el aviso.
+function catchUpToServer() {
+  if (!serverState) return;
+  const serverIdx = serverState.is_summary ? serverState.total : serverState.index;
+  hideCatchupBanner();
+  const cEl = document.getElementById('vote-comment');
+  if (cEl) cEl.blur();
+  navigateTo(serverIdx);
+}
+window.catchUpToServer = catchUpToServer;
 
 function renderCurrent() {
   if (!serverState) return;

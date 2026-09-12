@@ -2937,3 +2937,41 @@
   .duel-sb-score { font-size: 26px; }
   .duel-score-uva { font-size: 13px; }
 }
+
+/* ── Aviso "ponte al día" (móvil): el anfitrión avanzó mientras escribías ──
+   Aparece abajo (alcance del pulgar) y no cambia de vino hasta que lo tocas
+   o envías tu comentario. Evita perder el comentario a medio escribir. */
+.catchup-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%) translateY(140%);
+  z-index: 1000;
+  max-width: calc(100vw - 28px);
+  padding: 12px 20px;
+  border: none;
+  border-radius: 999px;
+  background: #6e0f2a;
+  color: #f5ecd5;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(80, 40, 20, 0.35);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.catchup-banner.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+  animation: catchup-pulse 2.2s ease-in-out infinite;
+}
+.catchup-banner strong { font-weight: 800; }
+@keyframes catchup-pulse {
+  0%, 100% { box-shadow: 0 6px 20px rgba(80, 40, 20, 0.35); }
+  50%      { box-shadow: 0 8px 28px rgba(110, 15, 42, 0.55); }
+}

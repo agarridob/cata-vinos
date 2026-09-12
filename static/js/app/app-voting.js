@@ -385,7 +385,10 @@ function loadMyVoteForCurrentWine() {
   commentPendingText = null;
 
   const commentEl = document.getElementById('vote-comment');
-  if (commentEl) commentEl.value = '';
+  // Si el invitado está escribiendo AHORA en este campo, no lo tocamos: un update
+  // por SSE (otro voto, etc.) no debe reescribir su texto ni moverle el cursor.
+  const composing = commentEl && document.activeElement === commentEl;
+  if (commentEl && !composing) commentEl.value = '';
 
   if (!myUser || !myUser._votes) {
     applyVoteToStars();
@@ -404,7 +407,7 @@ function loadMyVoteForCurrentWine() {
   // del comentario guardado. Así un refresco/SSE no interrumpe lo que se escribe.
   const draft = getCommentDraft(localIndex);
   const textToShow = draft !== null ? draft : myVoteComment;
-  if (commentEl) commentEl.value = textToShow;
+  if (commentEl && !composing) commentEl.value = textToShow;
   commentPendingText = (draft !== null && draft !== myVoteComment) ? draft : null;
 
   applyVoteToStars();
@@ -684,6 +687,11 @@ async function submitCurrentComment() {
       btnEl.classList.add('saved');
       btnEl.textContent = '✓ Guardado';
       btnEl.disabled = true;
+    }
+    // Si el anfitrión había avanzado mientras escribía, ahora que ya envió su
+    // comentario le llevamos al vino que se sirve ahora.
+    if (typeof catchupIdx !== 'undefined' && catchupIdx !== null && typeof catchUpToServer === 'function') {
+      catchUpToServer();
     }
   } else if (btnEl) {
     btnEl.classList.remove('saved');
