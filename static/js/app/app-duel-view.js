@@ -110,6 +110,11 @@ function renderDuel(payload, pairIdx) {
         </div>
         <div class="duel-body">
           <div class="duel-cols" id="duel-cols"></div>
+          <div class="duel-seam"></div>
+          <svg class="duel-bolt" viewBox="0 0 40 300" preserveAspectRatio="none" aria-hidden="true">
+            <polyline class="duel-bolt-glow" points="20,0 28,55 12,105 31,160 11,215 25,262 18,300"/>
+            <polyline class="duel-bolt-core" points="20,0 28,55 12,105 31,160 11,215 25,262 18,300"/>
+          </svg>
           <div class="duel-vs">VS</div>
         </div>
         <div class="duel-pref" id="duel-pref"></div>
