@@ -195,7 +195,7 @@ DO_COORDS = {
 # ─────────────────────────────────────────────────────────────────────────────
 state_lock = threading.Lock()
 state = {
-    'session_name': 'Cata · Hinojal',
+    'session_name': 'Cata de Vinos',
     'current_index': 0,
     'wines': [],
     'wifi': None,
