@@ -19,6 +19,32 @@ La app está pensada para una dinámica de cata compartida:
 
 ---
 
+## 📸 Capturas
+
+**Pantalla TV** — bienvenida con QR e invitados, y vino actual con ficha y mapa de origen:
+
+<p>
+  <img src="docs/screenshots/tv-bienvenida.jpg" width="49%" alt="Pantalla de bienvenida en la TV">
+  <img src="docs/screenshots/tv-vino.jpg" width="49%" alt="Vino actual con ficha, valoración y mapa">
+</p>
+
+**Modo duelo** (Viejo Mundo vs Nuevo Mundo) y **resumen final** con el favorito de la mesa:
+
+<p>
+  <img src="docs/screenshots/tv-duelo.jpg" width="49%" alt="Modo duelo: dos vinos de la misma uva enfrentados">
+  <img src="docs/screenshots/tv-resumen.jpg" width="49%" alt="Resumen final con valoraciones y favoritos">
+</p>
+
+**Móvil del invitado** (votación) y **panel del anfitrión** (`/control`):
+
+<p>
+  <img src="docs/screenshots/movil-voto.jpg" width="30%" alt="Votación desde el móvil">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/control.jpg" width="30%" alt="Panel de control del anfitrión">
+</p>
+
+---
+
 ## 🚀 Desarrollo rápido
 
 ```bash
@@ -949,7 +975,7 @@ python tools/build_journey_europe_map.py \
 - Mapa mundial opcional para catas no europeas.
 - Mejoras de accesibilidad.
 - Tests básicos de rutas y API.
-- Capturas/GIFs en README.
+- ~~Capturas en README.~~
 
 ---
 
