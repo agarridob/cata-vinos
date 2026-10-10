@@ -150,7 +150,7 @@ function renderWelcome(payload) {
   // Bloque de acceso (solo TV): URL EN GRANDE (para teclear, no escanear) y, más
   // pequeño debajo, el/los QR. Escanear abre un navegador in-app raro donde al
   // volver se pierde la sesión; teclear la dirección lo evita.
-  const displayUrl = window.location.host;   // p.ej. "catas.hinojal.app" (sin https://)
+  const displayUrl = window.location.host;   // p.ej. "catas.midominio.com" (sin https://)
   const accessBlockHtml = !mobile ? `
     <div class="welcome-access">
       <div class="welcome-access-label">Entra desde tu móvil</div>
