@@ -23,3 +23,15 @@ freeze:
 # Arranque rápido sin debug (tipo prod local)
 run:
 	$(PY) -m flask --app app run --host 0.0.0.0 --port 5001
+
+# Traer del servidor las fotos y la carta actual (lo subido desde el panel).
+# Usa ssh + tar (el servidor no tiene rsync); en el servidor solo lee.
+# Las fotos no se borran en local; el wines.json local se guarda antes en
+# data/wines.json.local.
+DEPLOY_HOST ?= cata-vinos
+DEPLOY_DIR  ?= /opt/cata-vinos
+
+sync-down:
+	@[ -f data/wines.json ] && cp data/wines.json data/wines.json.local || true
+	ssh $(DEPLOY_HOST) 'tar -C $(DEPLOY_DIR) -cf - static/photos data/wines.json' | tar -xf -
+	@echo "Fotos: $$(ls static/photos | grep -ciE '\.(png|jpe?g|webp|gif)$$') · sin versionar: $$(git ls-files --others static/photos | grep -ciE '\.(png|jpe?g|webp|gif)$$') (ignoradas)"

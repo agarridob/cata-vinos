@@ -4,6 +4,10 @@ data/*
 !data/wines.example.json
 !data/wines.pruebas.json
 
+# ── Fotos subidas desde el panel: son datos de cata, no se versionan ──
+# Las que ya están en git siguen versionadas; para añadir una nueva a git: git add -f
+static/photos/*
+
 # ── Backups locales de plantillas ─────
 templates/*.bak-*
 templates/*.v[0-9]*
