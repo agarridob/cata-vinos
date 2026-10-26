@@ -249,6 +249,24 @@ input, textarea { user-select: text; }
 .rating-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 7px; align-items: center; }
 .rating-row .editor-input { margin: 0; }
 .ratings-add { align-self: flex-start; margin-top: 8px; }
+/* Descargar / subir wines.json */
+.editor-file { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.editor-file .admin-btn { margin-bottom: 0; }
+a.admin-btn { text-decoration: none; box-sizing: border-box; }
+/* Campo Foto del editor: miniatura + nombre + subir */
+.photo-row { display: grid; grid-template-columns: 56px 1fr auto; gap: 8px; align-items: center; }
+.photo-row .editor-input { margin: 0; min-width: 0; }
+.photo-thumb { width: 56px; height: 56px; object-fit: contain; border-radius: 7px; border: 1px solid #d8c094; background: rgba(255, 255, 255, 0.6); display: flex; align-items: center; justify-content: center; font-size: 9px; letter-spacing: 0.5px; color: #a8875a; text-align: center; }
+.photo-thumb.broken { opacity: 0.25; border-color: #a02818; }
+/* Galería de fotos del servidor */
+.photo-gallery { margin-top: 18px; padding-top: 12px; border-top: 1px dashed #c8a878; }
+.photo-gallery summary { cursor: pointer; margin-bottom: 10px; }
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.photo-tile { display: flex; flex-direction: column; gap: 3px; padding: 6px; border: 1px solid #d8c094; border-radius: 9px; background: rgba(255, 255, 255, 0.5); text-decoration: none; min-width: 0; }
+.photo-tile.used { border-color: #6e0f2a; }
+.photo-tile img { width: 100%; height: 90px; object-fit: contain; }
+.photo-tile-name { font-size: 10px; color: #3a2418; word-break: break-all; line-height: 1.2; }
+.photo-tile-meta { font-size: 9px; color: #8a5a2a; }
 .wifi-toggle { display: flex; align-items: center; gap: 10px; color: #6e0f2a; font-size: 13px; font-weight: 700; margin-bottom: 12px; }
 .wifi-toggle input { width: 18px; height: 18px; accent-color: #6e0f2a; }
 .archive-modal { position: fixed; inset: 0; background: rgba(20, 12, 8, 0.55); z-index: 4000; display: none; align-items: center; justify-content: center; padding: 24px 14px; backdrop-filter: blur(2px); }

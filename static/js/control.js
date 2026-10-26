@@ -479,7 +479,7 @@ function renderWinesEditor() {
         ${editorField('Uva', 'grape', w.grape)}
         ${editorSelect('Tipo', 'type', w.type, WINE_TYPE_OPTIONS)}
         ${editorField('Región', 'region', w.region)}
-        ${editorField('Foto', 'photo', w.photo)}
+        ${editorPhoto(w.photo)}
         ${editorField('Latitud', 'lat', w.coords[0])}
         ${editorField('Longitud', 'lon', w.coords[1])}
         ${editorRatings(w.ratings)}
@@ -493,6 +493,28 @@ function renderWinesEditor() {
 
 function editorField(label, field, value) {
   return `<label class="editor-label">${label}<input class="editor-input" data-field="${field}" value="${escapeAttr(value || '')}"></label>`;
+}
+
+// Campo Foto: miniatura + nombre (con sugerencias de las fotos del servidor) + subir.
+function photoUrl(name) {
+  return `/static/photos/${encodeURIComponent(name)}`;
+}
+
+function photoThumbHtml(name) {
+  return name
+    ? `<img class="photo-thumb" src="${photoUrl(name)}" alt="" onerror="this.classList.add('broken')">`
+    : '<div class="photo-thumb empty">sin foto</div>';
+}
+
+function editorPhoto(value) {
+  return `
+    <div class="editor-label full photo-editor">Foto
+      <div class="photo-row">
+        <div class="photo-thumb-slot">${photoThumbHtml(value)}</div>
+        <input class="editor-input" data-field="photo" list="photo-names" placeholder="archivo.png" value="${escapeAttr(value || '')}">
+        <button class="mini-btn" data-photo-action="upload" title="Subir foto">📷 Subir</button>
+      </div>
+    </div>`;
 }
 
 // Sub-editor de puntuaciones: N filas de {Sistema, Nota} + botón para añadir.
@@ -598,6 +620,13 @@ async function handleLoadSampleWines() {
 }
 
 function handleEditorAction(e) {
+  const photoBtn = e.target.closest('[data-photo-action="upload"]');
+  if (photoBtn) {
+    const card = photoBtn.closest('.wine-editor-card');
+    if (card) pickPhoto(parseInt(card.dataset.idx, 10));
+    return;
+  }
+
   // Añadir/quitar puntuaciones dentro de una tarjeta.
   const ratingBtn = e.target.closest('[data-rating-action]');
   if (ratingBtn) {
@@ -647,7 +676,163 @@ function bindWineEditorControls() {
   document.getElementById('btn-save-editor').onclick = saveWinesEditor;
   const sampleBtn = document.getElementById('btn-load-sample-wines');
   if (sampleBtn) sampleBtn.onclick = handleLoadSampleWines;
-  document.getElementById('wines-editor-list').onclick = handleEditorAction;
+  const list = document.getElementById('wines-editor-list');
+  list.onclick = handleEditorAction;
+  // Al escribir/elegir otro nombre de foto, refrescar la miniatura.
+  list.addEventListener('change', e => {
+    if (e.target.dataset.field !== 'photo') return;
+    const slot = e.target.closest('.photo-row').querySelector('.photo-thumb-slot');
+    slot.innerHTML = photoThumbHtml(e.target.value.trim());
+    setWinesEditorStatus('Cambios pendientes de guardar.');
+  });
+
+  const winesInput = document.getElementById('wines-file-input');
+  document.getElementById('btn-upload-wines').onclick = () => winesInput.click();
+  winesInput.onchange = () => {
+    const file = winesInput.files[0];
+    winesInput.value = '';
+    if (file) uploadWinesFile(file);
+  };
+
+  const photoInput = document.getElementById('photo-file-input');
+  document.getElementById('btn-upload-photo').onclick = () => pickPhoto(null);
+  photoInput.onchange = () => {
+    const file = photoInput.files[0];
+    photoInput.value = '';
+    if (file) uploadPhoto(file);
+  };
+  document.getElementById('photo-gallery').addEventListener('toggle', e => {
+    if (e.target.open) loadPhotos();
+  });
+  loadPhotos();
+}
+
+// ──────────────────────────────────────────
+// Subir wines.json completo
+// ──────────────────────────────────────────
+async function uploadWinesFile(file) {
+  if (!confirm(`¿Sustituir la carta actual por «${file.name}»?\n\nSe refresca la TV. La carta anterior queda guardada como data/wines.json.prev.\nNo afecta a votos ni invitados.`)) return;
+  setWinesEditorStatus('Subiendo wines.json…');
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch('/api/wines-config/upload', { method: 'POST', body: fd });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || data.error || `HTTP ${r.status}`);
+    await loadWinesEditor();
+    await fetchState();
+    const missing = data.missing_photos || [];
+    if (missing.length) {
+      setWinesEditorStatus(`Carta subida (${data.count} vinos). Faltan fotos en el servidor: ${missing.join(', ')}`, true);
+      showToast(`Carta subida · faltan ${missing.length} fotos`, true);
+    } else {
+      setWinesEditorStatus(`Carta subida · ${data.count} vinos.`);
+      showToast(`Carta subida (${data.count} vinos).`);
+    }
+  } catch (e) {
+    console.error(e);
+    setWinesEditorStatus(`No se pudo subir: ${e.message}`, true);
+    showToast('No se pudo subir el wines.json', true);
+  }
+}
+
+// ──────────────────────────────────────────
+// Fotos
+// ──────────────────────────────────────────
+let photoUploadTarget = null;   // índice del vino al que va la foto, o null (suelta)
+
+function pickPhoto(idx) {
+  photoUploadTarget = idx;
+  document.getElementById('photo-file-input').click();
+}
+
+// Las fotos del móvil pesan varios MB: se reducen a 1600 px antes de subir.
+// Las PNG siguen siendo PNG (las botellas recortadas llevan transparencia).
+const PHOTO_MAX_PX = 1600;
+const PHOTO_KEEP_BYTES = 1.5 * 1024 * 1024;
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('formato de imagen no soportado')); };
+    img.src = url;
+  });
+}
+
+async function preparePhoto(file) {
+  const known = /^image\/(png|jpeg|webp|gif)$/.test(file.type);
+  if (known && (file.size <= PHOTO_KEEP_BYTES || file.type === 'image/gif')) return file;
+  const img = await loadImage(file);
+  const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.naturalWidth * scale);
+  canvas.height = Math.round(img.naturalHeight * scale);
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(b => (b ? resolve(b) : reject(new Error('no se pudo procesar la imagen'))), type, 0.85);
+  });
+}
+
+async function uploadPhoto(file) {
+  const idx = photoUploadTarget;
+  photoUploadTarget = null;
+  if (idx != null) collectWinesEditorData();
+  const wine = idx != null ? winesEditorData.wines[idx] : null;
+  setWinesEditorStatus('Subiendo foto…');
+  try {
+    const blob = await preparePhoto(file);
+    const fd = new FormData();
+    fd.append('file', blob, file.name || 'foto');
+    const suggested = wine ? (wine.name || wine.winery) : '';
+    if (suggested) fd.append('name', suggested);
+    const r = await fetch('/api/photos', { method: 'POST', body: fd });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(r.status === 413 ? 'la foto es demasiado grande' : (data.error || `HTTP ${r.status}`));
+    await loadPhotos();
+    if (wine) {
+      wine.photo = data.name;
+      renderWinesEditor();
+      setWinesEditorStatus(`Foto «${data.name}» asignada al vino ${idx + 1}. Recuerda guardar la carta.`);
+    } else {
+      setWinesEditorStatus(`Foto subida como «${data.name}».`);
+    }
+    showToast('Foto subida');
+  } catch (e) {
+    console.error(e);
+    setWinesEditorStatus(`No se pudo subir la foto: ${e.message}`, true);
+    showToast('No se pudo subir la foto', true);
+  }
+}
+
+function formatBytes(n) {
+  return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`;
+}
+
+async function loadPhotos() {
+  try {
+    const r = await fetch('/api/photos', { cache: 'no-store' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    const photos = data.photos || [];
+    document.getElementById('photo-names').innerHTML =
+      photos.map(p => `<option value="${escapeAttr(p.name)}"></option>`).join('');
+    document.getElementById('photo-gallery-count').textContent = `(${photos.length})`;
+    const gallery = document.getElementById('photo-gallery');
+    if (!gallery.open) return;
+    if (winesEditorLoaded) collectWinesEditorData();
+    const used = new Set(winesEditorData.wines.map(w => w.photo).filter(Boolean));
+    document.getElementById('photo-grid').innerHTML = photos.map(p => `
+      <a class="photo-tile${used.has(p.name) ? ' used' : ''}" href="${photoUrl(p.name)}" target="_blank" rel="noopener">
+        <img src="${photoUrl(p.name)}" alt="" loading="lazy">
+        <span class="photo-tile-name">${escapeHtml(p.name)}</span>
+        <span class="photo-tile-meta">${formatBytes(p.size)}${used.has(p.name) ? ' · en uso' : ''}</span>
+      </a>`).join('') || '<div class="user-empty">No hay fotos.</div>';
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 // ──────────────────────────────────────────
