@@ -1,4 +1,4 @@
-# 🍷 Cata de Vinos — In Vino Veritas
+# 🍷 Cata de Vinos — Las catas de Mariana
 
 Webapp en **Flask** para organizar una cata de vinos con pantalla principal tipo TV, panel de control para el anfitrión, edición visual de la carta, gestión de invitados, votación en tiempo real y visualización geográfica de los vinos.
 
