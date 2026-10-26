@@ -31,13 +31,17 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import jwt
 from dotenv import load_dotenv
-from flask import Flask, Response, jsonify, render_template, request, session, redirect, url_for
+from flask import Flask, Response, jsonify, render_template, request, send_file, session, redirect, url_for
+from werkzeug.utils import secure_filename
 from jwt import PyJWKClient
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
+# Tope de subida (wines.json y fotos). El control ya reduce las fotos antes de
+# subirlas, esto es solo la red de seguridad.
+app.config['MAX_CONTENT_LENGTH'] = 15 * 1024 * 1024
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 if not app.secret_key:
@@ -106,6 +110,9 @@ WINES_FILE  = os.path.join(DATA_DIR, 'wines.json')
 # desde el editor del panel de control. Ver data/wines.pruebas.json.
 SAMPLE_WINES_FILE = os.path.join(DATA_DIR, 'wines.pruebas.json')
 STATE_FILE  = os.path.join(DATA_DIR, '_state.json')
+# Copia de la carta anterior al subir un wines.json desde el control.
+WINES_PREV_FILE = os.path.join(DATA_DIR, 'wines.json.prev')
+PHOTOS_DIR  = os.path.join(BASE_DIR, 'static', 'photos')
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tabla de coordenadas por D.O. — si un vino no trae "coords" en el JSON,
@@ -1270,6 +1277,149 @@ def api_wines_config_save():
     except Exception as e:
         print(f"[wines-config POST] Error: {e}")
         return jsonify({'error': 'save_failed'}), 500    
+
+
+# ───── Descarga / subida de wines.json y fotos (panel de control) ─────
+
+def _reload_wines_into_state():
+    """Relee wines.json, lo vuelca al estado y avisa a TV y móviles."""
+    session_name, wines, wifi, mode = load_wines()
+    with state_lock:
+        state['session_name'] = session_name
+        state['wines'] = wines
+        state['wifi'] = wifi
+        state['mode'] = mode
+        if state['current_index'] > len(wines):
+            state['current_index'] = max(0, len(wines))
+    save_persisted_state()
+    broadcast_update()
+    return session_name, wines
+
+
+@app.route('/api/wines-config/download', methods=['GET'])
+@admin_required
+def api_wines_config_download():
+    """Descarga el data/wines.json tal cual está en el servidor."""
+    if not os.path.exists(WINES_FILE):
+        return jsonify({'error': 'not_found'}), 404
+    stamp = datetime.now().strftime('%Y-%m-%d_%H%M')
+    return send_file(WINES_FILE, mimetype='application/json', as_attachment=True,
+                     download_name=f'wines_{stamp}.json', max_age=0)
+
+
+@app.route('/api/wines-config/upload', methods=['POST'])
+@admin_required
+def api_wines_config_upload():
+    """
+    Sustituye data/wines.json por el fichero subido (multipart, campo 'file').
+    Se guarda tal cual (sin pasar por el limpiado del editor) para no perder
+    campos; solo se valida la estructura mínima. La carta anterior queda en
+    data/wines.json.prev.
+    """
+    f = request.files.get('file')
+    if not f:
+        return jsonify({'error': 'no_file'}), 400
+    try:
+        data = json.loads(f.read().decode('utf-8-sig'))
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        return jsonify({'error': 'invalid_json', 'detail': str(e)}), 400
+
+    if not isinstance(data, dict) or not isinstance(data.get('wines'), list):
+        return jsonify({'error': 'missing_wines_list'}), 400
+    for i, wine in enumerate(data['wines']):
+        if not isinstance(wine, dict):
+            return jsonify({'error': f'wine_{i}_must_be_object'}), 400
+
+    # Fotos que referencia la carta y no están en el servidor (para avisar).
+    missing_photos = sorted({
+        str(w.get('photo')) for w in data['wines']
+        if w.get('photo') and not os.path.isfile(os.path.join(PHOTOS_DIR, os.path.basename(str(w.get('photo')))))
+    })
+
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        if os.path.exists(WINES_FILE):
+            with open(WINES_FILE, 'rb') as src, open(WINES_PREV_FILE, 'wb') as dst:
+                dst.write(src.read())
+        tmp = WINES_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as out:
+            json.dump(data, out, ensure_ascii=False, indent=2)
+        os.replace(tmp, WINES_FILE)
+    except Exception as e:
+        print(f"[wines-config upload] Error: {e}")
+        return jsonify({'error': 'save_failed'}), 500
+
+    session_name, wines = _reload_wines_into_state()
+    return jsonify({'status': 'ok', 'count': len(wines), 'session': session_name,
+                    'missing_photos': missing_photos})
+
+
+PHOTO_EXTS = ('.png', '.jpg', '.jpeg', '.webp', '.gif')
+
+
+def _photo_kind(head):
+    """Extensión real según los primeros bytes, o None si no es una imagen admitida."""
+    if head.startswith(b'\x89PNG\r\n\x1a\n'):
+        return '.png'
+    if head.startswith(b'\xff\xd8\xff'):
+        return '.jpg'
+    if head[:4] == b'RIFF' and head[8:12] == b'WEBP':
+        return '.webp'
+    if head[:6] in (b'GIF87a', b'GIF89a'):
+        return '.gif'
+    return None
+
+
+@app.route('/api/photos', methods=['GET'])
+@admin_required
+def api_photos_list():
+    """Fotos disponibles en static/photos (más recientes primero)."""
+    photos = []
+    try:
+        for name in os.listdir(PHOTOS_DIR):
+            path = os.path.join(PHOTOS_DIR, name)
+            if name.lower().endswith(PHOTO_EXTS) and os.path.isfile(path):
+                st = os.stat(path)
+                photos.append({'name': name, 'size': st.st_size, 'mtime': int(st.st_mtime)})
+    except FileNotFoundError:
+        pass
+    photos.sort(key=lambda p: p['mtime'], reverse=True)
+    return jsonify({'photos': photos})
+
+
+@app.route('/api/photos', methods=['POST'])
+@admin_required
+def api_photos_upload():
+    """
+    Sube una foto a static/photos (multipart: 'file' y opcional 'name', p. ej.
+    el nombre del vino). Nunca sobrescribe: si el nombre existe se le añade
+    sufijo (-2, -3…), así la TV no se queda con una versión cacheada.
+    Devuelve el nombre final para ponerlo en el campo 'photo' del vino.
+    """
+    f = request.files.get('file')
+    if not f:
+        return jsonify({'error': 'no_file'}), 400
+    blob = f.read()
+    ext = _photo_kind(blob[:16])
+    if not ext:
+        return jsonify({'error': 'not_an_image'}), 400
+
+    base_src = request.form.get('name') or os.path.splitext(f.filename or '')[0]
+    base = secure_filename(base_src.strip()).lower()[:60].strip('._-') or f'foto_{int(time.time())}'
+    name = base + ext
+    n = 2
+    while os.path.exists(os.path.join(PHOTOS_DIR, name)):
+        name = f'{base}-{n}{ext}'
+        n += 1
+
+    try:
+        os.makedirs(PHOTOS_DIR, exist_ok=True)
+        with open(os.path.join(PHOTOS_DIR, name), 'wb') as out:
+            out.write(blob)
+    except OSError as e:
+        print(f"[photos upload] Error: {e}")
+        return jsonify({'error': 'save_failed'}), 500
+    return jsonify({'status': 'ok', 'name': name})
 
 
 # ───── Endpoints de votación ─────

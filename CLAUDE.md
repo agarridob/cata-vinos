@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **2.6.2**.
+Versión actual: **2.7.0**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -40,6 +40,19 @@ Cloudflare Access (hoy: `/control` y `/historico`). Los `/api/*` NO necesitan
 destination: se llaman por `fetch` con la cookie `CF_Authorization` ya presente en
 el hostname, que la app valida. Si añades una página protegida nueva, acuérdate de
 darla de alta como destination en Access.
+
+## Carta y fotos desde el control (pestaña «Carta»)
+
+- **⬇️ Descargar wines.json** → `GET /api/wines-config/download` (el fichero tal cual).
+- **⬆️ Subir wines.json** → `POST /api/wines-config/upload` (multipart `file`): se
+  guarda **tal cual** (sin el limpiado del editor), solo valida que haya lista
+  `wines`; la carta anterior queda en `data/wines.json.prev`. Recarga el estado y
+  refresca la TV (no hace falta reiniciar). Avisa de las fotos que falten.
+- **Fotos** → `GET/POST /api/photos`, escriben en `static/photos/`. Nunca
+  sobrescribe (añade `-2`, `-3`…) para que la TV no sirva una versión cacheada.
+  El control reduce las fotos a 1600 px antes de subir (PNG sigue siendo PNG).
+  El «📷 Subir» de cada vino rellena su campo Foto: **hay que guardar la carta**.
+  Las fotos subidas no están en git: en el servidor quedan como untracked.
 
 ## Estado global y SSE (arquitectura)
 
