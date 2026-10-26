@@ -162,7 +162,7 @@ function renderWelcome(payload) {
   root.innerHTML = `
     <div class="welcome-frame">
       <div class="welcome-eyebrow">Bienvenidos a la cata</div>
-      <div class="welcome-title">In Vino Veritas</div>
+      <div class="welcome-title">Las catas de Mariana</div>
       <div class="welcome-session">${escapeHtml(payload.session || 'Cata')}</div>
       ${accessBlockHtml}
       ${mobileBlockHtml}

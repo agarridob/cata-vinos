@@ -152,7 +152,7 @@ function wineRatingPairs(wine) {
 function renderEmpty(sessionName) {
   root.innerHTML = `
     <div class="empty-state">
-      <h1>In Vino Veritas</h1>
+      <h1>Las catas de Mariana</h1>
       <p>${sessionName ? sessionName + ' · ' : ''}Esperando vinos…</p>
     </div>`;
   currentSig = '__empty__';
