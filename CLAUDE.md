@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **2.8.0**.
+Versión actual: **2.8.1**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -61,6 +61,10 @@ darla de alta como destination en Access.
   del sistema). Instalar con `make bgremove-setup` (venv + modelo, git-ignored;
   en el servidor después `chown -R cata: .bgremove-venv models`). Sin eso, la
   casilla no aparece. Una foto a la vez (~1 GB de RAM en el pico, unos segundos).
+- **PNG antes que JPG:** si la carta pide `vino.jpg` (o `.jpeg`/`.webp`) y existe
+  `vino.png`, se usa la PNG (`prefer_png_photo` en `load_wines()`, el GET del
+  editor y el aviso de fotos que faltan). `wines.json` no se toca hasta que se
+  guarde desde el editor.
 
 ## Estado global y SSE (arquitectura)
 

@@ -238,10 +238,31 @@ listeners = []
 listeners_lock = threading.Lock()
 
 
+def prefer_png_photo(name):
+    """
+    Si la carta pide 'vino.jpg' (o .jpeg/.webp) y existe 'vino.png' en
+    static/photos, usa la PNG: es la versión sin fondo (✂️ Quitar fondo).
+    """
+    if not name or not isinstance(name, str):
+        return name
+    base, ext = os.path.splitext(name)
+    if ext.lower() in ('.jpg', '.jpeg', '.webp') and os.path.isfile(os.path.join(PHOTOS_DIR, os.path.basename(base) + '.png')):
+        return base + '.png'
+    return name
+
+
+def apply_png_preference(wines):
+    for w in wines:
+        if isinstance(w, dict) and w.get('photo'):
+            w['photo'] = prefer_png_photo(w['photo'])
+    return wines
+
+
 def load_wines():
     try:
         with open(WINES_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
+        apply_png_preference(data.get('wines', []))
         mode = data.get('mode')
         if mode not in ('duelo',):
             mode = None
@@ -1126,6 +1147,8 @@ def api_wines_config_get():
     try:
         with open(WINES_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
+        # El editor enseña la misma foto que la TV; al guardar queda la PNG.
+        apply_png_preference(data.get('wines', []))
         for wine in data.get('wines', []):
             if not wine.get('type'):
                 wine['type'] = guess_wine_type(wine)
@@ -1340,7 +1363,7 @@ def api_wines_config_upload():
     # Fotos que referencia la carta y no están en el servidor (para avisar).
     missing_photos = sorted({
         str(w.get('photo')) for w in data['wines']
-        if w.get('photo') and not os.path.isfile(os.path.join(PHOTOS_DIR, os.path.basename(str(w.get('photo')))))
+        if w.get('photo') and not os.path.isfile(os.path.join(PHOTOS_DIR, os.path.basename(str(prefer_png_photo(w.get('photo'))))))
     })
 
     try:
