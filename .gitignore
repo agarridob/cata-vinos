@@ -20,6 +20,10 @@ templates/*.v[0-9]*
 !.env.example
 .venv/
 
+# ── Quitar fondo de fotos (make bgremove-setup) ──
+.bgremove-venv/
+models/
+
 # ── Sistema / Python ────────────
 .DS_Store
 __pycache__/

@@ -24,6 +24,21 @@ freeze:
 run:
 	$(PY) -m flask --app app run --host 0.0.0.0 --port 5001
 
+# Quitar fondo de fotos desde el control: venv aparte (onnxruntime no está en
+# apt) + modelo isnet-general-use (~170 MB). En el servidor ejecutar como root
+# en /opt/cata-vinos y luego `chown -R cata: .bgremove-venv models`.
+BG_VENV  := .bgremove-venv
+BG_MODEL := models/isnet-general-use.onnx
+BG_MODEL_URL := https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx
+
+bgremove-setup:
+	python3.11 -m venv $(BG_VENV)
+	$(BG_VENV)/bin/python -m pip install --upgrade pip
+	$(BG_VENV)/bin/python -m pip install onnxruntime numpy pillow
+	@mkdir -p models
+	@[ -f $(BG_MODEL) ] || curl -fL -o $(BG_MODEL) $(BG_MODEL_URL)
+	@echo "OK: $(BG_VENV) + $(BG_MODEL)"
+
 # Traer del servidor las fotos y la carta actual (lo subido desde el panel).
 # Usa ssh + tar (el servidor no tiene rsync); en el servidor solo lee.
 # Las fotos no se borran en local; el wines.json local se guarda antes en

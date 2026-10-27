@@ -267,6 +267,16 @@ a.admin-btn { text-decoration: none; box-sizing: border-box; }
 .photo-tile img { width: 100%; height: 90px; object-fit: contain; }
 .photo-tile-name { font-size: 10px; color: #3a2418; word-break: break-all; line-height: 1.2; }
 .photo-tile-meta { font-size: 9px; color: #8a5a2a; }
+.bg-remove-toggle { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; font-size: 13px; color: #5a3a20; cursor: pointer; }
+.bg-remove-toggle[hidden] { display: none; }
+.bg-remove-toggle input { width: 18px; height: 18px; accent-color: #6e0f2a; }
+.bg-remove-toggle small { color: #8a5a2a; font-size: 11px; }
+.bg-modal-card { max-width: 480px; }
+.bg-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.bg-compare figure { margin: 0; text-align: center; }
+.bg-compare figcaption { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #8a5a2a; margin-top: 5px; }
+.bg-checker { border: 1px solid #c8a878; border-radius: 8px; padding: 6px; background-color: #fff; background-image: conic-gradient(#e6dccb 25%, transparent 0 50%, #e6dccb 0 75%, transparent 0); background-size: 16px 16px; }
+.bg-checker img { display: block; width: 100%; height: 38vh; max-height: 320px; object-fit: contain; }
 .wifi-toggle { display: flex; align-items: center; gap: 10px; color: #6e0f2a; font-size: 13px; font-weight: 700; margin-bottom: 12px; }
 .wifi-toggle input { width: 18px; height: 18px; accent-color: #6e0f2a; }
 .archive-modal { position: fixed; inset: 0; background: rgba(20, 12, 8, 0.55); z-index: 4000; display: none; align-items: center; justify-content: center; padding: 24px 14px; backdrop-filter: blur(2px); }
