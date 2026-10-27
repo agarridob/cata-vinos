@@ -152,6 +152,18 @@ Campos editables:
 - Foto.
 - Coordenadas.
 
+Carta completa:
+
+- **⬇️ Descargar wines.json** — el fichero tal cual.
+- **⬆️ Subir wines.json** — sustituye la carta (la anterior queda en `data/wines.json.prev`), refresca la TV sin reiniciar y avisa de las fotos que falten.
+
+Fotos:
+
+- **📷 Subir** en cada vino (rellena su campo Foto; luego hay que guardar la carta) o **📷 Subir foto suelta** desde «Fotos en el servidor», que además muestra la galería y marca las que están en uso.
+- El control reduce las fotos a 1600 px antes de subirlas. Nunca se sobrescribe una foto: si el nombre existe se añade `-2`, `-3`…
+- **✂️ Quitar fondo al subir fotos** (casilla opcional): el servidor recorta la botella y deja un PNG transparente. Antes de guardar se ve la original al lado de la recortada para elegir. Tarda unos segundos por foto y requiere instalar el modelo (ver «Instalación → Quitar fondo de fotos»); si no está, la casilla no aparece.
+- **PNG antes que JPG**: si la carta pide `vino.jpg` y existe `vino.png`, se usa la PNG, así las fotos recortadas sustituyen a las antiguas sin editar la carta.
+
 ---
 
 ### ⚙️ Admin
@@ -630,9 +642,12 @@ cata-vinos/
 │   ├── control.html
 │   ├── historico.html
 │   └── login.html
-└── tools/
-    ├── build_canaries_map.py
-    └── build_journey_europe_map.py
+├── tools/
+│   ├── bgremove.py           # quitar fondo de fotos (lo lanza app.py en su venv)
+│   ├── build_canaries_map.py
+│   └── build_journey_europe_map.py
+├── .bgremove-venv/           # opcional, `make bgremove-setup` (no versionado)
+└── models/                   # opcional, modelo ONNX del recorte (no versionado)
 ```
 
 ---
@@ -679,6 +694,20 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 ```
+
+### ✂️ Quitar fondo de fotos (opcional)
+
+El recorte usa el modelo ONNX `isnet-general-use` (~170 MB) con `onnxruntime`,
+en un **venv aparte** (`.bgremove-venv`) que `app.py` lanza como subproceso. Así
+la app no depende de él y la memoria del modelo se libera tras cada foto.
+
+```bash
+make bgremove-setup
+```
+
+Crea el venv (onnxruntime, numpy, pillow) y descarga el modelo en `models/`.
+Necesita ~1 GB de RAM libre mientras procesa una foto (de una en una). Se puede
+cambiar la ruta con `BGREMOVE_PYTHON` y `BGREMOVE_MODEL` en `.env`.
 
 ---
 
@@ -762,6 +791,17 @@ Logs:
 journalctl -u cata-vinos -f
 ```
 
+Para el quitar fondo de fotos en el servidor (opcional), desde `/opt/cata-vinos`
+como root:
+
+```bash
+make bgremove-setup && chown -R cata: .bgremove-venv models
+```
+
+`onnxruntime` no está en apt, por eso va en su propio venv y el servicio sigue
+con el Python del sistema. Hace falta ~1 GB de RAM libre por foto (2 GB en total
+en el servidor va sobrado).
+
 ---
 
 ## Acceso externo (opcional)
@@ -833,6 +873,16 @@ Editor de vinos:
 ```http
 GET  /api/wines-config
 POST /api/wines-config
+GET  /api/wines-config/download
+POST /api/wines-config/upload      # multipart 'file'
+```
+
+Fotos:
+
+```http
+GET  /api/photos                   # lista + bg_remove (si el recorte está instalado)
+POST /api/photos                   # multipart 'file' (+ 'name' opcional)
+POST /api/photos/remove-bg         # multipart 'file' → PNG sin fondo (no se guarda)
 ```
 
 Presentación del resumen:
