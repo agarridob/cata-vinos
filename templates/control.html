@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍷</text></svg>">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=2.7.1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}?v=2.8.0">
 </head>
 <body>
   <div class="header">
@@ -134,6 +134,10 @@
             <input class="editor-input" id="editor-session-name" type="text" placeholder="Cata · Nombre">
           </label>
         </div>
+        <label class="bg-remove-toggle" id="bg-remove-toggle" hidden>
+          <input type="checkbox" id="bg-remove-check">
+          <span>✂️ Quitar fondo al subir fotos <small>(vista previa antes de guardar)</small></span>
+        </label>
         <div class="editor-status" id="wines-editor-status">Carga el editor para modificar la carta.</div>
         <div class="wine-editor-list" id="wines-editor-list"></div>
 
@@ -219,8 +223,21 @@
       </div>
     </div>
   </div>
+  <div id="bg-modal" class="archive-modal">
+    <div class="archive-modal-card bg-modal-card">
+      <div class="archive-modal-title">¿Con o sin fondo?</div>
+      <div class="bg-compare">
+        <figure><div class="bg-checker"><img id="bg-orig" alt=""></div><figcaption>Original</figcaption></figure>
+        <figure><div class="bg-checker"><img id="bg-cut" alt=""></div><figcaption>Sin fondo</figcaption></figure>
+      </div>
+      <div class="archive-modal-actions">
+        <button class="archive-modal-btn archive-modal-btn-cancel" id="bg-use-orig">Usar original</button>
+        <button class="archive-modal-btn archive-modal-btn-confirm" id="bg-use-cut">Usar sin fondo</button>
+      </div>
+    </div>
+  </div>
   <div id="archive-toast" class="archive-toast"></div>
 
-<script src="{{ url_for('static', filename='js/control.js') }}?v=2.7.1"></script>
+<script src="{{ url_for('static', filename='js/control.js') }}?v=2.8.0"></script>
 </body>
 </html>

@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **2.7.1**.
+Versión actual: **2.8.0**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -53,6 +53,14 @@ darla de alta como destination en Access.
   El control reduce las fotos a 1600 px antes de subir (PNG sigue siendo PNG).
   El «📷 Subir» de cada vino rellena su campo Foto: **hay que guardar la carta**.
   Las fotos subidas no están en git: en el servidor quedan como untracked.
+- **✂️ Quitar fondo** (casilla en la pestaña Carta) → `POST /api/photos/remove-bg`
+  devuelve un PNG transparente **sin guardarlo**; el control enseña original vs
+  recortada y sube la elegida por `/api/photos`. Lo hace `tools/bgremove.py`
+  (modelo ONNX `isnet-general-use`) como **subproceso** con su propio venv
+  `.bgremove-venv` (onnxruntime no está en apt; el servicio sigue con el python
+  del sistema). Instalar con `make bgremove-setup` (venv + modelo, git-ignored;
+  en el servidor después `chown -R cata: .bgremove-venv models`). Sin eso, la
+  casilla no aparece. Una foto a la vez (~1 GB de RAM en el pico, unos segundos).
 
 ## Estado global y SSE (arquitectura)
 

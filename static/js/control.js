@@ -783,7 +783,12 @@ async function uploadPhoto(file) {
   const wine = idx != null ? winesEditorData.wines[idx] : null;
   setWinesEditorStatus('Subiendo foto…');
   try {
-    const blob = await preparePhoto(file);
+    let blob = await preparePhoto(file);
+    if (bgRemoveWanted()) {
+      blob = await maybeRemoveBackground(blob);
+      if (!blob) { setWinesEditorStatus('Subida de foto cancelada.'); return; }
+      setWinesEditorStatus('Subiendo foto…');
+    }
     const fd = new FormData();
     fd.append('file', blob, file.name || 'foto');
     const suggested = wine ? (wine.name || wine.winery) : '';
@@ -807,6 +812,69 @@ async function uploadPhoto(file) {
   }
 }
 
+// Quitar fondo: lo hace el servidor (POST /api/photos/remove-bg, unos segundos)
+// y aquí se elige entre original y recortada antes de subir. La casilla solo
+// aparece si el servidor tiene el modelo instalado (bg_remove en /api/photos).
+const BG_REMOVE_KEY = 'control_bg_remove';
+
+function bgRemoveWanted() {
+  return !document.getElementById('bg-remove-toggle').hidden
+    && document.getElementById('bg-remove-check').checked;
+}
+
+function setupBgRemoveToggle(available) {
+  const toggle = document.getElementById('bg-remove-toggle');
+  const check = document.getElementById('bg-remove-check');
+  toggle.hidden = !available;
+  if (check.dataset.bound) return;
+  check.dataset.bound = '1';
+  try { check.checked = localStorage.getItem(BG_REMOVE_KEY) === '1'; } catch (e) {}
+  check.onchange = () => {
+    try { localStorage.setItem(BG_REMOVE_KEY, check.checked ? '1' : '0'); } catch (e) {}
+  };
+}
+
+// Devuelve el blob a subir (recortado u original) o null si se cancela.
+async function maybeRemoveBackground(blob) {
+  setWinesEditorStatus('Quitando fondo… (unos segundos)');
+  let cut;
+  try {
+    const fd = new FormData();
+    fd.append('file', blob, 'foto');
+    const r = await fetch('/api/photos/remove-bg', { method: 'POST', body: fd });
+    if (!r.ok) {
+      const data = await r.json().catch(() => ({}));
+      throw new Error(data.error === 'busy' ? 'el servidor está con otra foto' : (data.error || `HTTP ${r.status}`));
+    }
+    cut = await r.blob();
+  } catch (e) {
+    console.error(e);
+    return confirm(`No se pudo quitar el fondo (${e.message}).\n\n¿Subir la foto original?`) ? blob : null;
+  }
+  return chooseBgVersion(blob, cut);
+}
+
+function chooseBgVersion(orig, cut) {
+  const modal = document.getElementById('bg-modal');
+  const origUrl = URL.createObjectURL(orig);
+  const cutUrl = URL.createObjectURL(cut);
+  document.getElementById('bg-orig').src = origUrl;
+  document.getElementById('bg-cut').src = cutUrl;
+  modal.classList.add('visible');
+  return new Promise(resolve => {
+    const done = choice => {
+      modal.classList.remove('visible');
+      modal.onclick = null;
+      URL.revokeObjectURL(origUrl);
+      URL.revokeObjectURL(cutUrl);
+      resolve(choice);
+    };
+    document.getElementById('bg-use-orig').onclick = () => done(orig);
+    document.getElementById('bg-use-cut').onclick = () => done(cut);
+    modal.onclick = e => { if (e.target === modal) done(null); };
+  });
+}
+
 function formatBytes(n) {
   return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`;
 }
@@ -817,6 +885,7 @@ async function loadPhotos() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
     const photos = data.photos || [];
+    setupBgRemoveToggle(!!data.bg_remove);
     document.getElementById('photo-names').innerHTML =
       photos.map(p => `<option value="${escapeAttr(p.name)}"></option>`).join('');
     document.getElementById('photo-gallery-count').textContent = `(${photos.length})`;

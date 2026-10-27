@@ -22,6 +22,8 @@ import os
 import queue
 import random
 import statistics
+import subprocess
+import tempfile
 import threading
 import time
 import uuid
@@ -113,6 +115,11 @@ STATE_FILE  = os.path.join(DATA_DIR, '_state.json')
 # Copia de la carta anterior al subir un wines.json desde el control.
 WINES_PREV_FILE = os.path.join(DATA_DIR, 'wines.json.prev')
 PHOTOS_DIR  = os.path.join(BASE_DIR, 'static', 'photos')
+# Quitar fondo de fotos: venv propio + modelo, instalados con `make bgremove-setup`
+# (no van en git). Si faltan, el control oculta la opción.
+BGREMOVE_PYTHON = os.getenv('BGREMOVE_PYTHON', os.path.join(BASE_DIR, '.bgremove-venv', 'bin', 'python'))
+BGREMOVE_MODEL  = os.getenv('BGREMOVE_MODEL', os.path.join(BASE_DIR, 'models', 'isnet-general-use.onnx'))
+BGREMOVE_SCRIPT = os.path.join(BASE_DIR, 'tools', 'bgremove.py')
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tabla de coordenadas por D.O. — si un vino no trae "coords" en el JSON,
@@ -1384,7 +1391,54 @@ def api_photos_list():
     except FileNotFoundError:
         pass
     photos.sort(key=lambda p: p['mtime'], reverse=True)
-    return jsonify({'photos': photos})
+    return jsonify({'photos': photos, 'bg_remove': bgremove_available()})
+
+
+def bgremove_available():
+    return os.path.isfile(BGREMOVE_PYTHON) and os.path.isfile(BGREMOVE_MODEL)
+
+
+# Una sola foto a la vez: el modelo usa ~1 GB de RAM en el pico.
+bgremove_lock = threading.Lock()
+
+
+@app.route('/api/photos/remove-bg', methods=['POST'])
+@admin_required
+def api_photos_remove_bg():
+    """
+    Quita el fondo de una foto (multipart 'file') y devuelve el PNG transparente.
+    No guarda nada: el control lo enseña como vista previa y, si se acepta, lo
+    sube por POST /api/photos como cualquier otra foto.
+    """
+    f = request.files.get('file')
+    if not f:
+        return jsonify({'error': 'no_file'}), 400
+    blob = f.read()
+    if not _photo_kind(blob[:16]):
+        return jsonify({'error': 'not_an_image'}), 400
+    if not bgremove_available():
+        return jsonify({'error': 'bg_remove_unavailable'}), 503
+    if not bgremove_lock.acquire(timeout=60):
+        return jsonify({'error': 'busy'}), 503
+    try:
+        with tempfile.TemporaryDirectory(prefix='bgremove-') as tmp:
+            src = os.path.join(tmp, 'in')
+            dst = os.path.join(tmp, 'out.png')
+            with open(src, 'wb') as fh:
+                fh.write(blob)
+            proc = subprocess.run(
+                [BGREMOVE_PYTHON, BGREMOVE_SCRIPT, BGREMOVE_MODEL, src, dst],
+                capture_output=True, text=True, timeout=120)
+            if proc.returncode != 0 or not os.path.isfile(dst):
+                print(f"[remove-bg] Error ({proc.returncode}): {proc.stderr.strip()[-500:]}")
+                return jsonify({'error': 'bg_remove_failed'}), 500
+            with open(dst, 'rb') as fh:
+                png = fh.read()
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'timeout'}), 504
+    finally:
+        bgremove_lock.release()
+    return Response(png, mimetype='image/png')
 
 
 @app.route('/api/photos', methods=['POST'])
