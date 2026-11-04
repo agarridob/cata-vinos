@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **2.8.2**.
+Versión actual: **2.9.0**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -93,6 +93,22 @@ persistente), usamos un **contador que solo sube**: el endpoint incrementa
 **mayor que el último** que registró (guardando el nonce inicial como baseline, sin
 disparar). Así una TV que se reconecta a mitad no re-dispara acciones viejas. Estos
 contadores son **transitorios** (no se persisten; vuelven a 0 al reiniciar el servicio).
+
+## Pantalla de stand-by (`templates/standby.html`)
+
+Landing «Ahora mismo no hay ninguna cata · sígueme en Instagram» para cuando el
+servidor está encendido sin cata (pensada para quien vuelve a abrir la página
+después). Interruptor **Stand-by** en el control → `POST /api/standby` (`{on}`),
+se persiste en `state['standby']`. Con él activo, `/` sirve `standby.html` en vez
+de `app.html`; las páginas abiertas cambian solas (la TV recarga al ver
+`standby` en el payload y la landing escucha `/stream` para volver). `/standby`
+la enseña siempre, como vista previa. El usuario de Instagram es
+`INSTAGRAM_HANDLE` en `app.py`.
+
+Carrusel de fotos: coge las imágenes de `static/standby/` en orden alfabético
+(`01.jpg`, `02.jpg`…); sin fotos, la landing sale solo con el texto. Esa carpeta
+está **git-ignored** (sale gente en las fotos): en el servidor se copian a mano
+con scp y luego `chown -R cata: static/standby`.
 
 ## Aviso de voto en la TV (`app-vote-alert.js`)
 

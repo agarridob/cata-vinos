@@ -39,3 +39,6 @@ journey_europe_entry.json
 
 # ── Config local de Claude Code (rutas específicas de máquina) ──
 .claude/
+
+# ── Fotos del carrusel de la pantalla stand-by (sale gente): no se versionan ──
+static/standby/*

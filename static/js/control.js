@@ -205,6 +205,19 @@ function syncAdminButtons() {
       : 'Oculto — pulsa para mostrarlo en la TV';
   }
 
+  // Interruptor + indicador de la pantalla de stand-by (landing de Instagram).
+  const standbyBtn = document.getElementById('btn-standby-toggle');
+  if (standbyBtn && state) {
+    const on = !!state.standby;
+    standbyBtn.classList.toggle('is-on', on);
+    const lbl = document.getElementById('standby-toggle-label');
+    const sub = document.getElementById('standby-toggle-sub');
+    if (lbl) lbl.textContent = on ? '💤 Stand-by: ACTIVO' : 'Stand-by: desactivado';
+    if (sub) sub.textContent = on
+      ? 'TV y móviles ven la landing de Instagram — pulsa para volver a la cata'
+      : 'Se ve la cata — pulsa para mostrar la landing «no hay cata»';
+  }
+
   // Botón "¿Viejo o Nuevo?" (modo duelo): visible solo en duelo, y activo solo
   // cuando la pareja está servida (anfitrión en el 2º vino, índice impar).
   const prefBtn = document.getElementById('btn-pref-alert');
@@ -1096,6 +1109,26 @@ async function handleQrToggle() {
   }
 }
 
+async function handleStandbyToggle() {
+  if (busy || !state) return;
+  busy = true;
+  const turnOn = !state.standby;
+  try {
+    const r = await fetch('/api/standby', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ on: turnOn }),
+    });
+    const d = await r.json().catch(() => ({}));
+    showToast(r.ok ? (turnOn ? '💤 Stand-by activado' : '🍷 De vuelta a la cata') : (d.error || 'No se pudo cambiar el stand-by'), !r.ok);
+    await fetchState();
+  } catch (e) {
+    showToast('Error de red al cambiar el stand-by', true);
+  } finally {
+    busy = false;
+  }
+}
+
 async function handleWelcomeBack() {
   if (!confirm('¿Volver a la pantalla de bienvenida?\n\nNo se pierde nada: los votos e invitados se mantienen.')) return;
   try {
@@ -1150,6 +1183,8 @@ function bindAdminControls() {
   if (modeBtn) modeBtn.onclick = handleModeToggle;
   const qrBtn = document.getElementById('btn-qr-toggle');
   if (qrBtn) qrBtn.onclick = handleQrToggle;
+  const standbyBtn = document.getElementById('btn-standby-toggle');
+  if (standbyBtn) standbyBtn.onclick = handleStandbyToggle;
   document.getElementById('btn-vote-alert').onclick = handleVoteAlert;
   document.getElementById('btn-vote-alert-hide').onclick = handleVoteAlertHide;
   const prefBtn = document.getElementById('btn-pref-alert');
