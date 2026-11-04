@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Las catas de Mariana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍷</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f5ecd5 0%, #efe3c2 50%, #f5ecd5 100%);
+    color: #3a2418;
+    font-family: 'Montserrat', -apple-system, sans-serif;
+    padding: 4vh 16px;
+  }
+  .standby {
+    width: min(100%, 900px);
+    text-align: center;
+  }
+  .eyebrow {
+    font-size: 1.9vh;
+    letter-spacing: 0.5vh;
+    text-transform: uppercase;
+    color: #8a5a2a;
+    font-weight: 600;
+  }
+  h1 {
+    margin: 1.5vh 0 2.5vh;
+    font-size: 7vh;
+    line-height: 1.05;
+    color: #6e0f2a;
+    font-weight: 700;
+  }
+  .nowrap { white-space: nowrap; }
+  .rule {
+    width: 12vh;
+    height: 2px;
+    background: #a8771a;
+    margin: 0 auto 3vh;
+  }
+  .lead {
+    font-size: 2.8vh;
+    line-height: 1.5;
+    max-width: 34em;
+    margin: 0 auto;
+  }
+  .lead em { color: #6e0f2a; font-style: italic; }
+  .ig-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.2vh;
+    margin-top: 4vh;
+    padding: 1.6vh 2.8vh;
+    border-radius: 999px;
+    background: #6e0f2a;
+    color: #f5ecd5;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 2.4vh;
+    letter-spacing: 0.1vh;
+    box-shadow: 0 1vh 2.5vh rgba(110, 15, 42, 0.25);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .ig-link:hover { background: #8a1735; transform: translateY(-2px); }
+  .ig-link svg { width: 3vh; height: 3vh; flex: none; }
+  .glass {
+    font-size: 9vh;
+    line-height: 1;
+    display: inline-block;
+    animation: sway 6s ease-in-out infinite;
+    transform-origin: 50% 90%;
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .glass { animation: none; } }
+
+  /* Con fotos: texto a la izquierda y carrusel vertical a la derecha. */
+  .standby.has-photos {
+    width: min(100%, 1400px);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6vw;
+    align-items: center;
+  }
+  .carousel {
+    position: relative;
+    height: 80vh;
+    aspect-ratio: 3 / 4;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #c8a878;
+    background: #3a2418;
+    box-shadow: 0 1.5vh 3.5vh rgba(80, 40, 20, 0.22);
+    touch-action: pan-y;
+  }
+  .carousel img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+  .carousel img.active { opacity: 1; }
+  .dots {
+    position: absolute;
+    left: 0; right: 0; bottom: 1.8vh;
+    display: flex;
+    justify-content: center;
+    gap: 1vh;
+  }
+  .dots button {
+    width: 1.1vh; height: 1.1vh;
+    min-width: 8px; min-height: 8px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(245, 236, 213, 0.5);
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .dots button.active { background: #f5ecd5; transform: scale(1.3); }
+
+  /* Móvil: tamaños en px en vez de vh. */
+  @media (max-width: 900px) {
+    .standby.has-photos { grid-template-columns: 1fr; gap: 36px; }
+    .carousel { height: auto; width: min(100%, 420px); margin: 0 auto; }
+    .dots { bottom: 14px; gap: 8px; }
+    .eyebrow { font-size: 12px; letter-spacing: 3px; }
+    h1 { font-size: 36px; margin: 10px 0 18px; }
+    .rule { width: 60px; margin: 0 auto 20px; }
+    .lead { font-size: 17px; }
+    .ig-link { font-size: 16px; padding: 14px 24px; margin-top: 28px; gap: 10px; }
+    .ig-link svg { width: 22px; height: 22px; }
+    .glass { font-size: 56px; }
+  }
+</style>
+</head>
+<body>
+  <main class="standby{% if photos %} has-photos{% endif %}">
+    <section>
+      <div class="glass" aria-hidden="true">🍷</div>
+      <div class="eyebrow">Las catas de Mariana</div>
+      <h1>Ahora mismo<br>no hay <span class="nowrap">ninguna cata</span></h1>
+      <div class="rule"></div>
+      <p class="lead">
+        Las botellas están descansando hasta la próxima. Si quieres enterarte
+        de cuándo es, qué vinos vamos a abrir o apuntarte, <em>sígueme en
+        Instagram</em>.
+      </p>
+      <a class="ig-link" href="{{ instagram_url }}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor"/>
+        </svg>
+        @{{ instagram_handle }}
+      </a>
+    </section>
+
+    {% if photos %}
+    <aside class="carousel" aria-label="Fotos de catas anteriores">
+      {% for p in photos %}
+      <img src="{{ url_for('static', filename='standby/' ~ p) }}" alt="" {% if loop.first %}class="active"{% endif %} decoding="async">
+      {% endfor %}
+      {% if photos|length > 1 %}
+      <div class="dots">
+        {% for p in photos %}
+        <button type="button" aria-label="Foto {{ loop.index }}" {% if loop.first %}class="active"{% endif %}></button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </aside>
+    {% endif %}
+  </main>
+
+<script>
+  // Carrusel: pasa solo cada SLIDE_MS (salvo con «reducir movimiento»), los
+  // puntos saltan a una foto y en el móvil se puede deslizar.
+  (function () {
+    const SLIDE_MS = 5500;
+    const box = document.querySelector('.carousel');
+    if (!box) return;
+    const imgs = box.querySelectorAll('img');
+    const dots = box.querySelectorAll('.dots button');
+    if (imgs.length < 2) return;
+    let cur = 0, timer = null;
+    const auto = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function show(i) {
+      cur = (i + imgs.length) % imgs.length;
+      imgs.forEach((el, k) => el.classList.toggle('active', k === cur));
+      dots.forEach((el, k) => el.classList.toggle('active', k === cur));
+      restart();
+    }
+    function restart() {
+      clearInterval(timer);
+      if (auto) timer = setInterval(() => show(cur + 1), SLIDE_MS);
+    }
+    dots.forEach((d, k) => d.addEventListener('click', () => show(k)));
+
+    let x0 = null;
+    box.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    box.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 40) show(cur + (dx < 0 ? 1 : -1));
+      x0 = null;
+    });
+    restart();
+  })();
+</script>
+<script>
+  // Servida en `/` por el modo stand-by: al desactivarlo desde el control,
+  // recargar para volver a la cata. (En /standby es solo vista previa.)
+  if (location.pathname === '/') {
+    const es = new EventSource('/stream');
+    es.onmessage = (ev) => {
+      try { if (!JSON.parse(ev.data).standby) location.reload(); } catch (e) {}
+    };
+  }
+</script>
+</body>
+</html>

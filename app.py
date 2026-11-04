@@ -224,6 +224,9 @@ state = {
     # QR de "escanea para ver en tu móvil" en la TV (abajo izq). Por defecto OFF:
     # solo se muestra si el anfitrión lo activa desde el control. Se persiste.
     'show_qr': False,
+    # Pantalla de stand-by (landing "no hay cata, sígueme en Instagram") en vez
+    # de la cata, para cuando el servidor está encendido sin cata. Se persiste.
+    'standby': False,
     # Contadores para el aviso de voto manual (botones del panel). Cada pulsación
     # incrementa el suyo; la TV muestra ('alert_nonce') u oculta ('alert_hide_nonce')
     # el banner al ver un valor mayor al último. Transitorios: no se persisten.
@@ -285,6 +288,7 @@ def save_persisted_state():
             'summary_auto': state.get('summary_auto', True),
             'summary_view': state.get('summary_view', 'cards'),
             'show_qr': state.get('show_qr', False),
+            'standby': state.get('standby', False),
         }
         with open(STATE_FILE, 'w') as f:
             json.dump(payload, f)
@@ -304,6 +308,7 @@ def load_persisted_state():
                 'summary_auto': True,
                 'summary_view': 'cards',
                 'show_qr': False,
+                'standby': False,
             }
 
         return {
@@ -311,6 +316,7 @@ def load_persisted_state():
             'summary_auto': bool(data.get('summary_auto', True)),
             'summary_view': data.get('summary_view') if data.get('summary_view') in ('cards', 'journey') else 'cards',
             'show_qr': bool(data.get('show_qr', False)),
+            'standby': bool(data.get('standby', False)),
         }
     except Exception:
         return {
@@ -318,6 +324,7 @@ def load_persisted_state():
             'summary_auto': True,
             'summary_view': 'cards',
             'show_qr': False,
+            'standby': False,
         }
 
 
@@ -348,6 +355,7 @@ def current_payload():
         mode = state.get('mode')
         pref_alert_nonce = state.get('pref_alert_nonce', 0)
         show_qr = state.get('show_qr', False)
+        standby = state.get('standby', False)
     pair_summary = pair_votes_summary() if mode == 'duelo' else None
     # Info pública de usuarios (para mostrar nombres+colores en destacados/comentarios)
     with votes_lock:
@@ -372,6 +380,7 @@ def current_payload():
             'summary_auto': summary_auto,
             'summary_view': summary_view,
             'show_qr': show_qr,
+            'standby': standby,
             'mode': mode,
             'pair_votes_summary': pair_summary,
         }
@@ -396,6 +405,7 @@ def current_payload():
             'summary_view': summary_view,
             'wifi_config': wifi_cfg,
             'show_qr': show_qr,
+            'standby': standby,
             'mode': mode,
             'pair_votes_summary': pair_summary,
             'pref_alert_nonce': pref_alert_nonce,
@@ -422,6 +432,7 @@ def current_payload():
             'highlights': calculate_highlights(wines),
             'personal_favorites': calculate_personal_favorites(),
             'show_qr': show_qr,
+            'standby': standby,
             'mode': mode,
             'pair_votes_summary': pair_summary,
             'pref_alert_nonce': pref_alert_nonce,
@@ -458,6 +469,7 @@ def current_payload():
         'alert_nonce': alert_nonce,
         'alert_hide_nonce': alert_hide_nonce,
         'show_qr': show_qr,
+        'standby': standby,
         'mode': mode,
         'pair_votes_summary': pair_summary,
         'pref_alert_nonce': pref_alert_nonce,
@@ -787,9 +799,38 @@ def admin_required(fn):
 # ─────────────────────────────────────────────────────────────────────────────
 # Rutas
 # ─────────────────────────────────────────────────────────────────────────────
+INSTAGRAM_HANDLE = 'catasdemariana'
+STANDBY_CTX = {
+    'instagram_handle': INSTAGRAM_HANDLE,
+    'instagram_url': f'https://www.instagram.com/{INSTAGRAM_HANDLE}',
+}
+# Fotos del carrusel del stand-by, en orden alfabético (01.jpg, 02.jpg…).
+# No están en git (sale gente): en el servidor se copian a mano.
+STANDBY_PHOTOS_DIR = os.path.join(app.static_folder, 'standby')
+
+
+def standby_photos():
+    try:
+        names = os.listdir(STANDBY_PHOTOS_DIR)
+    except OSError:
+        return []
+    return sorted(n for n in names if n.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')))
+
+
+def render_standby():
+    return render_template('standby.html', photos=standby_photos(), **STANDBY_CTX)
+
+
 @app.route('/')
 def index():
-    return render_template('app.html')
+    with state_lock:
+        standby = state.get('standby', False)
+    return render_standby() if standby else render_template('app.html')
+
+@app.route('/standby')
+def standby():
+    """Vista previa de la pantalla de stand-by (esté o no activado el modo)."""
+    return render_standby()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Rate limit del login: intentos fallidos por IP y globales (detrás de un
@@ -989,6 +1030,23 @@ def api_set_qr():
     save_persisted_state()
     broadcast_update()
     return jsonify({'status': 'ok', 'show_qr': on})
+
+
+@app.route('/api/standby', methods=['POST'])
+@admin_required
+def api_set_standby():
+    """Activa/desactiva la pantalla de stand-by en `/` (TV y móviles).
+
+    Body: { "on": true|false }. Se persiste. Las páginas abiertas cambian solas:
+    reciben `standby` por SSE y recargan `/`.
+    """
+    data = request.get_json(silent=True) or {}
+    on = bool(data.get('on'))
+    with state_lock:
+        state['standby'] = on
+    save_persisted_state()
+    broadcast_update()
+    return jsonify({'status': 'ok', 'standby': on})
 
 
 @app.route('/api/reload', methods=['POST'])
@@ -2172,6 +2230,7 @@ def init():
         state['summary_auto'] = persisted_state.get('summary_auto', True)
         state['summary_view'] = persisted_state.get('summary_view', 'cards')
         state['show_qr'] = persisted_state.get('show_qr', False)
+        state['standby'] = persisted_state.get('standby', False)
         if state['summary_view'] not in ('cards', 'journey'):
             state['summary_view'] = 'cards'
         if state['current_index'] > len(wines):

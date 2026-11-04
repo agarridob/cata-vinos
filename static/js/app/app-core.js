@@ -47,6 +47,9 @@ function onServerUpdate(payload) {
     ? (serverState.is_summary ? serverState.total : serverState.index)
     : null;
 
+  // Stand-by activado desde el control: `/` sirve ahora la landing.
+  if (payload.standby) { location.reload(); return; }
+
   serverState = payload;
 
   // ── Detección de expulsión en vivo ──
