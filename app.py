@@ -817,20 +817,72 @@ def standby_photos():
     return sorted(n for n in names if n.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')))
 
 
+SEO = {
+    'name': 'Las catas de Mariana',
+    'description': ('Catas de vino entre amigos: vinos para descubrir, algo rico '
+                    'para picar y votaciones en directo. Sigue @'
+                    + INSTAGRAM_HANDLE + ' en Instagram para enterarte de la próxima.'),
+}
+
+
+def site_url():
+    """URL base pública sin barra final. Detrás del túnel de Cloudflare el
+    esquema real llega en X-Forwarded-Proto (la app no conoce su dominio)."""
+    proto = request.headers.get('X-Forwarded-Proto', request.scheme).split(',')[0].strip()
+    return f'{proto}://{request.host}'
+
+
+def seo_ctx():
+    # og-image.jpg (1200×630, vista previa al compartir) no está en git, como
+    # las fotos del carrusel: si falta, no se anuncia imagen.
+    og_image = os.path.isfile(os.path.join(app.static_folder, 'og-image.jpg'))
+    return {'site_url': site_url(), 'seo': SEO, 'og_image': og_image, **STANDBY_CTX}
+
+
 def render_standby():
-    return render_template('standby.html', photos=standby_photos(), **STANDBY_CTX)
+    return render_template('standby.html', photos=standby_photos(), **seo_ctx())
 
 
 @app.route('/')
 def index():
     with state_lock:
         standby = state.get('standby', False)
-    return render_standby() if standby else render_template('app.html')
+    return render_standby() if standby else render_template('app.html', **seo_ctx())
 
 @app.route('/standby')
 def standby():
-    """Vista previa de la pantalla de stand-by (esté o no activado el modo)."""
+    """Vista previa de la pantalla de stand-by (esté o no activado el modo).
+    Su canonical apunta a `/`, así que no cuenta como página duplicada."""
     return render_standby()
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    body = '\n'.join([
+        'User-agent: *',
+        'Allow: /$',
+        'Allow: /static/',
+        'Disallow: /control',
+        'Disallow: /historico',
+        'Disallow: /login',
+        'Disallow: /logout',
+        'Disallow: /api/',
+        'Disallow: /stream',
+        'Disallow: /standby',
+        '',
+        f'Sitemap: {site_url()}/sitemap.xml',
+        '',
+    ])
+    return Response(body, mimetype='text/plain')
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f'  <url><loc>{site_url()}/</loc></url>\n'
+            '</urlset>\n')
+    return Response(body, mimetype='application/xml')
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Rate limit del login: intentos fallidos por IP y globales (detrás de un
