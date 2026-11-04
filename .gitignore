@@ -42,3 +42,4 @@ journey_europe_entry.json
 
 # ── Fotos del carrusel de la pantalla stand-by (sale gente): no se versionan ──
 static/standby/*
+static/og-image.jpg

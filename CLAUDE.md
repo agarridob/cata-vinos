@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **2.9.0**.
+Versión actual: **2.10.0**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -109,6 +109,16 @@ Carrusel de fotos: coge las imágenes de `static/standby/` en orden alfabético
 (`01.jpg`, `02.jpg`…); sin fotos, la landing sale solo con el texto. Esa carpeta
 está **git-ignored** (sale gente en las fotos): en el servidor se copian a mano
 con scp y luego `chown -R cata: static/standby`.
+
+**SEO / vista previa al compartir:** `templates/_seo.html` (lo incluyen
+`standby.html` y `app.html`) pone descripción, canonical a `/`, Open Graph y
+JSON-LD (`Organization` con `sameAs` → Instagram). Textos en `SEO` de `app.py`.
+La URL base sale de `X-Forwarded-Proto` + `Host` (`site_url()`): el dominio no
+está escrito en el repo. `GET /robots.txt` cierra control/histórico/login/api/
+stream y `/standby` (duplicado de `/`); `GET /sitemap.xml` solo lista `/`.
+La imagen `static/og-image.jpg` (1200×630) también es **git-ignored** (scp como
+las del carrusel); sin ella no se anuncia `og:image`. Ojo: en Cloudflare hay una
+Transform Rule de zona que añade `X-Robots-Tag: noindex` al resto de subdominios.
 
 ## Aviso de voto en la TV (`app-vote-alert.js`)
 

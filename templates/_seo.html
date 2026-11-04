@@ -1,0 +1,28 @@
+{# Metadatos de buscadores y vista previa al compartir (WhatsApp, Instagram…).
+   Lo incluyen standby.html y app.html; `site_url` y `seo` vienen de seo_ctx(). #}
+<meta name="description" content="{{ seo.description }}">
+<link rel="canonical" href="{{ site_url }}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ seo.name }}">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="{{ seo.name }}">
+<meta property="og:description" content="{{ seo.description }}">
+<meta property="og:url" content="{{ site_url }}/">
+{% if og_image %}
+<meta property="og:image" content="{{ site_url }}{{ url_for('static', filename='og-image.jpg') }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sirviendo un vino blanco a la luz de una vela en una de las catas">
+<meta name="twitter:card" content="summary_large_image">
+{% endif %}
+<meta name="theme-color" content="#6e0f2a">
+<script type="application/ld+json">
+{{ {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  'name': seo.name,
+  'url': site_url ~ '/',
+  'description': seo.description,
+  'sameAs': [instagram_url],
+} | tojson }}
+</script>
