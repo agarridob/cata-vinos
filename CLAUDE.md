@@ -15,7 +15,7 @@ Los `?v=X.Y.Z` no son cosméticos: son **cache-busting**. Subirlos fuerza a los
 navegadores (TV y móviles) a recargar el JS/CSS nuevo tras un deploy, en vez de
 servir la versión cacheada. Mantén el mismo número en `app.html` y `control.html`.
 
-Versión actual: **2.10.1**.
+Versión actual: **2.11.0**.
 
 Convención de incremento (semver informal):
 - correcciones pequeñas → patch (1.1.0 → 1.1.1)
@@ -109,6 +109,19 @@ Carrusel de fotos: coge las imágenes de `static/standby/` en orden alfabético
 (`01.jpg`, `02.jpg`…); sin fotos, la landing sale solo con el texto. Esa carpeta
 está **git-ignored** (sale gente en las fotos): en el servidor se copian a mano
 con scp y luego `chown -R cata: static/standby`.
+
+Tras añadir o cambiar fotos: `make standby-photos` **en local** (el python del
+servidor no tiene Pillow) genera `static/standby/w/NN-{600,900,1200}.webp`; la
+landing las sirve con `srcset` (si faltan, cae al original) y solo pide la 1ª
+al cargar (precargada en el `<head>`), el resto justo antes de mostrarlas.
+Subir la carpeta entera: `scp -r static/standby cata-vinos:/opt/cata-vinos/static/`.
+
+**Rendimiento:** la landing usa Montserrat desde `static/fonts/` (woff2 variable
++ fallback Arial con métricas ajustadas para que no salte el texto), no Google
+Fonts; `app.html` sigue con Google Fonts. Los estáticos pedidos con `?v=` se
+cachean **un año** (`long_cache_versioned_static` en `app.py`): CSS/JS con la
+versión, y fotos/fuentes/og-image con `static_v()` (`?v=<mtime>`, cambia solo
+al sustituir el fichero). Sin `?v` (maps_data.json, static/photos) no cambia nada.
 
 **SEO / vista previa al compartir:** `templates/_seo.html` (lo incluyen
 `standby.html` y `app.html`) pone descripción, canonical a `/`, Open Graph y
