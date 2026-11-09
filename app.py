@@ -46,6 +46,16 @@ app.secret_key = os.environ.get('SECRET_KEY')
 app.config['MAX_CONTENT_LENGTH'] = 15 * 1024 * 1024
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
+
+@app.after_request
+def long_cache_versioned_static(resp):
+    """Estáticos pedidos con `?v=` (CSS/JS con la versión, fotos del stand-by y
+    fuentes con su mtime): caché de un año, porque al cambiar el fichero cambia
+    la URL. Sin `?v` (maps_data.json, static/photos…) se deja como estaba."""
+    if request.path.startswith('/static/') and request.args.get('v') and resp.status_code in (200, 304):
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return resp
+
 if not app.secret_key:
     raise RuntimeError("Falta SECRET_KEY en variables de entorno")
 
@@ -807,14 +817,37 @@ STANDBY_CTX = {
 # Fotos del carrusel del stand-by, en orden alfabético (01.jpg, 02.jpg…).
 # No están en git (sale gente): en el servidor se copian a mano.
 STANDBY_PHOTOS_DIR = os.path.join(app.static_folder, 'standby')
+# Anchos de las variantes WebP que genera tools/standby_photos.py (en w/).
+STANDBY_WIDTHS = (600, 900, 1200)
+
+
+@app.template_global()
+def static_v(filename):
+    """URL de un estático con `?v=<mtime>`: se cachea un año
+    (long_cache_versioned_static) y cambia sola si se sustituye el fichero."""
+    try:
+        v = int(os.path.getmtime(os.path.join(app.static_folder, filename)))
+    except OSError:
+        v = 0
+    return url_for('static', filename=filename, v=v)
 
 
 def standby_photos():
+    """Fotos del carrusel: `src` (el original) y, si existen sus variantes WebP
+    (`make standby-photos`), `srcset` para que cada pantalla baje la que le toca."""
     try:
         names = os.listdir(STANDBY_PHOTOS_DIR)
     except OSError:
         return []
-    return sorted(n for n in names if n.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')))
+    photos = []
+    for name in sorted(n for n in names if n.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))):
+        stem = os.path.splitext(name)[0]
+        variants = [f'standby/w/{stem}-{w}.webp' for w in STANDBY_WIDTHS]
+        srcset = None
+        if all(os.path.isfile(os.path.join(app.static_folder, v)) for v in variants):
+            srcset = ', '.join(f'{static_v(v)} {w}w' for v, w in zip(variants, STANDBY_WIDTHS))
+        photos.append({'src': static_v('standby/' + name), 'srcset': srcset})
+    return photos
 
 
 SEO = {

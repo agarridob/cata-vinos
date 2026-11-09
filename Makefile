@@ -24,6 +24,11 @@ freeze:
 run:
 	$(PY) -m flask --app app run --host 0.0.0.0 --port 5001
 
+# Versiones WebP (600/900/1200 px) de las fotos del carrusel del stand-by.
+# Ejecutar en local tras añadir fotos a static/standby/ y subir la carpeta por scp.
+standby-photos:
+	$(PY) tools/standby_photos.py
+
 # Quitar fondo de fotos desde el control: venv aparte (onnxruntime no está en
 # apt) + modelo isnet-general-use (~170 MB). En el servidor ejecutar como root
 # en /opt/cata-vinos y luego `chown -R cata: .bgremove-venv models`.
